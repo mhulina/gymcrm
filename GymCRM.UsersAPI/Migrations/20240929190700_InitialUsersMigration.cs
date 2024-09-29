@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GymCRM.UsersAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class AddUsersToDB : Migration
+    public partial class InitialUsersMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -27,7 +27,8 @@ namespace GymCRM.UsersAPI.Migrations
                     MobilePhone = table.Column<string>(type: "text", nullable: true),
                     DateJoined = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     PersonalTrainerId = table.Column<int>(type: "integer", nullable: true),
-                    WorkoutGroupId = table.Column<int>(type: "integer", nullable: true)
+                    WorkoutGroupId = table.Column<int>(type: "integer", nullable: true),
+                    Guid = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -36,8 +37,14 @@ namespace GymCRM.UsersAPI.Migrations
 
             migrationBuilder.InsertData(
                 table: "GymUsers",
-                columns: new[] { "Id", "DateJoined", "Email", "FirstName", "LastName", "MiddleName", "MobilePhone", "PersonalTrainerId", "PhoneNumber", "UserType", "WorkoutGroupId" },
-                values: new object[] { 1, new DateTime(2024, 9, 27, 22, 0, 0, 0, DateTimeKind.Utc), "test@test.com", "Admin", "Adminski", null, null, null, "123456789", 1, null });
+                columns: new[] { "Id", "DateJoined", "Email", "FirstName", "Guid", "LastName", "MiddleName", "MobilePhone", "PersonalTrainerId", "PhoneNumber", "UserType", "WorkoutGroupId" },
+                values: new object[] { 1, new DateTime(2024, 9, 28, 22, 0, 0, 0, DateTimeKind.Utc), "test@test.com", "Admin", new Guid("7402413a-6032-45a3-8283-031c93a600b1"), "Adminski", null, null, null, "123456789", 1, null });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Guid",
+                table: "GymUsers",
+                column: "Guid",
+                unique: true);
         }
 
         /// <inheritdoc />

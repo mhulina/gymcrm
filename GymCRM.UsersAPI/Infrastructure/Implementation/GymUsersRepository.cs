@@ -9,13 +9,13 @@ namespace GymCRM.UsersAPI.Infrastructure.Implementation
 		private readonly AppDbContext _context;
 		private readonly ILogger _logger;
 
-		public IGenericRepository<User> Users { get; private set; }
+		public IGenericRepository<User> GymUsers { get; private set; }
 
 		public GymUsersRepository(AppDbContext context, ILogger logger)
 		{
 			_context = context;
 			_logger = logger;
-			Users = new GenericRepository<User>(context);
+			GymUsers = new GenericRepository<User>(context);
 		}
 
 		public bool Save()

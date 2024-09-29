@@ -4,7 +4,7 @@ namespace GymCRM.UsersAPI.Infrastructure.Interface
 {
 	public interface IGymUsersRepository : IDisposable
 	{
-		IGenericRepository<User> Users { get; }
+		IGenericRepository<User> GymUsers { get; }
 		bool Save();
 	}
 }

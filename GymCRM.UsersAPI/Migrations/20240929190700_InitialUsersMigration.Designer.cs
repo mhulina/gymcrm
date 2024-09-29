@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GymCRM.UsersAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240928162013_AddUsersToDB")]
-    partial class AddUsersToDB
+    [Migration("20240929190700_InitialUsersMigration")]
+    partial class InitialUsersMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,7 +25,7 @@ namespace GymCRM.UsersAPI.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("GymCRM.UsersAPI.Models.User", b =>
+            modelBuilder.Entity("GymCRM.UsersAPI.Infrastructure.Entities.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -43,6 +43,9 @@ namespace GymCRM.UsersAPI.Migrations
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid>("Guid")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -69,15 +72,19 @@ namespace GymCRM.UsersAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("GymUsers");
+                    b.HasIndex(new[] { "Guid" }, "IX_Guid")
+                        .IsUnique();
+
+                    b.ToTable("GymUsers", (string)null);
 
                     b.HasData(
                         new
                         {
                             Id = 1,
-                            DateJoined = new DateTime(2024, 9, 27, 22, 0, 0, 0, DateTimeKind.Utc),
+                            DateJoined = new DateTime(2024, 9, 28, 22, 0, 0, 0, DateTimeKind.Utc),
                             Email = "test@test.com",
                             FirstName = "Admin",
+                            Guid = new Guid("7402413a-6032-45a3-8283-031c93a600b1"),
                             LastName = "Adminski",
                             PhoneNumber = "123456789",
                             UserType = 1

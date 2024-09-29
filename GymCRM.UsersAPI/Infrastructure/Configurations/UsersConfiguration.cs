@@ -8,7 +8,7 @@ namespace GymCRM.UsersAPI.Infrastructure.Configurations
 	{
 		public void Configure(EntityTypeBuilder<User> modelBuilder)
 		{
-			modelBuilder.ToTable("Users");
+			modelBuilder.ToTable("GymUsers");
 
 			modelBuilder.HasKey(x => x.Id);
 			modelBuilder.HasIndex(x => x.Guid, "IX_Guid").IsUnique();
@@ -26,6 +26,7 @@ namespace GymCRM.UsersAPI.Infrastructure.Configurations
 				new User
 				{
 					Id = 1,
+					Guid = Guid.NewGuid(),
 					DateJoined = DateTime.Today.Date.ToUniversalTime(),
 					FirstName = "Admin",
 					LastName = "Adminski",

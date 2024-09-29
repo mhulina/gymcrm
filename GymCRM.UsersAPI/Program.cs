@@ -1,6 +1,10 @@
+using AutoMapper;
 using GymCRM.UsersAPI.Infrastructure;
 using GymCRM.UsersAPI.Infrastructure.Implementation;
 using GymCRM.UsersAPI.Infrastructure.Interface;
+using GymCRM.UsersAPI.Services;
+using GymCRM.UsersAPI.Services.Implementation;
+using GymCRM.UsersAPI.Services.Interface;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using ILogger = Serilog.ILogger;
@@ -17,8 +21,14 @@ builder.Services.AddDbContext<AppDbContext>(option =>
 {
 	option.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
+
+IMapper mapper = MappingConfig.RegisterMaps().CreateMapper();
+builder.Services.AddSingleton(mapper);
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
 builder.Services.AddSingleton<ILogger>(log);
 builder.Services.AddScoped<IGymUsersRepository, GymUsersRepository>();
+builder.Services.AddScoped<IGymUsersService, GymUsersService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

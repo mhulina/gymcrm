@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GymCRM.UsersAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class AddUsersToDb : Migration
+    public partial class AddUsersToDB : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -33,6 +33,11 @@ namespace GymCRM.UsersAPI.Migrations
                 {
                     table.PrimaryKey("PK_GymUsers", x => x.Id);
                 });
+
+            migrationBuilder.InsertData(
+                table: "GymUsers",
+                columns: new[] { "Id", "DateJoined", "Email", "FirstName", "LastName", "MiddleName", "MobilePhone", "PersonalTrainerId", "PhoneNumber", "UserType", "WorkoutGroupId" },
+                values: new object[] { 1, new DateTime(2024, 9, 27, 22, 0, 0, 0, DateTimeKind.Utc), "test@test.com", "Admin", "Adminski", null, null, null, "123456789", 1, null });
         }
 
         /// <inheritdoc />

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GymCRM.UsersAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240927031813_AddUsersToDb")]
-    partial class AddUsersToDb
+    [Migration("20240928162013_AddUsersToDB")]
+    partial class AddUsersToDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -70,6 +70,18 @@ namespace GymCRM.UsersAPI.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("GymUsers");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            DateJoined = new DateTime(2024, 9, 27, 22, 0, 0, 0, DateTimeKind.Utc),
+                            Email = "test@test.com",
+                            FirstName = "Admin",
+                            LastName = "Adminski",
+                            PhoneNumber = "123456789",
+                            UserType = 1
+                        });
                 });
 #pragma warning restore 612, 618
         }

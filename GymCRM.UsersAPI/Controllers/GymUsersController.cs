@@ -20,10 +20,32 @@ namespace GymCRM.UsersAPI.Controllers
 
 		[HttpGet]
 		public Result<List<UserDto>> GetAllUsers()
-		{		
-			var result = _gymUsersService.GetAllUsers();
+		{
+			try
+			{
+				var result = _gymUsersService.GetAllUsers();
 
-			return result;
+				return Result.Ok(result);
+			}
+			catch (Exception ex)
+			{
+				return Result.Fail(ex.Message);
+			}
+		}
+
+		[HttpGet("{guid}")]
+		public Result<UserDto> GetUserById(Guid guid)
+		{
+			try
+			{
+				var result = _gymUsersService.GetByGuid(guid);
+
+				return Result.OkIf(result != null, "User does not exist");
+			}
+			catch (Exception ex)
+			{
+				return Result.Fail(ex.Message);
+			}
 		}
 	}
 }

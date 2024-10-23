@@ -1,7 +1,7 @@
-﻿using GymCRM.UsersAPI.Infrastructure.Entities;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
+using GymCRM.MembershipAPI.Infrastructure.Entities;
 
-namespace GymCRM.UsersAPI.Infrastructure.Interface
+namespace GymCRM.MembershipAPI.Infrastructure.Interface
 {
 	public interface IGenericRepository<TEntity> where TEntity : BaseEntity
 	{

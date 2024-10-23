@@ -1,10 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace GymCRM.UsersAPI.Infrastructure.Entities
+namespace GymCRM.MembershipAPI.Infrastructure.Entities
 {
     public class User : BaseEntity
     {
-        [Required]
+		[Required]
+		public string HashedPassword { get; set; }
+		[Required]
         public int UserType { get; set; }
         [Required]
         public string FirstName { get; set; }
@@ -12,13 +14,17 @@ namespace GymCRM.UsersAPI.Infrastructure.Entities
         [Required]
         public string LastName { get; set; }
         [Required]
+        public int Gender { get; set; }
+        [Required]
         public string Email { get; set; }
         [Required]
         public string PhoneNumber { get; set; }
-        public string? MobilePhone { get; set; }
+        public string? MobileNumber { get; set; }
         [Required]
         public DateTime DateJoined { get; set; }
-        public int? PersonalTrainerId { get; set; }
-        public int? WorkoutGroupId { get; set; }
+        public Guid? PersonalTrainerId { get; set; }
+        public List<Guid> WorkoutGroupIds { get; set; }
+        public int? WorkingExperienceInMonths {  get; set; }
+        public int GymSubscriptionType { get; set; }
     }
 }

@@ -1,6 +1,6 @@
-﻿using GymCRM.UsersAPI.Infrastructure.Entities;
+﻿using GymCRM.MembershipAPI.Infrastructure.Entities;
 
-namespace GymCRM.UsersAPI.Infrastructure.Interface
+namespace GymCRM.MembershipAPI.Infrastructure.Interface
 {
 	public interface IGymUsersRepository : IDisposable
 	{

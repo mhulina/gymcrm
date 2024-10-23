@@ -1,6 +1,6 @@
-﻿using GymCRM.UsersAPI.Models.DTOs;
+﻿using GymCRM.MembershipAPI.Models.DTOs;
 
-namespace GymCRM.UsersAPI.Services.Interface
+namespace GymCRM.MembershipAPI.Services.Interface
 {
 	public interface IGymUsersService
 	{

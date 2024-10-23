@@ -1,9 +1,9 @@
 ﻿using FluentResults;
-using GymCRM.UsersAPI.Models.DTOs;
-using GymCRM.UsersAPI.Services.Interface;
+using GymCRM.MembershipAPI.Models.DTOs;
+using GymCRM.MembershipAPI.Services.Interface;
 using Microsoft.AspNetCore.Mvc;
 
-namespace GymCRM.UsersAPI.Controllers
+namespace GymCRM.MembershipAPI.Controllers
 {
 	[Route("api/[controller]")]
 	[ApiController]

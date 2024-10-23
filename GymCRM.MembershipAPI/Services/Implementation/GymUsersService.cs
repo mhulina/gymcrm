@@ -1,10 +1,10 @@
 ﻿using AutoMapper;
-using GymCRM.UsersAPI.Infrastructure.Interface;
-using GymCRM.UsersAPI.Models.DTOs;
-using GymCRM.UsersAPI.Services.Interface;
+using GymCRM.MembershipAPI.Infrastructure.Interface;
+using GymCRM.MembershipAPI.Models.DTOs;
+using GymCRM.MembershipAPI.Services.Interface;
 using ILogger = Serilog.ILogger;
 
-namespace GymCRM.UsersAPI.Services.Implementation
+namespace GymCRM.MembershipAPI.Services.Implementation
 {
 	public class GymUsersService : IGymUsersService
 	{

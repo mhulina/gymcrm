@@ -1,8 +1,11 @@
-﻿namespace GymCRM.UsersAPI.Models.DTOs
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace GymCRM.MembershipAPI.Models.DTOs
 {
 	public class UserDto
 	{
 		public Guid Guid { get; set; }
+		public string UserPassword { get; set; }
 		public int UserType { get; set; }
 		public string FirstName { get; set; }
 		public string MiddleName { get; set; }

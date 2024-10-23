@@ -1,4 +1,4 @@
-﻿namespace GymCRM.UsersAPI.Infrastructure.Entities
+﻿namespace GymCRM.MembershipAPI.Infrastructure.Entities
 {
 	public class BaseEntity
 	{

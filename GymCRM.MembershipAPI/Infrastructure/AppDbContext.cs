@@ -1,8 +1,8 @@
-﻿using GymCRM.UsersAPI.Infrastructure.Configurations;
-using GymCRM.UsersAPI.Infrastructure.Entities;
+﻿using GymCRM.MembershipAPI.Infrastructure.Configurations;
+using GymCRM.MembershipAPI.Infrastructure.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace GymCRM.UsersAPI.Infrastructure
+namespace GymCRM.MembershipAPI.Infrastructure
 {
     public class AppDbContext : DbContext
 	{

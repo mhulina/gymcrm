@@ -4,7 +4,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace GymCRM.UsersAPI.Migrations
+namespace GymCRM.MembershipAPI.Migrations
 {
     /// <inheritdoc />
     public partial class InitialUsersMigration : Migration

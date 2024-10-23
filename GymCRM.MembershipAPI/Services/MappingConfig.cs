@@ -1,8 +1,8 @@
 ﻿using AutoMapper;
-using GymCRM.UsersAPI.Infrastructure.Entities;
-using GymCRM.UsersAPI.Models.DTOs;
+using GymCRM.MembershipAPI.Infrastructure.Entities;
+using GymCRM.MembershipAPI.Models.DTOs;
 
-namespace GymCRM.UsersAPI.Services
+namespace GymCRM.MembershipAPI.Services
 {
 	public class MappingConfig
 	{

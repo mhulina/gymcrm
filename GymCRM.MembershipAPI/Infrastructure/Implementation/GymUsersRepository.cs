@@ -1,8 +1,8 @@
-﻿using GymCRM.UsersAPI.Infrastructure.Entities;
-using GymCRM.UsersAPI.Infrastructure.Interface;
+﻿using GymCRM.MembershipAPI.Infrastructure.Entities;
+using GymCRM.MembershipAPI.Infrastructure.Interface;
 using ILogger = Serilog.ILogger;
 
-namespace GymCRM.UsersAPI.Infrastructure.Implementation
+namespace GymCRM.MembershipAPI.Infrastructure.Implementation
 {
 	public class GymUsersRepository : IGymUsersRepository
 	{

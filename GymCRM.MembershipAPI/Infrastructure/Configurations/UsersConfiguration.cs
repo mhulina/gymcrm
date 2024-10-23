@@ -1,8 +1,8 @@
-﻿using GymCRM.UsersAPI.Infrastructure.Entities;
+﻿using GymCRM.MembershipAPI.Infrastructure.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace GymCRM.UsersAPI.Infrastructure.Configurations
+namespace GymCRM.MembershipAPI.Infrastructure.Configurations
 {
 	public class UsersConfiguration : IEntityTypeConfiguration<User>
 	{

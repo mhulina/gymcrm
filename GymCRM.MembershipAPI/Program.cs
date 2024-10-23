@@ -1,10 +1,10 @@
 using AutoMapper;
-using GymCRM.UsersAPI.Infrastructure;
-using GymCRM.UsersAPI.Infrastructure.Implementation;
-using GymCRM.UsersAPI.Infrastructure.Interface;
-using GymCRM.UsersAPI.Services;
-using GymCRM.UsersAPI.Services.Implementation;
-using GymCRM.UsersAPI.Services.Interface;
+using GymCRM.MembershipAPI.Infrastructure;
+using GymCRM.MembershipAPI.Infrastructure.Implementation;
+using GymCRM.MembershipAPI.Infrastructure.Interface;
+using GymCRM.MembershipAPI.Services;
+using GymCRM.MembershipAPI.Services.Implementation;
+using GymCRM.MembershipAPI.Services.Interface;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using ILogger = Serilog.ILogger;

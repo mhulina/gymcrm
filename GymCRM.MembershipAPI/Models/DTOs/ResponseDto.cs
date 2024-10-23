@@ -1,4 +1,4 @@
-﻿namespace GymCRM.UsersAPI.Models.DTOs
+﻿namespace GymCRM.MembershipAPI.Models.DTOs
 {
 	public class ResponseDto
 	{

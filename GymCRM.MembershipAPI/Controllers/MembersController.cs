@@ -7,23 +7,23 @@ namespace GymCRM.MembershipAPI.Controllers
 {
 	[Route("api/[controller]")]
 	[ApiController]
-	public class GymUsersController : ControllerBase
+	public class MembersController : ControllerBase
 	{
-		private readonly IGymUsersService _gymUsersService;
+		private readonly IMembersService _membersService;
 		private ResponseDto _responseDto;
 
-		public GymUsersController(IGymUsersService gymUsersService)
+		public MembersController(IMembersService membersService)
 		{
-			_gymUsersService = gymUsersService;
+			_membersService = membersService;
 			_responseDto = new ResponseDto();
 		}
 
 		[HttpGet]
-		public Result<List<UserDto>> GetAllUsers()
+		public Result<List<MemberDto>> GetAllUsers()
 		{
 			try
 			{
-				var result = _gymUsersService.GetAllUsers();
+				var result = _membersService.GetAllUsers();
 
 				return Result.Ok(result);
 			}
@@ -34,13 +34,13 @@ namespace GymCRM.MembershipAPI.Controllers
 		}
 
 		[HttpGet("{guid}")]
-		public Result<UserDto> GetUserById(Guid guid)
+		public Result<MemberDto> GetUserById(Guid guid)
 		{
 			try
 			{
-				var result = _gymUsersService.GetByGuid(guid);
+				var result = _membersService.GetByGuid(guid);
 
-				return Result.OkIf(result != null, "User does not exist");
+				return Result.OkIf(result.Guid != Guid.Empty, "User does not exist");
 			}
 			catch (Exception ex)
 			{

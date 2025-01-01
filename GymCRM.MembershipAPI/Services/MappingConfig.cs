@@ -10,8 +10,8 @@ namespace GymCRM.MembershipAPI.Services
 		{
 			var mappingConfig = new MapperConfiguration(config =>
 			{
-				config.CreateMap<UserDto, User>();
-				config.CreateMap<User, UserDto>();
+				config.CreateMap<MemberDto, Member>();
+				config.CreateMap<Member, MemberDto>();
 			});
 
 			return mappingConfig;

@@ -2,9 +2,9 @@
 
 namespace GymCRM.MembershipAPI.Infrastructure.Interface
 {
-	public interface IGymUsersRepository : IDisposable
+	public interface IMembersRepository : IDisposable
 	{
-		IGenericRepository<User> GymUsers { get; }
+		IGenericRepository<Member> Members { get; }
 		bool Save();
 	}
 }

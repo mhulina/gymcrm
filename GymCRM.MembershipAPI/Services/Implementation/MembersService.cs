@@ -6,14 +6,14 @@ using ILogger = Serilog.ILogger;
 
 namespace GymCRM.MembershipAPI.Services.Implementation
 {
-	public class GymUsersService : IGymUsersService
+	public class MembersService : IMembersService
 	{
-		private readonly IGymUsersRepository _repository;
+		private readonly IMembersRepository _repository;
 		private readonly ILogger _logger;
 		private readonly IMapper _mapper;
 
-		public GymUsersService(
-			IGymUsersRepository repository,
+		public MembersService(
+			IMembersRepository repository,
 			IMapper mapper,
 			ILogger logger)
 		{
@@ -22,14 +22,14 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 			_mapper = mapper;
 		}
 
-		public List<UserDto> GetAllUsers()
+		public List<MemberDto> GetAllUsers()
 		{
 			try
 			{
-				var dbUsers = _repository.GymUsers.FetchAll().ToList();
-				var userDtos = _mapper.Map<List<UserDto>>(dbUsers);
+				var dbUsers = _repository.Members.FetchAll().ToList();
+				var memberDtos = _mapper.Map<List<MemberDto>>(dbUsers);
 
-				return userDtos;
+				return memberDtos;
 			}
 			catch (Exception ex)
 			{
@@ -39,7 +39,7 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 			}
 		}
 
-		public UserDto GetByGuid(Guid guid)
+		public MemberDto GetByGuid(Guid guid)
 		{
 			if (guid == Guid.Empty)
 			{
@@ -48,10 +48,10 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 
 			try
 			{
-				var user = _repository.GymUsers.FetchByCondition(x => x.Guid == guid).FirstOrDefault();
-				var userDto = _mapper.Map<UserDto>(user);
+				var user = _repository.Members.FetchByCondition(x => x.Guid == guid).FirstOrDefault();
+				var memberDto = _mapper.Map<MemberDto>(user);
 
-				return userDto;
+				return memberDto;
 			}
 			catch (Exception ex)
 			{

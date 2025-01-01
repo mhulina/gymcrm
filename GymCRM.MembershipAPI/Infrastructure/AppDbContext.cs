@@ -6,7 +6,7 @@ namespace GymCRM.MembershipAPI.Infrastructure
 {
     public class AppDbContext : DbContext
 	{
-		public DbSet<User> GymUsers { get; set; }
+		public DbSet<Member> Members { get; set; }
 		
 		public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) 
 		{
@@ -16,7 +16,7 @@ namespace GymCRM.MembershipAPI.Infrastructure
 		{
 			base.OnModelCreating(modelBuilder);
 
-			modelBuilder.ApplyConfiguration(new UsersConfiguration());
+			modelBuilder.ApplyConfiguration(new MembersConfiguration());
 		}
 	}
 }

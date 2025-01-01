@@ -2,7 +2,7 @@
 
 namespace GymCRM.MembershipAPI.Models.DTOs
 {
-	public class UserDto
+	public class MemberDto
 	{
 		public Guid Guid { get; set; }
 		public string UserPassword { get; set; }

@@ -4,18 +4,18 @@ using ILogger = Serilog.ILogger;
 
 namespace GymCRM.MembershipAPI.Infrastructure.Implementation
 {
-	public class GymUsersRepository : IGymUsersRepository
+	public class MembersRepository : IMembersRepository
 	{
 		private readonly AppDbContext _context;
 		private readonly ILogger _logger;
 
-		public IGenericRepository<User> GymUsers { get; private set; }
+		public IGenericRepository<Member> Members { get; private set; }
 
-		public GymUsersRepository(AppDbContext context, ILogger logger)
+		public MembersRepository(AppDbContext context, ILogger logger)
 		{
 			_context = context;
 			_logger = logger;
-			GymUsers = new GenericRepository<User>(context);
+			Members = new GenericRepository<Member>(context);
 		}
 
 		public bool Save()

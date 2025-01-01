@@ -2,9 +2,9 @@
 
 namespace GymCRM.MembershipAPI.Services.Interface
 {
-	public interface IGymUsersService
+	public interface IMembersService
 	{
-		List<UserDto> GetAllUsers();
-		UserDto GetByGuid(Guid guid);
+		List<MemberDto> GetAllUsers();
+		MemberDto GetByGuid(Guid guid);
 	}
 }

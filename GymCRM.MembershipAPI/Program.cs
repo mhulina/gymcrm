@@ -1,4 +1,3 @@
-using AutoMapper;
 using GymCRM.MembershipAPI.Infrastructure;
 using GymCRM.MembershipAPI.Infrastructure.Implementation;
 using GymCRM.MembershipAPI.Infrastructure.Interface;
@@ -11,7 +10,7 @@ using ILogger = Serilog.ILogger;
 
 using var log = new LoggerConfiguration()
 	.WriteTo.Console()
-	.WriteTo.File("./logs/Users/logs.txt")
+	.WriteTo.File("./logs/Members/logs.txt")
 	.CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,13 +21,13 @@ builder.Services.AddDbContext<AppDbContext>(option =>
 	option.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
-IMapper mapper = MappingConfig.RegisterMaps().CreateMapper();
+var mapper = MappingConfig.RegisterMaps().CreateMapper();
 builder.Services.AddSingleton(mapper);
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 builder.Services.AddSingleton<ILogger>(log);
-builder.Services.AddScoped<IGymUsersRepository, GymUsersRepository>();
-builder.Services.AddScoped<IGymUsersService, GymUsersService>();
+builder.Services.AddScoped<IMembersRepository, MembersRepository>();
+builder.Services.AddScoped<IMembersService, MembersService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -57,15 +56,15 @@ void ApplyMigration()
 {
 	using (var scope = app.Services.CreateScope())
 	{
-		var _db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+		var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-		if (!_db.Database.CanConnect())
+		if (!db.Database.CanConnect())
 		{
-			_db.Database.Migrate();
+			db.Database.Migrate();
 		}
-		else if (_db.Database.GetPendingMigrations().Count() > 0)
+		else if (db.Database.GetPendingMigrations().Any())
 		{
-			_db.Database.Migrate();
+			db.Database.Migrate();
 		}
 	}
 }

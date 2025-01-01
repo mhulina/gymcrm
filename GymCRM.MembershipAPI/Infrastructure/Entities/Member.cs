@@ -2,7 +2,7 @@
 
 namespace GymCRM.MembershipAPI.Infrastructure.Entities
 {
-    public class User : BaseEntity
+    public class Member : BaseEntity
     {
 		[Required]
 		public string HashedPassword { get; set; }
@@ -23,7 +23,7 @@ namespace GymCRM.MembershipAPI.Infrastructure.Entities
         [Required]
         public DateTime DateJoined { get; set; }
         public Guid? PersonalTrainerId { get; set; }
-        public List<Guid> WorkoutGroupIds { get; set; }
+        public List<Guid>? WorkoutGroupIds { get; set; }
         public int? WorkingExperienceInMonths {  get; set; }
         public int GymSubscriptionType { get; set; }
     }

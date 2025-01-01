@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -7,42 +8,46 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GymCRM.MembershipAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialUsersMigration : Migration
+    public partial class InitialMembersMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "GymUsers",
+                name: "Members",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    HashedPassword = table.Column<string>(type: "text", nullable: false),
                     UserType = table.Column<int>(type: "integer", nullable: false),
                     FirstName = table.Column<string>(type: "text", nullable: false),
                     MiddleName = table.Column<string>(type: "text", nullable: true),
                     LastName = table.Column<string>(type: "text", nullable: false),
+                    Gender = table.Column<int>(type: "integer", nullable: false),
                     Email = table.Column<string>(type: "text", nullable: false),
                     PhoneNumber = table.Column<string>(type: "text", nullable: false),
-                    MobilePhone = table.Column<string>(type: "text", nullable: true),
+                    MobileNumber = table.Column<string>(type: "text", nullable: true),
                     DateJoined = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    PersonalTrainerId = table.Column<int>(type: "integer", nullable: true),
-                    WorkoutGroupId = table.Column<int>(type: "integer", nullable: true),
+                    PersonalTrainerId = table.Column<Guid>(type: "uuid", nullable: true),
+                    WorkoutGroupIds = table.Column<List<Guid>>(type: "uuid[]", nullable: true),
+                    WorkingExperienceInMonths = table.Column<int>(type: "integer", nullable: true),
+                    GymSubscriptionType = table.Column<int>(type: "integer", nullable: false),
                     Guid = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_GymUsers", x => x.Id);
+                    table.PrimaryKey("PK_Members", x => x.Id);
                 });
 
             migrationBuilder.InsertData(
-                table: "GymUsers",
-                columns: new[] { "Id", "DateJoined", "Email", "FirstName", "Guid", "LastName", "MiddleName", "MobilePhone", "PersonalTrainerId", "PhoneNumber", "UserType", "WorkoutGroupId" },
-                values: new object[] { 1, new DateTime(2024, 9, 28, 22, 0, 0, 0, DateTimeKind.Utc), "test@test.com", "Admin", new Guid("7402413a-6032-45a3-8283-031c93a600b1"), "Adminski", null, null, null, "123456789", 1, null });
+                table: "Members",
+                columns: new[] { "Id", "DateJoined", "Email", "FirstName", "Gender", "Guid", "GymSubscriptionType", "HashedPassword", "LastName", "MiddleName", "MobileNumber", "PersonalTrainerId", "PhoneNumber", "UserType", "WorkingExperienceInMonths", "WorkoutGroupIds" },
+                values: new object[] { 1, new DateTime(2024, 12, 31, 23, 0, 0, 0, DateTimeKind.Utc), "test@test.com", "Admin", 1, new Guid("87f19554-5ee9-4a2e-a50f-223bdf93c71e"), 0, "!#/)zW??C?JJ??", "Adminski", null, null, null, "123456789", 1, null, null });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Guid",
-                table: "GymUsers",
+                table: "Members",
                 column: "Guid",
                 unique: true);
         }
@@ -51,7 +56,7 @@ namespace GymCRM.MembershipAPI.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "GymUsers");
+                name: "Members");
         }
     }
 }

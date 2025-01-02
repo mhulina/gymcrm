@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GymCRM.MembershipAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250101184442_InitialMembersMigration")]
+    [Migration("20250102222525_InitialMembersMigration")]
     partial class InitialMembersMigration
     {
         /// <inheritdoc />
@@ -95,11 +95,11 @@ namespace GymCRM.MembershipAPI.Migrations
                         new
                         {
                             Id = 1,
-                            DateJoined = new DateTime(2024, 12, 31, 23, 0, 0, 0, DateTimeKind.Utc),
+                            DateJoined = new DateTime(2025, 1, 1, 23, 0, 0, 0, DateTimeKind.Utc),
                             Email = "test@test.com",
                             FirstName = "Admin",
                             Gender = 1,
-                            Guid = new Guid("87f19554-5ee9-4a2e-a50f-223bdf93c71e"),
+                            Guid = new Guid("955a2fa0-7e5c-4b1a-8d53-8c76aa154e74"),
                             GymSubscriptionType = 0,
                             HashedPassword = "!#/)zW??C?JJ??",
                             LastName = "Adminski",

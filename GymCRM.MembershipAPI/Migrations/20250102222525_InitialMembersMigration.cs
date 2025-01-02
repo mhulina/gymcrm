@@ -19,15 +19,15 @@ namespace GymCRM.MembershipAPI.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    HashedPassword = table.Column<string>(type: "text", nullable: false),
+                    HashedPassword = table.Column<string>(type: "varchar", nullable: false),
                     UserType = table.Column<int>(type: "integer", nullable: false),
-                    FirstName = table.Column<string>(type: "text", nullable: false),
-                    MiddleName = table.Column<string>(type: "text", nullable: true),
-                    LastName = table.Column<string>(type: "text", nullable: false),
+                    FirstName = table.Column<string>(type: "varchar", nullable: false),
+                    MiddleName = table.Column<string>(type: "varchar", nullable: true),
+                    LastName = table.Column<string>(type: "varchar", nullable: false),
                     Gender = table.Column<int>(type: "integer", nullable: false),
-                    Email = table.Column<string>(type: "text", nullable: false),
-                    PhoneNumber = table.Column<string>(type: "text", nullable: false),
-                    MobileNumber = table.Column<string>(type: "text", nullable: true),
+                    Email = table.Column<string>(type: "varchar", nullable: false),
+                    PhoneNumber = table.Column<string>(type: "varchar", nullable: false),
+                    MobileNumber = table.Column<string>(type: "varchar", nullable: true),
                     DateJoined = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     PersonalTrainerId = table.Column<Guid>(type: "uuid", nullable: true),
                     WorkoutGroupIds = table.Column<List<Guid>>(type: "uuid[]", nullable: true),
@@ -43,7 +43,7 @@ namespace GymCRM.MembershipAPI.Migrations
             migrationBuilder.InsertData(
                 table: "Members",
                 columns: new[] { "Id", "DateJoined", "Email", "FirstName", "Gender", "Guid", "GymSubscriptionType", "HashedPassword", "LastName", "MiddleName", "MobileNumber", "PersonalTrainerId", "PhoneNumber", "UserType", "WorkingExperienceInMonths", "WorkoutGroupIds" },
-                values: new object[] { 1, new DateTime(2024, 12, 31, 23, 0, 0, 0, DateTimeKind.Utc), "test@test.com", "Admin", 1, new Guid("87f19554-5ee9-4a2e-a50f-223bdf93c71e"), 0, "!#/)zW??C?JJ??", "Adminski", null, null, null, "123456789", 1, null, null });
+                values: new object[] { 1, new DateTime(2025, 1, 1, 23, 0, 0, 0, DateTimeKind.Utc), "test@test.com", "Admin", 1, new Guid("955a2fa0-7e5c-4b1a-8d53-8c76aa154e74"), 0, "!#/)zW??C?JJ??", "Adminski", null, null, null, "123456789", 1, null, null });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Guid",

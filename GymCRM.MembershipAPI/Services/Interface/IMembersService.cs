@@ -6,5 +6,8 @@ namespace GymCRM.MembershipAPI.Services.Interface
 	{
 		List<MemberDto> GetAllUsers();
 		MemberDto GetByGuid(Guid guid);
+		MemberDto GetByEmail(string email);
+		bool UpdateMember(MemberDto newMemberDto);
+		bool InsertMember(MemberDto newMemberDto);
 	}
 }

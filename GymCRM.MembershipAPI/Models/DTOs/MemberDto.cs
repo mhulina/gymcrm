@@ -4,16 +4,14 @@ namespace GymCRM.MembershipAPI.Models.DTOs
 {
 	public class MemberDto
 	{
-		public Guid? Guid { get; set; }
-		public string HashedPassword { get; set; }
+		public Guid? AccountGuid { get; set; }
 		public int UserType { get; set; }
-		public string FirstName { get; set; }
+		public string? FirstName { get; set; }
 		public string? MiddleName { get; set; }
-		public string LastName { get; set; }
+		public string? LastName { get; set; }
 		public string Email { get; set; }
-		public string PhoneNumber { get; set; }
+		public string? PhoneNumber { get; set; }
 		public string? MobileNumber { get; set; }
-		public DateTime DateJoined { get; set; }
 		public Guid? PersonalTrainerId { get; set; }
 		public List<Guid>? WorkoutGroupIds { get; set; }
         public int? WorkingExperienceInMonths {  get; set; }

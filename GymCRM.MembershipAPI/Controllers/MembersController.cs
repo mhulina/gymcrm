@@ -1,12 +1,17 @@
-﻿using FluentResults;
+﻿using Asp.Versioning;
 using GymCRM.MembershipAPI.Infrastructure;
 using GymCRM.MembershipAPI.Models.DTOs;
 using GymCRM.MembershipAPI.Services.Interface;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GymCRM.MembershipAPI.Controllers
 {
-	[Route("api/[controller]/[action]")]
+	[EnableCors("AllowAny")]
+	[ApiVersion("1.0")]
+	[Route("api/v{version:apiVersion}/[controller]/[action]")]
+	[Authorize]
 	[ApiController]
 	public class MembersController : ControllerBase
 	{
@@ -20,85 +25,97 @@ namespace GymCRM.MembershipAPI.Controllers
 		}
 
 		[HttpGet]
-		public Result<List<MemberDto>> GetAllUsers()
+		public ActionResult<List<MemberDto>> GetAllUsers()
 		{
 			try
 			{
 				var result = _membersService.GetAllUsers();
 
-				return Result.Ok(result);
+				return new OkObjectResult(result);
 			}
-			catch (Exception ex)
+			catch (Exception)
 			{
-				return Result.Fail(ex.Message);
+				return new StatusCodeResult(500);
 			}
 		}
 
 		[HttpGet("{guid}")]
-		public Result<MemberDto> GetUserByGuid(Guid guid)
+		public ActionResult<MemberDto> GetUserByGuid(Guid guid)
 		{
 			try
 			{
 				var result = _membersService.GetByGuid(guid);
 
-				return Result
-					.OkIf(result != null, "User does not exist")
-					.ToResult(result);
+				if (result != null)
+				{
+					return new OkObjectResult(result);
+				}
+				
+				return new NotFoundResult();
 			}
-			catch (Exception ex)
+			catch (Exception)
 			{
-				return Result.Fail(ex.Message);
+				return new StatusCodeResult(500);
 			}
 		}
 
 		[HttpGet("{email}")]
-		public Result<MemberDto> GetUserByEmail(string email)
+		public ActionResult<MemberDto> GetUserByEmail(string email)
 		{
 			try
 			{
 				var result = _membersService.GetByEmail(email);
 
-				return Result
-					.OkIf(result != null, "User does not exist")
-					.ToResult(result);
+				if (result != null)
+				{
+					return new OkObjectResult(result);
+				}
+				
+				return new NotFoundResult();
 			}
-			catch (Exception ex)
+			catch (Exception)
 			{
-				return Result.Fail(ex.Message);
+				return new StatusCodeResult(500);
 			}
 		}
 
 		[HttpPut]
-		public Result<bool> UpdateMember([FromBody]MemberDto newMemberDto)
+		public ActionResult<bool> UpdateMember([FromBody]MemberDto newMemberDto)
 		{
 			try
 			{
 				var result = _membersService.UpdateMember(newMemberDto);
 
-				return Result
-					.OkIf(result, "Error during updating member data")
-					.ToResult(result);
+				if (result)
+				{
+					return new OkObjectResult(result);
+				}
+				
+				return new BadRequestResult();
 			}
-			catch (MemberNotFoundException ex)
+			catch (MemberNotFoundException)
 			{
-				return Result.Fail(ex.Message);
+				return new NotFoundObjectResult(newMemberDto.AccountGuid);
 			}
 		}
 
 		[HttpPost]
-		public Result<bool> AddMember([FromBody] MemberDto newMemberDto)
+		public ActionResult<bool> AddMember([FromBody] MemberDto newMemberDto)
 		{
 			try
 			{
 				var result = _membersService.InsertMember(newMemberDto);
 				
-				return Result
-					.OkIf(result, "Error during adding member data")
-					.ToResult(result);
+				if (result)
+				{
+					return new OkObjectResult(result);
+				}
+				
+				return new BadRequestResult();
 			}
-			catch (Exception ex)
+			catch (Exception)
 			{
-				return Result.Fail(ex.Message);
+				return new StatusCodeResult(500);
 			}
 		}
 	}

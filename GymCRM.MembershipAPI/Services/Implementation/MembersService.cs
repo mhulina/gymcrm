@@ -30,7 +30,7 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 		{
 			try
 			{
-				var dbUsers = _repository.Members.FetchAll().ToList();
+				var dbUsers = _repository.FetchAll().ToList();
 				var memberDtos = _mapper.Map<List<MemberDto>>(dbUsers);
 
 				return memberDtos;
@@ -52,7 +52,7 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 
 			try
 			{
-				var user = _repository.Members.FetchByCondition(x => x.Guid == guid).FirstOrDefault();
+				var user = _repository.FetchByCondition(x => x.AccountGuid == guid).FirstOrDefault();
 				var memberDto = _mapper.Map<MemberDto>(user);
 
 				return memberDto;
@@ -74,7 +74,7 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 
 			try
 			{
-				var user = _repository.Members.FetchByCondition(x => x.Email == email).FirstOrDefault();
+				var user = _repository.FetchByCondition(x => x.Email == email).FirstOrDefault();
 				var memberDto = _mapper.Map<MemberDto>(user);
 
 				return memberDto;
@@ -90,15 +90,15 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 		public bool UpdateMember(MemberDto newMemberDto)
 		{
 			if (newMemberDto == null
-			    || newMemberDto.Guid == Guid.Empty)
+			    || newMemberDto.AccountGuid == Guid.Empty)
 			{
 				throw new ArgumentException($"{newMemberDto} is invalid");
 			}
 
 			try
 			{
-				var existingMember = _repository.Members
-					.FetchByCondition(x => x.Guid == newMemberDto.Guid)
+				var existingMember = _repository
+					.FetchByCondition(x => x.AccountGuid == newMemberDto.AccountGuid)
 					.FirstOrDefault();
 
 				if (existingMember is null)
@@ -112,7 +112,7 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 				var newMember = _mapper.Map<Member>(newMemberDto);
 				var updatedMember = MergeExistingMemberDataWithUpdateDate(newMember, existingMember);
 				
-				_repository.Members.Update(updatedMember);
+				_repository.Update(updatedMember);
 				var result = _repository.Save();
 				
 				return result;
@@ -127,15 +127,11 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 
 		public bool InsertMember(MemberDto newMemberDto)
 		{
-			newMemberDto.HashedPassword = new ASCIIEncoding().GetString(
-				new MD5CryptoServiceProvider().ComputeHash(
-					Encoding.ASCII.GetBytes(newMemberDto.HashedPassword)));
-
 			try
 			{
 				var newMember = _mapper.Map<Member>(newMemberDto);
 				
-				_repository.Members.Insert(newMember);
+				_repository.Insert(newMember);
 				var result = _repository.Save();
 				
 				return result;
@@ -152,13 +148,10 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 		{
 			var updatedMember = new Member
 			{
-				Guid = newMemberData.Guid,
+				AccountGuid = newMemberData.AccountGuid,
 				Email = string.IsNullOrWhiteSpace(newMemberData.Email) 
 					? existingMemberData.Email 
 					: newMemberData.Email,
-				DateJoined = DateTime.MinValue == newMemberData.DateJoined 
-					? existingMemberData.DateJoined 
-					: newMemberData.DateJoined,
 				FirstName = string.IsNullOrWhiteSpace(newMemberData.FirstName) 
 					? existingMemberData.FirstName 
 					: newMemberData.FirstName,
@@ -168,9 +161,6 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 				LastName = string.IsNullOrWhiteSpace(newMemberData.LastName)
 					? existingMemberData.LastName
 					: newMemberData.LastName,
-				HashedPassword = string.IsNullOrWhiteSpace(newMemberData.HashedPassword)
-					? existingMemberData.HashedPassword
-					: newMemberData.HashedPassword,
 				MobileNumber = string.IsNullOrWhiteSpace(newMemberData.MobileNumber)
 					? existingMemberData.MobileNumber
 					: newMemberData.MobileNumber,
@@ -184,7 +174,7 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 				WorkingExperienceInMonths = newMemberData.WorkingExperienceInMonths,
 				GymSubscriptionType = newMemberData.GymSubscriptionType,
 				PersonalTrainerId = newMemberData.PersonalTrainerId,
-				UserType = newMemberData.UserType,
+				AccountType = newMemberData.AccountType,
 				Gender = newMemberData.Gender
 			};
 			

@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using GymCRM.MembershipAPI.Infrastructure;
 using GymCRM.MembershipAPI.Infrastructure.Implementation;
 using GymCRM.MembershipAPI.Infrastructure.Interface;
@@ -5,34 +6,84 @@ using GymCRM.MembershipAPI.Services;
 using GymCRM.MembershipAPI.Services.Implementation;
 using GymCRM.MembershipAPI.Services.Interface;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Serilog;
-using ILogger = Serilog.ILogger;
 
 using var log = new LoggerConfiguration()
+	.MinimumLevel.Debug()
 	.WriteTo.Console()
-	.WriteTo.File("./logs/Members/logs.txt")
+	.WriteTo.File("./logs/MembershipAPI/logs.txt", rollingInterval: RollingInterval.Day)
 	.CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog();
 
 // Add services to the container.
 builder.Services.AddDbContext<AppDbContext>(option =>
 {
 	option.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
+builder.Services.AddCors(opt =>
+{
+	opt.AddPolicy(
+		name: "AllowAny", 
+		policy => policy
+			.WithOrigins("http://localhost:3000")
+			.AllowAnyHeader()
+			.AllowAnyMethod()
+			.AllowCredentials());
+});
 
 var mapper = MappingConfig.RegisterMaps().CreateMapper();
 builder.Services.AddSingleton(mapper);
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
-builder.Services.AddSingleton<ILogger>(log);
+builder.Services.AddAuthentication("Bearer")
+	.AddJwtBearer(opt =>
+	{
+		opt.TokenValidationParameters = new()
+		{
+			ValidateIssuer = true,
+			ValidateAudience = true,
+			ValidateIssuerSigningKey = true,
+			ValidIssuer = builder.Configuration["Authentication:Issuer"],
+			ValidAudience = builder.Configuration["Authentication:Audience"],
+			IssuerSigningKey = new SymmetricSecurityKey(
+				Convert.FromBase64String(builder.Configuration["Authentication:Secret"]))
+		};
+	});
+
 builder.Services.AddScoped<IMembersRepository, MembersRepository>();
+builder.Services.AddScoped<IAccountsRepository, AccountsRepository>();
 builder.Services.AddScoped<IMembersService, MembersService>();
+builder.Services.AddScoped<IAccountsService, AccountsService>();
+
+builder.Services
+	.AddApiVersioning(opt =>
+	{
+		opt.DefaultApiVersion = new ApiVersion(1, 0);
+		opt.AssumeDefaultVersionWhenUnspecified = true;
+		opt.ReportApiVersions = true;
+		opt.ApiVersionReader = ApiVersionReader.Combine(
+			new UrlSegmentApiVersionReader(),
+			new HeaderApiVersionReader("X-Api-Version")
+		);
+	})
+	.AddApiExplorer(opt =>
+	{
+		opt.GroupNameFormat = "'v'VVV";
+		opt.SubstituteApiVersionInUrl = true;
+	});
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+	c.SwaggerDoc("v1", new OpenApiInfo { Title = "MembershipAPI", Version = "v1.0" });
+	c.SwaggerDoc("v2", new OpenApiInfo { Title = "MembershipAPI", Version = "v2.0" });
+});
 
 var app = builder.Build();
 
@@ -44,6 +95,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 

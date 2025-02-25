@@ -1,29 +1,34 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Authentication;
+using System.Security.Claims;
 using Asp.Versioning;
 using GymCRM.MembershipAPI.Models.DTOs;
 using GymCRM.MembershipAPI.Services.Interface;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 
 namespace GymCRM.MembershipAPI.Controllers;
 
 [EnableCors("AllowAny")]
 [ApiVersion("1.0")]
-[Route("api/v{version:apiVersion}/[controller]/[action]")]
+[Route("api/v{version:apiVersion}/[action]")]
 [ApiController]
-public class AccountsController
+public class AccountsController : ControllerBase
 {
     private readonly IAccountsService _accountsService;
+    private readonly IConfiguration _configuration;
     private ResponseDto _responseDto;
 
-    public AccountsController(IAccountsService accountsService)
+    public AccountsController(IAccountsService accountsService, IConfiguration configuration)
     {
-        _accountsService = accountsService;
+        _accountsService = accountsService ?? throw new ArgumentNullException(nameof(accountsService));
+        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _responseDto = new ResponseDto();
     }
     
     [HttpPost]
-    public ActionResult<Guid> RegisterAccount([FromBody]AccountDto accountDto)
+    public ActionResult<Guid> Register([FromBody]AccountDto accountDto)
     {
         try
         {
@@ -43,42 +48,39 @@ public class AccountsController
     }
 
     [HttpPost]
-    public ActionResult LoginAccount([FromBody]AuthenticationRequestBody accountDto)
+    public ActionResult Login([FromBody]AuthenticationRequestBody authenticationRequest)
     {
         try
         {
-            var loginSuccess = _accountsService.LoginAccount(accountDto);
+            var authenticationResult = _accountsService.LoginAccount(authenticationRequest);
 
-            if (loginSuccess)
+            if (!authenticationResult.Success)
             {
-                return new OkResult();
+                return new UnauthorizedResult();
             }
 
-            return new UnauthorizedResult();
+            var securityKey = new SymmetricSecurityKey(Convert.FromBase64String(_configuration["Authentication:SecretForKey"]));
+            var signingCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var claimsForToken = new List<Claim>();
+            claimsForToken.Add(new Claim("sub", authenticationResult.AccountDto.Guid.ToString()));
+            claimsForToken.Add(new Claim("email", authenticationResult.AccountDto.Email));
+
+            var jwtSecurityToken = new JwtSecurityToken(
+                _configuration["Authentication:Issuer"],
+                _configuration["Authentication:Audience"],
+                claimsForToken,
+                DateTime.UtcNow,
+                DateTime.UtcNow.AddMinutes(30),
+                signingCredentials);
+            
+            var tokenToReturn = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken);
+            
+            return new OkObjectResult(tokenToReturn);
         }
         catch (AuthenticationException)
         {
             return new ForbidResult();
-        }
-        catch (Exception)
-        {
-            return new StatusCodeResult(500);
-        }
-    }
-
-    [HttpDelete("{guid}")]
-    public ActionResult DeleteAccount(Guid guid)
-    {
-        try
-        {
-            var result = _accountsService.DeleteAccount(guid);
-
-            if (result)
-            {
-                return new OkResult();
-            }
-            
-            return new NotFoundResult();
         }
         catch (Exception)
         {

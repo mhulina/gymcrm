@@ -1,6 +1,7 @@
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Text;
+using AutoMapper;
 using GymCRM.MembershipAPI.Infrastructure;
 using GymCRM.MembershipAPI.Infrastructure.Entities;
 using GymCRM.MembershipAPI.Infrastructure.Interface;
@@ -78,7 +79,7 @@ public class AccountsService : IAccountsService
         }
     }
 
-    public bool LoginAccount(AuthenticationRequestBody accountDto)
+    public AuthenticationResult LoginAccount(AuthenticationRequestBody accountDto)
     {
         if (string.IsNullOrWhiteSpace(accountDto.Username)
             || string.IsNullOrWhiteSpace(accountDto.Password))
@@ -98,8 +99,19 @@ public class AccountsService : IAccountsService
             }
 
             var passwordsAreTheSame = CompareHashedPasswords(account, accountDto.Password);
-
-            return passwordsAreTheSame;
+            var authenticationResult = new AuthenticationResult
+            {
+                Success = passwordsAreTheSame,
+                AccountDto = passwordsAreTheSame 
+                    ? new AccountDto
+                    {
+                        Guid = account.Guid,
+                        Email = account.Email
+                    } 
+                    : null,
+            };
+            
+            return authenticationResult;
         }
         catch (Exception ex)
         {
@@ -163,5 +175,11 @@ public class AccountsService : IAccountsService
         var passwordsAreTheSame = hashedProvidedPassword == account.HashedPassword;
         
         return passwordsAreTheSame;
+    }
+
+    public class AuthenticationResult
+    {
+        public bool Success { get; set; }
+        public AccountDto AccountDto { get; set; }
     }
 }

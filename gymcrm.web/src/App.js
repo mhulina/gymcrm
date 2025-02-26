@@ -3,18 +3,23 @@ import './App.css';
 import { Routes, Route } from "react-router-dom";
 import Login from "./containers/Login";
 
-const Member = fetch(
-    process.env.REACT_APP_MEMBERS_ENDPOINT+'GetAllUsers', {
-        method: "GET", 
-        mode: 'cors', 
-        credentials: 'include'})
-    .then((response) => { 
-      return response.json();
-    })
-    .then((data) => { 
-      console.log(data);  
-      return data; 
-    });
+function fetchAllUsers(){
+    const Member = fetch(
+        process.env.REACT_APP_MEMBERS_ENDPOINT+'GetAllUsers', {
+            method: "GET", 
+            mode: 'cors', 
+            credentials: 'include',
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+            }})
+        .then((response) => { 
+          return response.json();
+        })
+        .then((data) => { 
+          console.log(data);  
+          return data; 
+        });
+}
 
 function App() {
   return (
@@ -41,12 +46,13 @@ function App() {
   );
 }
 
+console.log(localStorage.getItem("token"));
 console.log(process.env.REACT_APP_MEMBERS_ENDPOINT);
 console.log(process.env.REACT_APP_ACCOUNTS_ENDPOINT);
 
 function MyButton() {
   return (
-      <button>I'm a button</button>
+      <button onClick={fetchAllUsers}>I'm a button</button>
   );
 }
 

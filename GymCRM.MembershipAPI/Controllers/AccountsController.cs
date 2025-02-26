@@ -76,7 +76,7 @@ public class AccountsController : ControllerBase
             
             var tokenToReturn = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken);
             
-            return new OkObjectResult(tokenToReturn);
+            return new JsonResult(tokenToReturn);
         }
         catch (AuthenticationException)
         {

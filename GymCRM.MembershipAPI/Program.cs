@@ -66,7 +66,7 @@ builder.Services
 builder.Services.AddScoped<IMembersRepository, MembersRepository>();
 builder.Services.AddScoped<IAccountsRepository, AccountsRepository>();
 builder.Services.AddScoped<IMembersService, MembersService>();
-builder.Services.AddScoped<IAccountsService, AccountsService>();
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
 builder.Services
 	.AddApiVersioning(opt =>

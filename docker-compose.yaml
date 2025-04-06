@@ -18,7 +18,6 @@ services:
     networks:
       - GymCRMApp
     restart: no
-    runtime: runc
     healthcheck:
         test: ["CMD-SHELL", "pg_isready -U postgres"]
         interval: 3s
@@ -31,18 +30,37 @@ services:
       context: .
       dockerfile: GymCRM.MembershipAPI/Dockerfile
     ports:
-      - 32807:8080
-      - 32806:8081
+      - 55080:8080
+      - 55081:8081
     networks:
       - GymCRMApp
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
-
+    healthcheck:
+      test: [ "CMD", "curl", "--silent", "--fail", "http://localhost:8080/health" ]
+      interval: 5s
+      retries: 3
+      timeout: 2s
+    
+  webapp:
+    container_name: GymCRMWebApp
+    build:
+      context: ./gymcrm.web
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    networks:
+      - GymCRMApp
+    depends_on:
+      membershipapi:
+        condition: service_healthy
+    restart: unless-stopped
+      
 networks:
   GymCRMApp:
-    external: true
-    name: GymCRMApp
+    driver: bridge

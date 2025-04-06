@@ -40,6 +40,13 @@ var mapper = MappingConfig.RegisterMaps().CreateMapper();
 builder.Services.AddSingleton(mapper);
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
+var secretForKey = builder.Configuration["Authentication:SecretForKey"];
+
+if (string.IsNullOrEmpty(secretForKey))
+{
+	throw new InvalidOperationException("Secret is missing from configuration");
+}
+
 builder.Services
 	.AddAuthentication(opt =>
 	{
@@ -59,7 +66,7 @@ builder.Services
 			ValidIssuer = builder.Configuration["Authentication:Issuer"],
 			ValidAudience = builder.Configuration["Authentication:Audience"],
 			IssuerSigningKey = new SymmetricSecurityKey(
-				Convert.FromBase64String(builder.Configuration["Authentication:SecretForKey"]))
+				Convert.FromBase64String(secretForKey))
 		};
 	});
 
@@ -116,15 +123,15 @@ builder.Services.AddSwaggerGen(c =>
 		}
 	});
 });
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
-
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+// if (app.Environment.IsDevelopment())
+// {
 	app.UseSwagger();
 	app.UseSwaggerUI();
-}
+// }
 
 app.UseHttpsRedirection();
 
@@ -133,6 +140,7 @@ app.UseCors();
 app.UseAuthentication();
 
 app.UseAuthorization();
+app.MapHealthChecks("/health");
 
 app.MapControllers();
 ApplyMigration();

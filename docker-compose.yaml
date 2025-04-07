@@ -36,7 +36,6 @@ services:
       - GymCRMApp
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_URLS: http://+:8080
     depends_on:
       postgres:
         condition: service_healthy

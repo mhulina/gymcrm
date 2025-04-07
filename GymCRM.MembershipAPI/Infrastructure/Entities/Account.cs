@@ -18,5 +18,5 @@ public class Account
     [Required]
     public string HashedPassword { get; set; }
     
-    public virtual Member Member { get; set; }
+    public Member Member { get; set; }
 }

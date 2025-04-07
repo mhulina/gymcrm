@@ -26,7 +26,10 @@ public class AccountsRepository : IAccountsRepository
 
     public IEnumerable<Account> FetchByCondition(Expression<Func<Account, bool>> expression)
     {
-        var result = _context.Accounts.Where(expression).AsNoTracking();
+        var result = _context.Accounts
+            .Where(expression)
+            .AsNoTracking()
+            .Include(x => x.Member);
 
         return result;
     }

@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using GymCRM.MembershipAPI.Infrastructure.Entities;
+using GymCRM.MembershipAPI.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata.Internal;

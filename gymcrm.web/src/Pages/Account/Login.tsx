@@ -3,12 +3,12 @@ import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
 import "./Login.css";
 import {useNavigate} from "react-router-dom";
-import Layout from "../Layout";
+import Layout from "../../Layout";
+import {handleLogin} from "../../utils/api";
 
 export default function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [token, setToken] = useState("");
     const navigate = useNavigate();
 
     function validateForm() {
@@ -17,29 +17,9 @@ export default function Login() {
 
     function handleSubmit(event: { preventDefault: () => void; }) {
         event.preventDefault();
-
-        let jsonLogin = JSON.stringify({username: email.trim(), password: password});
-        console.log(jsonLogin);
-
-        let token = fetch(
-            process.env.REACT_APP_ACCOUNTS_ENDPOINT+"Login",{
-                headers: {"Content-Type": "application/json"},
-                method: "POST",
-                body: jsonLogin
-            })
-            .then(res => res.json())
-            .then(json => {
-                console.log(json);
-
-                if (json) {
-                    localStorage.setItem("token", json);
-                    navigate("/", { replace: true});
-                }
-                else{
-                    localStorage.setItem("token", "");
-                }
-            });
+        handleLogin(email, password, navigate);
     }
+    
     return (
         <Layout>
         <div className="Login">

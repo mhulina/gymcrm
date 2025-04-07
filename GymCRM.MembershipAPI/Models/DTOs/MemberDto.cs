@@ -1,11 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using GymCRM.MembershipAPI.Models.Enums;
 
 namespace GymCRM.MembershipAPI.Models.DTOs
 {
 	public class MemberDto
 	{
 		public Guid? AccountGuid { get; set; }
-		public int UserType { get; set; }
+		public AccountType AccountType { get; set; }
 		public string? FirstName { get; set; }
 		public string? MiddleName { get; set; }
 		public string? LastName { get; set; }

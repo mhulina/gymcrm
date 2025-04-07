@@ -24,7 +24,6 @@ namespace GymCRM.MembershipAPI.Infrastructure.Entities
         public int GymSubscriptionType { get; set; }
         [Required]
         public Guid AccountGuid { get; set; }
-        
-        public virtual Account Account { get; set; }
+        public Account Account { get; set; }
     }
 }

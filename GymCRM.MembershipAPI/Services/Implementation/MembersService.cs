@@ -171,10 +171,12 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 				    || !newMemberData.WorkoutGroupIds.Any()
 						? existingMemberData.WorkoutGroupIds
 						: newMemberData.WorkoutGroupIds,
+				AccountType = newMemberData.AccountType == existingMemberData.AccountType
+					? existingMemberData.AccountType
+					: newMemberData.AccountType,
 				WorkingExperienceInMonths = newMemberData.WorkingExperienceInMonths,
 				GymSubscriptionType = newMemberData.GymSubscriptionType,
 				PersonalTrainerId = newMemberData.PersonalTrainerId,
-				AccountType = newMemberData.AccountType,
 				Gender = newMemberData.Gender
 			};
 			

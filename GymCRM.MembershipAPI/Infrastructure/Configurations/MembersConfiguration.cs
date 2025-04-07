@@ -50,7 +50,8 @@ namespace GymCRM.MembershipAPI.Infrastructure.Configurations
 				.HasOne(x => x.Account)
 				.WithOne(x => x.Member)
 				.HasForeignKey<Member>(x => x.AccountGuid)
-				.HasConstraintName("FK_Account_Members");
+				.HasConstraintName("FK_Account_Members")
+				.OnDelete(DeleteBehavior.Cascade);
 		}
 	}
 }

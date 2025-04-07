@@ -7,6 +7,7 @@ using GymCRM.MembershipAPI.Infrastructure;
 using GymCRM.MembershipAPI.Infrastructure.Entities;
 using GymCRM.MembershipAPI.Infrastructure.Interface;
 using GymCRM.MembershipAPI.Models.DTOs;
+using GymCRM.MembershipAPI.Models.Enums;
 using GymCRM.MembershipAPI.Services.Interface;
 using Microsoft.IdentityModel.Tokens;
 using ILogger = Serilog.ILogger;
@@ -66,7 +67,7 @@ public class AuthenticationService : IAuthenticationService
 			{
 				AccountGuid = account.Guid,
 				Email = accountDto.Email.ToLower(),
-				AccountType = accountDto.AccountType ?? 0,
+				AccountType = accountDto.AccountType ?? 1,
 				GymSubscriptionType = accountDto.GymSubscriptionType ?? 0,
 				Gender = accountDto.Gender ?? 0,
 			};
@@ -115,7 +116,8 @@ public class AuthenticationService : IAuthenticationService
 			var claimsForToken = new List<Claim>
 			{
 				new ("sub", account.Guid.ToString()),
-				new ("email", account.Email)
+				new ("email", account.Email),
+				new ("type", ((AccountType)account.Member.AccountType).ToString())
 			};
 
 			var jwtSecurityToken = new JwtSecurityToken(

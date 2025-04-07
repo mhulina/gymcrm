@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using GymCRM.MembershipAPI.Models.Enums;
+﻿using GymCRM.MembershipAPI.Models.Enums;
 
 namespace GymCRM.MembershipAPI.Models.DTOs
 {

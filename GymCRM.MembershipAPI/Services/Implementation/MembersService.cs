@@ -1,6 +1,4 @@
-﻿using System.Security.Cryptography;
-using System.Text;
-using AutoMapper;
+﻿using AutoMapper;
 using GymCRM.MembershipAPI.Infrastructure;
 using GymCRM.MembershipAPI.Infrastructure.Entities;
 using GymCRM.MembershipAPI.Infrastructure.Interface;

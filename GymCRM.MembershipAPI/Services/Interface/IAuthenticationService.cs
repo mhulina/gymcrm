@@ -1,5 +1,4 @@
 using GymCRM.MembershipAPI.Models.DTOs;
-using GymCRM.MembershipAPI.Services.Implementation;
 
 namespace GymCRM.MembershipAPI.Services.Interface;
 

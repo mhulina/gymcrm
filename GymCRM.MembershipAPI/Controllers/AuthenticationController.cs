@@ -1,12 +1,9 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Authentication;
-using System.Security.Claims;
 using Asp.Versioning;
 using GymCRM.MembershipAPI.Models.DTOs;
 using GymCRM.MembershipAPI.Services.Interface;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 
 namespace GymCRM.MembershipAPI.Controllers;
 

@@ -1,0 +1,6 @@
+@GymCRM.NotificationsAPI_HostAddress = http://localhost:5094
+
+GET {{GymCRM.NotificationsAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

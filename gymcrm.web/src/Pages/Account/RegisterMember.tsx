@@ -2,7 +2,7 @@ import Layout from '../../Layout';
 import {FormControl, FormGroup, FormLabel} from "react-bootstrap";
 import React, {useState} from "react";
 import Form from "react-bootstrap/Form";
-import {handleMemberRegistration} from "../../utils/api";
+import {handleMemberRegistration} from "../../utils/MembershipApi";
 import Button from "react-bootstrap/Button";
 import {useNavigate} from "react-router-dom";
 

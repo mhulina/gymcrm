@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchUserInfoByGuid } from "../../utils/api";
+import { fetchUserInfoByGuid } from "../../utils/MembershipApi";
 import Layout from "../../Layout";
 
 export default function MemberHomePage() {

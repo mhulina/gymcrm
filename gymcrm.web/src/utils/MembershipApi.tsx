@@ -1,12 +1,55 @@
 // utils/api.ts
 import {jwtDecode, JwtPayload} from "jwt-decode";
 import {AccountType} from "../Pages/Account/RegisterMember";
+import axios from "axios";
+
+const API_BASE_URL = process.env.REACT_APP_MEMBERS_ENDPOINT;
 
 interface Member{
     username: string,
     email: string,
     guid: string,
 }
+
+const httpClient = axios.create({
+    baseURL: API_BASE_URL,
+    headers: {
+        "Content-Type": "application/json",
+    },
+});
+
+httpClient.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem("token");
+        
+        if (token){
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+
+const sendRequest = async (method: string, url: string, data = null, params = {}) => {
+    try{
+        const response = await httpClient({ method, url, data, params });
+        return response.data;
+    }
+    catch(err: any){
+        console.error("API error: ", err.response?.data || err.message);
+        throw err.response?.data || err.message;
+    }
+};
+
+const MembershipApi = {
+    get: (url: string, params?: {}) => sendRequest("get", url, null, params),
+    post: (url: string, data: any) => sendRequest("post", url, data),
+    put: (url: string, data: any) => sendRequest("put", url, data),
+    delete: (url: string, params?: {})=> sendRequest("delete", url, null, params)
+};
 
 export async function fetchUserInfoByGuid(): Promise<Member | null> {
     const token = localStorage.getItem("token") ?? "";
@@ -85,7 +128,7 @@ export async function handleLogin(
                     navigate("/member/home", { replace: true});
                 }
                 else{
-                    localStorage.setItem("token", "");
+                    localStorage.removeItem("token");
                 }
             });
     }

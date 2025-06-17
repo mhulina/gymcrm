@@ -1,5 +1,5 @@
 import logo from '../../logo.svg';
-import {fetchUserInfoByGuid} from "../../utils/api";
+import {fetchUserInfoByGuid} from "../../utils/MembershipApi";
 
 function Home() {
     return (

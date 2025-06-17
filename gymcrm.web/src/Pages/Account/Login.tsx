@@ -4,7 +4,7 @@ import Button from "react-bootstrap/Button";
 import "./Login.css";
 import {useNavigate} from "react-router-dom";
 import Layout from "../../Layout";
-import {handleLogin} from "../../utils/api";
+import {handleLogin} from "../../utils/MembershipApi";
 
 export default function Login() {
     const [email, setEmail] = useState("");

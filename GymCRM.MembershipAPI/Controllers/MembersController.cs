@@ -16,16 +16,14 @@ namespace GymCRM.MembershipAPI.Controllers
 	public class MembersController : ControllerBase
 	{
 		private readonly IMembersService _membersService;
-		private ResponseDto _responseDto;
 
 		public MembersController(IMembersService membersService)
 		{
 			_membersService = membersService;
-			_responseDto = new ResponseDto();
 		}
 
 		[HttpGet]
-		public ActionResult<List<MemberDto>> GetAllUsers()
+		public ActionResult<List<Member>> GetAllUsers()
 		{
 			try
 			{
@@ -40,7 +38,7 @@ namespace GymCRM.MembershipAPI.Controllers
 		}
 
 		[HttpGet("{guid}")]
-		public ActionResult<MemberDto> GetUserByGuid(Guid guid)
+		public ActionResult<Member> GetUserByGuid(Guid guid)
 		{
 			try
 			{
@@ -60,7 +58,7 @@ namespace GymCRM.MembershipAPI.Controllers
 		}
 
 		[HttpGet("{email}")]
-		public ActionResult<MemberDto> GetUserByEmail(string email)
+		public ActionResult<Member> GetUserByEmail(string email)
 		{
 			try
 			{
@@ -80,11 +78,11 @@ namespace GymCRM.MembershipAPI.Controllers
 		}
 
 		[HttpPut]
-		public ActionResult<bool> UpdateMember([FromBody]MemberDto newMemberDto)
+		public ActionResult<bool> UpdateMember([FromBody]Member newMember)
 		{
 			try
 			{
-				var result = _membersService.UpdateMember(newMemberDto);
+				var result = _membersService.UpdateMember(newMember);
 
 				if (result)
 				{
@@ -95,16 +93,16 @@ namespace GymCRM.MembershipAPI.Controllers
 			}
 			catch (MemberNotFoundException)
 			{
-				return new NotFoundObjectResult(newMemberDto.AccountGuid);
+				return new NotFoundObjectResult(newMember.AccountGuid);
 			}
 		}
 
 		[HttpPost]
-		public ActionResult<bool> AddMember([FromBody] MemberDto newMemberDto)
+		public ActionResult<bool> AddMember([FromBody] InsertMember newMember)
 		{
 			try
 			{
-				var result = _membersService.InsertMember(newMemberDto);
+				var result = _membersService.InsertMember(newMember);
 				
 				if (result)
 				{

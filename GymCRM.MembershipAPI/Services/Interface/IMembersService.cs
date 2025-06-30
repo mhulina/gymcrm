@@ -4,10 +4,10 @@ namespace GymCRM.MembershipAPI.Services.Interface
 {
 	public interface IMembersService
 	{
-		List<MemberDto> GetAllUsers();
-		MemberDto GetByGuid(Guid guid);
-		MemberDto GetByEmail(string email);
-		bool UpdateMember(MemberDto newMemberDto);
-		bool InsertMember(MemberDto newMemberDto);
+		List<Member> GetAllUsers();
+		Member GetByGuid(Guid guid);
+		Member GetByEmail(string email);
+		bool UpdateMember(Member insertMember);
+		bool InsertMember(InsertMember insertMember);
 	}
 }

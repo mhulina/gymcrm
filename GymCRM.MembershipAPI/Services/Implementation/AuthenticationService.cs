@@ -10,7 +10,9 @@ using GymCRM.MembershipAPI.Models.DTOs;
 using GymCRM.MembershipAPI.Models.Enums;
 using GymCRM.MembershipAPI.Services.Interface;
 using Microsoft.IdentityModel.Tokens;
+using Account = GymCRM.MembershipAPI.Models.DTOs.Account;
 using ILogger = Serilog.ILogger;
+using Member = GymCRM.MembershipAPI.Infrastructure.Entities.Member;
 
 namespace GymCRM.MembershipAPI.Services.Implementation;
 
@@ -33,20 +35,20 @@ public class AuthenticationService : IAuthenticationService
 		_logger = logger;
 	}
 
-	public Guid RegisterAccount(AccountDto accountDto)
+	public Guid RegisterAccount(InsertAccount insertAccount)
 	{
-		if (string.IsNullOrWhiteSpace(accountDto.Email)
-			|| string.IsNullOrWhiteSpace(accountDto.Password))
+		if (string.IsNullOrWhiteSpace(insertAccount.Email)
+			|| string.IsNullOrWhiteSpace(insertAccount.Password))
 		{
 			throw new ArgumentException("Email and/or password is required");
 		}
 
-		var account = CreateAccountWithHashedPassword(accountDto);
+		var entity = CreateAccountWithHashedPassword(insertAccount);
 
 		try
 		{
 			var accountExists = _accountsRepository
-				.FetchByCondition(x => string.Equals(x.Email, accountDto.Email))
+				.FetchByCondition(x => string.Equals(x.Email, insertAccount.Email))
 				.Any();
 
 			if (accountExists)
@@ -54,7 +56,7 @@ public class AuthenticationService : IAuthenticationService
 				throw new AccountAlreadyExistsException();
 			}
 
-			_accountsRepository.Insert(account);
+			_accountsRepository.Insert(entity);
 
 			var result = _accountsRepository.Save();
 
@@ -65,17 +67,17 @@ public class AuthenticationService : IAuthenticationService
 
 			var member = new Member
 			{
-				AccountGuid = account.Guid,
-				Email = accountDto.Email.ToLower(),
-				AccountType = accountDto.AccountType ?? 1,
-				GymSubscriptionType = accountDto.GymSubscriptionType ?? 0,
-				Gender = accountDto.Gender ?? 0,
+				AccountGuid = entity.Guid,
+				Email = insertAccount.Email.ToLower(),
+				AccountType = insertAccount.AccountType ?? 1,
+				GymSubscriptionType = insertAccount.GymSubscriptionType ?? 0,
+				Gender = insertAccount.Gender ?? 0,
 			};
 
 			_membersRepository.Insert(member);
 			_membersRepository.Save();
 
-			return account.Guid;
+			return entity.Guid;
 		}
 		catch (Exception ex)
 		{
@@ -148,7 +150,7 @@ public class AuthenticationService : IAuthenticationService
 
 		try
 		{
-			_accountsRepository.Delete(new Account { Guid = accountGuid });
+			_accountsRepository.Delete(new Infrastructure.Entities.Account { Guid = accountGuid });
 			var result = _accountsRepository.Save();
 
 			return result;
@@ -161,7 +163,7 @@ public class AuthenticationService : IAuthenticationService
 		}
 	}
 
-	private Account CreateAccountWithHashedPassword(AccountDto accountDto)
+	private Infrastructure.Entities.Account CreateAccountWithHashedPassword(InsertAccount insertAccount)
 	{
 		var hashSalt = RandomNumberGenerator.GetHexString(25);
 		var dateCreated = DateTime.UtcNow;
@@ -169,21 +171,21 @@ public class AuthenticationService : IAuthenticationService
 		var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(hashSalt));
 		hmac.Initialize();
 
-		var account = new Account
+		var entity = new Infrastructure.Entities.Account
 		{
 			Guid = accountGuid,
-			Email = accountDto.Email.ToLower(),
+			Email = insertAccount.Email.ToLower(),
 			DateCreated = dateCreated,
 			HashSalt = hashSalt,
 			HashedPassword = Convert.ToBase64String(
 				hmac.ComputeHash(
-					Encoding.UTF8.GetBytes(hashSalt + dateCreated + accountDto.Password)))
+					Encoding.UTF8.GetBytes(hashSalt + dateCreated + insertAccount.Password)))
 		};
 
-		return account;
+		return entity;
 	}
 
-	private bool CompareHashedPasswords(Account account, string providedPassword)
+	private bool CompareHashedPasswords(Infrastructure.Entities.Account account, string providedPassword)
 	{
 		var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(account.HashSalt));
 		hmac.Initialize();

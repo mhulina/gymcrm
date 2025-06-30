@@ -14,20 +14,18 @@ namespace GymCRM.MembershipAPI.Controllers;
 public class AuthenticationController : ControllerBase
 {
 	private readonly IAuthenticationService _authenticationService;
-	private ResponseDto _responseDto;
 
 	public AuthenticationController(IAuthenticationService authenticationService)
 	{
 		_authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
-		_responseDto = new ResponseDto();
 	}
 
 	[HttpPost]
-	public ActionResult<Guid> Register([FromBody] AccountDto accountDto)
+	public ActionResult<Guid> Register([FromBody] InsertAccount insertAccount)
 	{
 		try
 		{
-			var registeredAccountGuid = _authenticationService.RegisterAccount(accountDto);
+			var registeredAccountGuid = _authenticationService.RegisterAccount(insertAccount);
 
 			if (registeredAccountGuid == Guid.Empty)
 			{

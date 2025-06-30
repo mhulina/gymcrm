@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using GymCRM.MembershipAPI.Infrastructure.Entities;
 using GymCRM.MembershipAPI.Models.DTOs;
+using Member = GymCRM.MembershipAPI.Models.DTOs.Member;
 
 namespace GymCRM.MembershipAPI.Services
 {
@@ -10,8 +11,8 @@ namespace GymCRM.MembershipAPI.Services
 		{
 			var mappingConfig = new MapperConfiguration(config =>
 			{
-				config.CreateMap<MemberDto, Member>();
-				config.CreateMap<Member, MemberDto>();
+				config.CreateMap<Member, Infrastructure.Entities.Member>();
+				config.CreateMap<Infrastructure.Entities.Member, Member>();
 			});
 
 			return mappingConfig;

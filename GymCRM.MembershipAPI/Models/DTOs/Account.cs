@@ -2,10 +2,9 @@ using System.ComponentModel.DataAnnotations;
 
 namespace GymCRM.MembershipAPI.Models.DTOs;
 
-public class AccountDto
+public class Account
 {
     public Guid? Guid { get; set; }
-
     [Required]
     public string Email { get; set; }
     [Required]

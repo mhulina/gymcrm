@@ -1,10 +1,10 @@
 ﻿using AutoMapper;
 using GymCRM.MembershipAPI.Infrastructure;
-using GymCRM.MembershipAPI.Infrastructure.Entities;
 using GymCRM.MembershipAPI.Infrastructure.Interface;
 using GymCRM.MembershipAPI.Models.DTOs;
 using GymCRM.MembershipAPI.Services.Interface;
 using ILogger = Serilog.ILogger;
+using Member = GymCRM.MembershipAPI.Models.DTOs.Member;
 
 namespace GymCRM.MembershipAPI.Services.Implementation
 {
@@ -24,12 +24,12 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 			_mapper = mapper;
 		}
 
-		public List<MemberDto> GetAllUsers()
+		public List<Member> GetAllUsers()
 		{
 			try
 			{
 				var dbUsers = _repository.FetchAll().ToList();
-				var memberDtos = _mapper.Map<List<MemberDto>>(dbUsers);
+				var memberDtos = _mapper.Map<List<Member>>(dbUsers);
 
 				return memberDtos;
 			}
@@ -41,7 +41,7 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 			}
 		}
 
-		public MemberDto GetByGuid(Guid guid)
+		public Member GetByGuid(Guid guid)
 		{
 			if (guid == Guid.Empty)
 			{
@@ -51,7 +51,7 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 			try
 			{
 				var user = _repository.FetchByCondition(x => x.AccountGuid == guid).FirstOrDefault();
-				var memberDto = _mapper.Map<MemberDto>(user);
+				var memberDto = _mapper.Map<Member>(user);
 
 				return memberDto;
 			}
@@ -63,7 +63,7 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 			}
 		}
 
-		public MemberDto GetByEmail(string email)
+		public Member GetByEmail(string email)
 		{
 			if (string.IsNullOrWhiteSpace(email))
 			{
@@ -73,7 +73,7 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 			try
 			{
 				var user = _repository.FetchByCondition(x => x.Email == email).FirstOrDefault();
-				var memberDto = _mapper.Map<MemberDto>(user);
+				var memberDto = _mapper.Map<Member>(user);
 
 				return memberDto;
 			}
@@ -85,18 +85,18 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 			}
 		}
 
-		public bool UpdateMember(MemberDto newMemberDto)
+		public bool UpdateMember(Member insertMember)
 		{
-			if (newMemberDto == null
-			    || newMemberDto.AccountGuid == Guid.Empty)
+			if (insertMember == null
+			    || insertMember.AccountGuid == Guid.Empty)
 			{
-				throw new ArgumentException($"{newMemberDto} is invalid");
+				throw new ArgumentException($"{insertMember} is invalid");
 			}
 
 			try
 			{
 				var existingMember = _repository
-					.FetchByCondition(x => x.AccountGuid == newMemberDto.AccountGuid)
+					.FetchByCondition(x => x.AccountGuid == insertMember.AccountGuid)
 					.FirstOrDefault();
 
 				if (existingMember is null)
@@ -107,7 +107,7 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 					throw ex;
 				}
 
-				var newMember = _mapper.Map<Member>(newMemberDto);
+				var newMember = _mapper.Map<Infrastructure.Entities.Member>(insertMember);
 				var updatedMember = MergeExistingMemberDataWithUpdateDate(newMember, existingMember);
 				
 				_repository.Update(updatedMember);
@@ -123,11 +123,11 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 			}
 		}
 
-		public bool InsertMember(MemberDto newMemberDto)
+		public bool InsertMember(InsertMember insertMember)
 		{
 			try
 			{
-				var newMember = _mapper.Map<Member>(newMemberDto);
+				var newMember = _mapper.Map<Infrastructure.Entities.Member>(insertMember);
 				
 				_repository.Insert(newMember);
 				var result = _repository.Save();
@@ -142,9 +142,9 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 			}
 		}
 
-		private Member MergeExistingMemberDataWithUpdateDate(Member newMemberData, Member existingMemberData)
+		private Infrastructure.Entities.Member MergeExistingMemberDataWithUpdateDate(Infrastructure.Entities.Member newMemberData, Infrastructure.Entities.Member existingMemberData)
 		{
-			var updatedMember = new Member
+			var updatedMember = new Infrastructure.Entities.Member
 			{
 				AccountGuid = newMemberData.AccountGuid,
 				Email = string.IsNullOrWhiteSpace(newMemberData.Email) 

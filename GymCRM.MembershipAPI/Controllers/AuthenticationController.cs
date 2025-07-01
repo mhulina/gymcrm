@@ -21,11 +21,11 @@ public class AuthenticationController : ControllerBase
 	}
 
 	[HttpPost]
-	public ActionResult<Guid> Register([FromBody] InsertAccount insertAccount)
+	public async Task<ActionResult<Guid>> Register([FromBody] InsertAccount insertAccount)
 	{
 		try
 		{
-			var registeredAccountGuid = _authenticationService.RegisterAccount(insertAccount);
+			var registeredAccountGuid = await _authenticationService.RegisterAccount(insertAccount);
 
 			if (registeredAccountGuid == Guid.Empty)
 			{

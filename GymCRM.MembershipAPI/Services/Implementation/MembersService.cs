@@ -10,25 +10,28 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 {
 	public class MembersService : IMembersService
 	{
+		private readonly IUnitOfWork _unitOfWork;
 		private readonly IMembersRepository _repository;
 		private readonly ILogger _logger;
 		private readonly IMapper _mapper;
 
 		public MembersService(
+			IUnitOfWork unitOfWork,
 			IMembersRepository repository,
 			IMapper mapper,
 			ILogger logger)
 		{
+			_unitOfWork = unitOfWork;
 			_repository = repository;
 			_logger = logger;
 			_mapper = mapper;
 		}
 
-		public List<Member> GetAllUsers()
+		public async Task<List<Member>> GetAllUsersAsync(CancellationToken cancellationToken = default)
 		{
 			try
 			{
-				var dbUsers = _repository.FetchAll().ToList();
+				var dbUsers = await _repository.FetchAll(cancellationToken);
 				var memberDtos = _mapper.Map<List<Member>>(dbUsers);
 
 				return memberDtos;
@@ -41,7 +44,7 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 			}
 		}
 
-		public Member GetByGuid(Guid guid)
+		public async Task<Member> GetUserByGuidAsync(Guid guid, CancellationToken cancellationToken = default)
 		{
 			if (guid == Guid.Empty)
 			{
@@ -50,7 +53,9 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 
 			try
 			{
-				var user = _repository.FetchByCondition(x => x.AccountGuid == guid).FirstOrDefault();
+				var user = (await _repository
+					.FetchByCondition(x => x.AccountGuid == guid, cancellationToken))
+					.FirstOrDefault();
 				var memberDto = _mapper.Map<Member>(user);
 
 				return memberDto;
@@ -63,7 +68,7 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 			}
 		}
 
-		public Member GetByEmail(string email)
+		public async Task<Member> GetUserByEmailAsync(string email, CancellationToken cancellationToken = default)
 		{
 			if (string.IsNullOrWhiteSpace(email))
 			{
@@ -72,7 +77,9 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 
 			try
 			{
-				var user = _repository.FetchByCondition(x => x.Email == email).FirstOrDefault();
+				var user = (await _repository
+					.FetchByCondition(x => x.Email == email, cancellationToken))
+					.FirstOrDefault();
 				var memberDto = _mapper.Map<Member>(user);
 
 				return memberDto;
@@ -85,7 +92,7 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 			}
 		}
 
-		public bool UpdateMember(Member insertMember)
+		public async Task<bool> UpdateMemberAsync(Member insertMember, CancellationToken cancellationToken = default)
 		{
 			if (insertMember == null
 			    || insertMember.AccountGuid == Guid.Empty)
@@ -95,8 +102,8 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 
 			try
 			{
-				var existingMember = _repository
-					.FetchByCondition(x => x.AccountGuid == insertMember.AccountGuid)
+				var existingMember = (await _repository
+					.FetchByCondition(x => x.AccountGuid == insertMember.AccountGuid, cancellationToken))
 					.FirstOrDefault();
 
 				if (existingMember is null)
@@ -108,10 +115,10 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 				}
 
 				var newMember = _mapper.Map<Infrastructure.Entities.Member>(insertMember);
-				var updatedMember = MergeExistingMemberDataWithUpdateDate(newMember, existingMember);
+				var updatedMember = MergeExistingMemberDataWithUpdateData(newMember, existingMember);
 				
 				_repository.Update(updatedMember);
-				var result = _repository.Save();
+				var result = await _unitOfWork.SaveAsync(cancellationToken);
 				
 				return result;
 			}
@@ -123,14 +130,14 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 			}
 		}
 
-		public bool InsertMember(InsertMember insertMember)
+		public async Task<bool> InsertMemberAsync(InsertMember insertMember, CancellationToken cancellationToken = default)
 		{
 			try
 			{
 				var newMember = _mapper.Map<Infrastructure.Entities.Member>(insertMember);
 				
 				_repository.Insert(newMember);
-				var result = _repository.Save();
+				var result = await _unitOfWork.SaveAsync(cancellationToken);
 				
 				return result;
 			}
@@ -142,7 +149,18 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 			}
 		}
 
-		private Infrastructure.Entities.Member MergeExistingMemberDataWithUpdateDate(Infrastructure.Entities.Member newMemberData, Infrastructure.Entities.Member existingMemberData)
+		/// <summary>
+		/// Merges non-null and non-empty fields from the provided new member data into an existing member entity,
+		/// returning a new <see cref="Infrastructure.Entities.Member"/> instance with updated data.
+		/// </summary>
+		/// <param name="newMemberData">The new member data containing updated values.</param>
+		/// <param name="existingMemberData">The existing member data to merge into.</param>
+		/// <returns>
+		/// A new <see cref="Infrastructure.Entities.Member"/> instance with merged data.
+		/// </returns>
+		private Infrastructure.Entities.Member MergeExistingMemberDataWithUpdateData(
+			Infrastructure.Entities.Member newMemberData, 
+			Infrastructure.Entities.Member existingMemberData)
 		{
 			var updatedMember = new Infrastructure.Entities.Member
 			{

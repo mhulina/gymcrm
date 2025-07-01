@@ -15,35 +15,24 @@ namespace GymCRM.MembershipAPI.Infrastructure.Implementation
 			_context = context;
 			_logger = logger;
 		}
-
-		public bool Save()
-		{
-			try
-			{
-				_context.Database.BeginTransaction();
-				var result = _context.SaveChanges();
-				_context.Database.CommitTransaction();
-
-				return result > 0;
-			}
-			catch (Exception ex)
-			{
-				_logger.Error(ex, ex.Message);
-				_context.Database.RollbackTransaction();
-				throw;
-			}
-		}
 		
-		public IEnumerable<Member> FetchAll()
+		public async Task<IEnumerable<Member>> FetchAll(CancellationToken cancellationToken)
 		{
-			var result = _context.Members.AsNoTracking();
+			var result = await _context.Members
+				.AsNoTracking()
+				.ToListAsync(cancellationToken: cancellationToken);
 
 			return result;
 		}
 
-		public IEnumerable<Member> FetchByCondition(System.Linq.Expressions.Expression<Func<Member, bool>> expression)
+		public async Task<IEnumerable<Member>> FetchByCondition(
+			System.Linq.Expressions.Expression<Func<Member, bool>> expression,
+			CancellationToken cancellationToken)
 		{
-			var result = _context.Members.Where(expression).AsNoTracking();
+			var result = await _context.Members
+				.Where(expression)
+				.AsNoTracking()
+				.ToListAsync(cancellationToken: cancellationToken);
 
 			return result;
 		}
@@ -55,69 +44,21 @@ namespace GymCRM.MembershipAPI.Infrastructure.Implementation
 		
 		public void Update(Member entity)
 		{
-			if (entity.AccountGuid != Guid.Empty)
-			{
-				var entityID = _context.Members
-					.AsNoTracking()
-					.FirstOrDefault(x => x.AccountGuid == entity.AccountGuid)?.Id;
-
-				if (entityID > 0)
-				{
-					entity.Id = entityID.Value;
-				}
-			}
-
 			_context.Members.Update(entity);
 		}
 		
-		public bool Delete(Member entity)
+		public void Delete(Member entity)
 		{
-			if (entity.AccountGuid != Guid.Empty)
-			{
-				var result = _context.Members
-					.AsNoTracking()
-					.FirstOrDefault(x => x.AccountGuid == entity.AccountGuid);
-
-				if (result != null)
-				{
-					_context.Members.Remove(result);
-
-					return true;
-				}
-			}
-
-			return false;
+			_context.Members.Remove(entity);
 		}
 		
-		public bool BulkDelete(IEnumerable<Member> entities)
+		public void BulkDelete(IEnumerable<Member> entities)
 		{
-			var result = new List<Member>();
-			var entitiesHaveIDs = entities.All(x => x.Id > 0);
-
-			result = !entitiesHaveIDs
-				? _context.Members
-					.AsNoTracking()
-					.Where(x => entities.Select(y => y.AccountGuid).Contains(x.AccountGuid))
-					.ToList()
-				: entities.ToList();
-
-			if (result.Count > 0)
-			{
-				_context.Members.RemoveRange(result);
-
-				return true;
-			}
-
-			return false;
+			_context.Members.RemoveRange(entities);
 		}
 		
 		public void BulkInsert(IEnumerable<Member> entities)
 		{
-			foreach (var entity in entities)
-			{
-				entity.AccountGuid = Guid.NewGuid();
-			}
-
 			_context.Members.AddRange(entities);
 		}
 

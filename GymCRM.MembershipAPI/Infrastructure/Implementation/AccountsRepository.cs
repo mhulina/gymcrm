@@ -2,34 +2,36 @@ using System.Linq.Expressions;
 using GymCRM.MembershipAPI.Infrastructure.Entities;
 using GymCRM.MembershipAPI.Infrastructure.Interface;
 using Microsoft.EntityFrameworkCore;
-using ILogger = Serilog.ILogger;
 
 namespace GymCRM.MembershipAPI.Infrastructure.Implementation;
 
 public class AccountsRepository : IAccountsRepository
 {
     private readonly AppDbContext _context;
-    private readonly ILogger _logger;
 
-    public AccountsRepository(AppDbContext context, ILogger logger)
+    public AccountsRepository(AppDbContext context)
     {
         _context = context;
-        _logger = logger;
     }
     
-    public IEnumerable<Account> FetchAll()
+    public async Task<IEnumerable<Account>> FetchAllAccountsAsync(CancellationToken cancellationToken)
     {
-        var result = _context.Accounts.AsNoTracking();
+        var result = await _context.Accounts
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
 
         return result;
     }
 
-    public IEnumerable<Account> FetchByCondition(Expression<Func<Account, bool>> expression)
+    public async Task<IEnumerable<Account>> FetchByConditionAsync(
+        Expression<Func<Account, bool>> expression,
+        CancellationToken cancellationToken)
     {
-        var result = _context.Accounts
+        var result = await _context.Accounts
             .Where(expression)
             .AsNoTracking()
-            .Include(x => x.Member);
+            .Include(x => x.Member)
+            .ToListAsync(cancellationToken);
 
         return result;
     }
@@ -39,48 +41,14 @@ public class AccountsRepository : IAccountsRepository
         _context.Accounts.Add(entity);
     }
 
-    public bool Save()
+    public void Delete(Account entity)
     {
-        try
-        {
-            _context.Database.BeginTransaction();
-            var result = _context.SaveChanges();
-            _context.Database.CommitTransaction();
-
-            return result > 0;
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, ex.Message);
-            _context.Database.RollbackTransaction();
-            throw;
-        }
-    }
-
-    public bool Delete(Account entity)
-    {
-        if (entity.Guid == Guid.Empty)
-        {
-            return false;
-        }
-        
-        var result = _context.Accounts
-            .AsNoTracking()
-            .FirstOrDefault(x => x.Guid == entity.Guid);
-
-        if (result is null)
-        {
-            return false;
-        }
-        
-        _context.Accounts.Remove(result);
-
-        return true;
+        _context.Accounts.Remove(entity);
     }
 
     public void Update(Account entity)
     {
-        throw new NotImplementedException();
+        _context.Accounts.Update(entity);
     }
     
     private bool _disposed = false;

@@ -27,7 +27,7 @@ namespace GymCRM.MembershipAPI.Controllers
 		{
 			try
 			{
-				var result = _membersService.GetAllUsers();
+				var result = _membersService.GetAllUsersAsync();
 
 				return new OkObjectResult(result);
 			}
@@ -38,11 +38,11 @@ namespace GymCRM.MembershipAPI.Controllers
 		}
 
 		[HttpGet("{guid}")]
-		public ActionResult<Member> GetUserByGuid(Guid guid)
+		public async Task<ActionResult<Member>> GetUserByGuid(Guid guid)
 		{
 			try
 			{
-				var result = _membersService.GetByGuid(guid);
+				var result = await _membersService.GetUserByGuidAsync(guid);
 
 				if (result != null)
 				{
@@ -58,11 +58,11 @@ namespace GymCRM.MembershipAPI.Controllers
 		}
 
 		[HttpGet("{email}")]
-		public ActionResult<Member> GetUserByEmail(string email)
+		public async Task<ActionResult<Member>> GetUserByEmail(string email)
 		{
 			try
 			{
-				var result = _membersService.GetByEmail(email);
+				var result = await _membersService.GetUserByEmailAsync(email);
 
 				if (result != null)
 				{
@@ -78,11 +78,11 @@ namespace GymCRM.MembershipAPI.Controllers
 		}
 
 		[HttpPut]
-		public ActionResult<bool> UpdateMember([FromBody]Member newMember)
+		public async Task<ActionResult<bool>> UpdateMember([FromBody]Member newMember)
 		{
 			try
 			{
-				var result = _membersService.UpdateMember(newMember);
+				var result = await _membersService.UpdateMemberAsync(newMember);
 
 				if (result)
 				{
@@ -94,26 +94,6 @@ namespace GymCRM.MembershipAPI.Controllers
 			catch (MemberNotFoundException)
 			{
 				return new NotFoundObjectResult(newMember.AccountGuid);
-			}
-		}
-
-		[HttpPost]
-		public ActionResult<bool> AddMember([FromBody] InsertMember newMember)
-		{
-			try
-			{
-				var result = _membersService.InsertMember(newMember);
-				
-				if (result)
-				{
-					return new OkObjectResult(result);
-				}
-				
-				return new BadRequestResult();
-			}
-			catch (Exception)
-			{
-				return new StatusCodeResult(500);
 			}
 		}
 	}

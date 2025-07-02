@@ -64,11 +64,11 @@ namespace GymCRM.MembershipAPI.Migrations
                     b.HasData(
                         new
                         {
-                            Guid = new Guid("c1c826ab-5195-44a6-b3ce-b236b54daf78"),
-                            DateCreated = new DateTime(2025, 4, 7, 17, 11, 46, 865, DateTimeKind.Utc).AddTicks(3453),
+                            Guid = new Guid("3b70043a-a6e8-484d-a25a-f14296bc3f35"),
+                            DateCreated = new DateTime(2025, 7, 2, 18, 20, 13, 157, DateTimeKind.Utc).AddTicks(5365),
                             Email = "test@test.com",
-                            HashSalt = "E84A81CE8413C73A3B7D96ECD",
-                            HashedPassword = "9NMsR7hdMEjiE6wxjn69DgAVnER/5QUGHU8czqtEuK0=",
+                            HashSalt = "8A576263EC4752BE30D93A005",
+                            HashedPassword = "3xCSzuD3YQsZuFiacKNP2smNf7iFA3t6pXE6U1rsmOA=",
                             Id = 1
                         });
                 });
@@ -86,6 +86,9 @@ namespace GymCRM.MembershipAPI.Migrations
 
                     b.Property<int>("AccountType")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime>("DateModified")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -142,8 +145,9 @@ namespace GymCRM.MembershipAPI.Migrations
                         new
                         {
                             Id = 1,
-                            AccountGuid = new Guid("c1c826ab-5195-44a6-b3ce-b236b54daf78"),
+                            AccountGuid = new Guid("3b70043a-a6e8-484d-a25a-f14296bc3f35"),
                             AccountType = 1,
+                            DateModified = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "test@test.com",
                             Gender = 1,
                             GymSubscriptionType = 1

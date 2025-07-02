@@ -1,6 +1,5 @@
 ﻿using GymCRM.MembershipAPI.Infrastructure.Configurations;
 using GymCRM.MembershipAPI.Infrastructure.Entities;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace GymCRM.MembershipAPI.Infrastructure

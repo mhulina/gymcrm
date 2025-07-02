@@ -8,7 +8,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GymCRM.MembershipAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialMembershipMigration : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -44,6 +44,7 @@ namespace GymCRM.MembershipAPI.Migrations
                     Email = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: false),
                     PhoneNumber = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true),
                     MobileNumber = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true),
+                    DateModified = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     PersonalTrainerId = table.Column<Guid>(type: "uuid", nullable: true),
                     WorkoutGroupIds = table.Column<List<Guid>>(type: "uuid[]", nullable: true),
                     WorkingExperienceInMonths = table.Column<int>(type: "integer", nullable: true),
@@ -64,12 +65,12 @@ namespace GymCRM.MembershipAPI.Migrations
             migrationBuilder.InsertData(
                 table: "Accounts",
                 columns: new[] { "Guid", "DateCreated", "Email", "HashSalt", "HashedPassword", "Id" },
-                values: new object[] { new Guid("c1c826ab-5195-44a6-b3ce-b236b54daf78"), new DateTime(2025, 4, 7, 17, 11, 46, 865, DateTimeKind.Utc).AddTicks(3453), "test@test.com", "E84A81CE8413C73A3B7D96ECD", "9NMsR7hdMEjiE6wxjn69DgAVnER/5QUGHU8czqtEuK0=", 1 });
+                values: new object[] { new Guid("3b70043a-a6e8-484d-a25a-f14296bc3f35"), new DateTime(2025, 7, 2, 18, 20, 13, 157, DateTimeKind.Utc).AddTicks(5365), "test@test.com", "8A576263EC4752BE30D93A005", "3xCSzuD3YQsZuFiacKNP2smNf7iFA3t6pXE6U1rsmOA=", 1 });
 
             migrationBuilder.InsertData(
                 table: "Members",
-                columns: new[] { "Id", "AccountGuid", "AccountType", "Email", "FirstName", "Gender", "GymSubscriptionType", "LastName", "MiddleName", "MobileNumber", "PersonalTrainerId", "PhoneNumber", "WorkingExperienceInMonths", "WorkoutGroupIds" },
-                values: new object[] { 1, new Guid("c1c826ab-5195-44a6-b3ce-b236b54daf78"), 1, "test@test.com", null, 1, 1, null, null, null, null, null, null, null });
+                columns: new[] { "Id", "AccountGuid", "AccountType", "DateModified", "Email", "FirstName", "Gender", "GymSubscriptionType", "LastName", "MiddleName", "MobileNumber", "PersonalTrainerId", "PhoneNumber", "WorkingExperienceInMonths", "WorkoutGroupIds" },
+                values: new object[] { 1, new Guid("3b70043a-a6e8-484d-a25a-f14296bc3f35"), 1, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "test@test.com", null, 1, 1, null, null, null, null, null, null, null });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Email",

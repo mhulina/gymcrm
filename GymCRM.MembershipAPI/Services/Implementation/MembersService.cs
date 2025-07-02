@@ -193,7 +193,8 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 				WorkingExperienceInMonths = newMemberData.WorkingExperienceInMonths,
 				GymSubscriptionType = newMemberData.GymSubscriptionType,
 				PersonalTrainerId = newMemberData.PersonalTrainerId,
-				Gender = newMemberData.Gender
+				Gender = newMemberData.Gender,
+				DateModified = DateTime.UtcNow
 			};
 			
 			return updatedMember;

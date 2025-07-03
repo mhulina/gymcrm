@@ -1,54 +1,44 @@
 using FluentAssertions;
+using FluentAssertions.Extensions;
 using GymCRM.MembershipAPI.Infrastructure;
 using GymCRM.MembershipAPI.Infrastructure.Entities;
+using GymCRM.MembershipAPI.Infrastructure.Implementation;
 using GymCRM.MembershipAPI.Infrastructure.Interface;
+using GymCRM.MembershipAPI.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
 namespace GymCRM.MembershipAPI.Tests.Integration.Repositories;
 
-public class TestMembersRepository : IClassFixture<TestDatabaseFixture>, IAsyncLifetime
+public class TestMembersRepository : TestBase
 {
-    private readonly TestDatabaseFixture _fixture;
     private IMembersRepository _membersRepository;
     private IAccountsRepository _accountsRepository;
-    private AppDbContext _dbContext;
+    private IUnitOfWork _unitOfWork;
 
-    public TestMembersRepository(TestDatabaseFixture fixture)
+    public TestMembersRepository()
     {
-        _fixture = fixture;
-    }
-    
-    public async Task InitializeAsync()
-    {
-        _membersRepository = _fixture.ServiceProvider.GetRequiredService<IMembersRepository>();
-        _accountsRepository = _fixture.ServiceProvider.GetRequiredService<IAccountsRepository>();
-        _dbContext = _fixture.ServiceProvider.GetRequiredService<AppDbContext>();
-        
-        // Clean the Members table before each test for isolation
-        await _dbContext.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Members\" RESTART IDENTITY CASCADE;");
-        await _dbContext.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Accounts\" RESTART IDENTITY CASCADE;");
+        _membersRepository = new MembersRepository(_context);
+        _accountsRepository = new AccountsRepository(_context);
+        _unitOfWork = new UnitOfWork(_context);
     }
 
-    public Task DisposeAsync() => Task.CompletedTask;
-    
     [Fact]
-    public async Task InsertMember_WithValidAccount_ShouldSucceed()
+    public async Task GivenValidUpdatedMember_WhenUpdatingMember_ThenMemberIsProperlyUpdated()
     {
-        // Arrange: Insert a valid account first
+        // Given
         var account = new Account
         {
             Guid = Guid.NewGuid(),
-            Email = "test.account@example.com",
-            HashedPassword = "hashedpassword", // or however you store it
+            Email = $"test.account{Guid.NewGuid()}@example.com",
+            HashedPassword = "hashedpassword",
             HashSalt = "salty",
             DateCreated = DateTime.UtcNow
-            // fill required fields as per your entity
         };
         _accountsRepository.Insert(account);
-        await _dbContext.SaveChangesAsync();
+        await _unitOfWork.SaveAsync(CancellationToken.None);
 
-        // Now create a member linked to that account
         var member = new Member
         {
             AccountGuid = account.Guid,
@@ -57,14 +47,77 @@ public class TestMembersRepository : IClassFixture<TestDatabaseFixture>, IAsyncL
             GymSubscriptionType = 0,
             Gender = 0,
             DateModified = account.DateCreated
-            // fill required fields as needed
+        };
+        _membersRepository.Insert(member);
+        await _unitOfWork.SaveAsync(CancellationToken.None);
+        
+        var members = (await _membersRepository
+            .FetchByCondition(m => m.AccountGuid == account.Guid, CancellationToken.None))
+            .ToList();
+        members.Should().ContainSingle(m => m.Email == account.Email.ToLower());
+        var existingMember = members.FirstOrDefault(x => x.AccountGuid == account.Guid);
+        existingMember.Should().NotBeNull();
+
+        var updatedMember = new Member
+        {
+            AccountGuid = existingMember.AccountGuid,
+            Email = existingMember.Email,
+            AccountType = (int)AccountType.PersonalTrainer,
+            GymSubscriptionType = (int)GymSubscriptionType.Yearly,
+            DateModified = DateTime.UtcNow,
+            FirstName = "Testo",
+            LastName = "Testov",
+            Gender = (int)Gender.Female
+        };
+        
+        // When
+        _membersRepository.Update(updatedMember);
+        await _unitOfWork.SaveAsync(CancellationToken.None);
+        
+        // Then
+        var updatedMemberFromDb = (await _membersRepository
+            .FetchByCondition(x => x.AccountGuid == updatedMember.AccountGuid, CancellationToken.None))
+            .FirstOrDefault();
+        updatedMemberFromDb.Should().NotBeNull();
+        updatedMemberFromDb.FirstName.Should().Be("Testo");
+        updatedMemberFromDb.LastName.Should().Be("Testov");
+        updatedMemberFromDb.Gender.Should().Be((int)Gender.Female);
+        updatedMemberFromDb.DateModified.Should().BeCloseTo(updatedMember.DateModified, TimeSpan.FromMilliseconds(1));
+        updatedMemberFromDb.GymSubscriptionType.Should().Be((int)GymSubscriptionType.Yearly);
+        updatedMemberFromDb.AccountType.Should().Be((int)AccountType.PersonalTrainer);
+        updatedMemberFromDb.Email.Should().Be(updatedMember.Email);
+    }
+    
+    [Fact]
+    public async Task GivenValidMember_WhenInsertingMember_ThenMemberIsProperlyInserted()
+    {
+        // Given
+        var account = new Account
+        {
+            Guid = Guid.NewGuid(),
+            Email = $"test.account{Guid.NewGuid()}@example.com",
+            HashedPassword = "hashedpassword",
+            HashSalt = "salty",
+            DateCreated = DateTime.UtcNow
+        };
+        _accountsRepository.Insert(account);
+        await _unitOfWork.SaveAsync(CancellationToken.None);
+
+        var member = new Member
+        {
+            AccountGuid = account.Guid,
+            Email = account.Email.ToLower(),
+            AccountType = 1,
+            GymSubscriptionType = 0,
+            Gender = 0,
+            DateModified = account.DateCreated
         };
 
-        // Act
+        // When
         _membersRepository.Insert(member);
-        await _dbContext.SaveChangesAsync();
+        await _unitOfWork.SaveAsync(CancellationToken.None);
 
-        // Assert
+        // Then
         var members = await _membersRepository.FetchByCondition(m => m.AccountGuid == account.Guid, CancellationToken.None);
         members.Should().ContainSingle(m => m.Email == account.Email.ToLower());
     }

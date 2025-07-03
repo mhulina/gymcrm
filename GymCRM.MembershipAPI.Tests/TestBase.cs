@@ -15,18 +15,19 @@ using IAuthenticationService = GymCRM.MembershipAPI.Services.Interface.IAuthenti
 
 namespace GymCRM.MembershipAPI.Tests;
 
-public class TestDatabaseFixture : IAsyncLifetime
+public class TestBase : IDisposable
 {
     private string _testDbConnectionString;
     private string _connectionStringWithoutDb;
     private IConfiguration _configuration;
+    protected readonly AppDbContext _context;
     
     public IServiceProvider ServiceProvider { get; private set; }
     
-    public async Task InitializeAsync()
+    protected TestBase()
     {
         LoadConfiguration();
-        await EnsureDatabaseExistsAndMigrateAsync();
+        EnsureDatabaseExistsAndMigrate();
 
         var services = new ServiceCollection();
         
@@ -82,6 +83,7 @@ public class TestDatabaseFixture : IAsyncLifetime
         services.AddLogging(lb => lb.AddSerilog(serilogLogger));
         
         ServiceProvider = services.BuildServiceProvider();
+        _context = ServiceProvider.GetService<AppDbContext>();
     }
 
     private void LoadConfiguration()
@@ -100,21 +102,21 @@ public class TestDatabaseFixture : IAsyncLifetime
         _connectionStringWithoutDb = builder.ToString();
     }
     
-    private async Task EnsureDatabaseExistsAndMigrateAsync()
+    private void EnsureDatabaseExistsAndMigrate()
     {
         var builder = new NpgsqlConnectionStringBuilder(_testDbConnectionString);
         var dbName = builder.Database;
 
-        await using var conn = new NpgsqlConnection(_connectionStringWithoutDb);
-        await conn.OpenAsync();
+        using var conn = new NpgsqlConnection(_connectionStringWithoutDb);
+        conn.Open();
 
-        await using (var cmd = new NpgsqlCommand($"SELECT 1 FROM pg_database WHERE datname = '{dbName}';", conn))
+        using (var cmd = new NpgsqlCommand($"SELECT 1 FROM pg_database WHERE datname = '{dbName}';", conn))
         {
-            var exists = await cmd.ExecuteScalarAsync();
+            var exists = cmd.ExecuteScalar();
             if (exists == null)
             {
-                await using var createCmd = new NpgsqlCommand($"CREATE DATABASE \"{dbName}\";", conn);
-                await createCmd.ExecuteNonQueryAsync();
+                using var createCmd = new NpgsqlCommand($"CREATE DATABASE \"{dbName}\";", conn);
+                createCmd.ExecuteNonQuery();
             }
         }
 
@@ -122,13 +124,36 @@ public class TestDatabaseFixture : IAsyncLifetime
             .UseNpgsql(_testDbConnectionString)
             .Options;
 
-        await using var dbContext = new AppDbContext(options);
-        await dbContext.Database.MigrateAsync();
+        using var dbContext = new AppDbContext(options);
+        dbContext.Database.Migrate();
+    }
+    
+    protected void ClearDatabase()
+    {
+        var entityTypes = _context.Model.GetEntityTypes();
+
+        foreach (var entityType in entityTypes)
+        {
+            var clrType = entityType.ClrType;
+
+            // Get the DbSet dynamically
+            var dbSet = _context.GetType()
+                .GetMethod("Set", Type.EmptyTypes)
+                .MakeGenericMethod(clrType)
+                .Invoke(_context, null);
+
+            // Get the entities to remove
+            var entities = ((IQueryable)dbSet).Cast<object>().ToList();
+
+            _context.RemoveRange(entities);
+        }
+
+        _context.SaveChanges();
     }
 
-    public Task DisposeAsync()
+    public void Dispose()
     {
-        // Optional: Drop the database after tests if you want full cleanup
-        return Task.CompletedTask;
+        ClearDatabase();
+        _context.Dispose();
     }
 }

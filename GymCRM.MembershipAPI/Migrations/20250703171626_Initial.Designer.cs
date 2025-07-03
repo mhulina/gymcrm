@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GymCRM.MembershipAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250702182013_Initial")]
+    [Migration("20250703171626_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -67,11 +67,11 @@ namespace GymCRM.MembershipAPI.Migrations
                     b.HasData(
                         new
                         {
-                            Guid = new Guid("3b70043a-a6e8-484d-a25a-f14296bc3f35"),
-                            DateCreated = new DateTime(2025, 7, 2, 18, 20, 13, 157, DateTimeKind.Utc).AddTicks(5365),
+                            Guid = new Guid("88dfc000-46a4-4f5a-8f14-253fe52020bc"),
+                            DateCreated = new DateTime(2025, 7, 3, 17, 16, 25, 739, DateTimeKind.Utc).AddTicks(8098),
                             Email = "test@test.com",
-                            HashSalt = "8A576263EC4752BE30D93A005",
-                            HashedPassword = "3xCSzuD3YQsZuFiacKNP2smNf7iFA3t6pXE6U1rsmOA=",
+                            HashSalt = "D54C29E51A858D7BD786A38E4",
+                            HashedPassword = "gCpwtb6GOJ4aeNxtzxvsaXJPpAHDH4KUL92jaZsVkyI=",
                             Id = 1
                         });
                 });
@@ -148,7 +148,7 @@ namespace GymCRM.MembershipAPI.Migrations
                         new
                         {
                             Id = 1,
-                            AccountGuid = new Guid("3b70043a-a6e8-484d-a25a-f14296bc3f35"),
+                            AccountGuid = new Guid("88dfc000-46a4-4f5a-8f14-253fe52020bc"),
                             AccountType = 1,
                             DateModified = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "test@test.com",

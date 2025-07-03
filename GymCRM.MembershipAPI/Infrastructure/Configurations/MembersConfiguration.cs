@@ -34,6 +34,7 @@ namespace GymCRM.MembershipAPI.Infrastructure.Configurations
 			modelBuilder.Property(x => x.MobileNumber).HasMaxLength(30);
 			modelBuilder.Property(x => x.Gender).IsRequired();
 			modelBuilder.Property(x => x.GymSubscriptionType).IsRequired();
+			modelBuilder.Property(x => x.DateModified).IsRequired();
 
 			modelBuilder.HasData(
 				new Member

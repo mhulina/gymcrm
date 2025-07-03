@@ -65,12 +65,12 @@ namespace GymCRM.MembershipAPI.Migrations
             migrationBuilder.InsertData(
                 table: "Accounts",
                 columns: new[] { "Guid", "DateCreated", "Email", "HashSalt", "HashedPassword", "Id" },
-                values: new object[] { new Guid("3b70043a-a6e8-484d-a25a-f14296bc3f35"), new DateTime(2025, 7, 2, 18, 20, 13, 157, DateTimeKind.Utc).AddTicks(5365), "test@test.com", "8A576263EC4752BE30D93A005", "3xCSzuD3YQsZuFiacKNP2smNf7iFA3t6pXE6U1rsmOA=", 1 });
+                values: new object[] { new Guid("88dfc000-46a4-4f5a-8f14-253fe52020bc"), new DateTime(2025, 7, 3, 17, 16, 25, 739, DateTimeKind.Utc).AddTicks(8098), "test@test.com", "D54C29E51A858D7BD786A38E4", "gCpwtb6GOJ4aeNxtzxvsaXJPpAHDH4KUL92jaZsVkyI=", 1 });
 
             migrationBuilder.InsertData(
                 table: "Members",
                 columns: new[] { "Id", "AccountGuid", "AccountType", "DateModified", "Email", "FirstName", "Gender", "GymSubscriptionType", "LastName", "MiddleName", "MobileNumber", "PersonalTrainerId", "PhoneNumber", "WorkingExperienceInMonths", "WorkoutGroupIds" },
-                values: new object[] { 1, new Guid("3b70043a-a6e8-484d-a25a-f14296bc3f35"), 1, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "test@test.com", null, 1, 1, null, null, null, null, null, null, null });
+                values: new object[] { 1, new Guid("88dfc000-46a4-4f5a-8f14-253fe52020bc"), 1, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "test@test.com", null, 1, 1, null, null, null, null, null, null, null });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Email",

@@ -8,12 +8,10 @@ namespace GymCRM.MembershipAPI.Infrastructure.Implementation
 	public class MembersRepository : IMembersRepository
 	{
 		private readonly AppDbContext _context;
-		private readonly ILogger _logger;
 
-		public MembersRepository(AppDbContext context, ILogger logger)
+		public MembersRepository(AppDbContext context)
 		{
 			_context = context;
-			_logger = logger;
 		}
 		
 		public async Task<IEnumerable<Member>> FetchAll(CancellationToken cancellationToken)

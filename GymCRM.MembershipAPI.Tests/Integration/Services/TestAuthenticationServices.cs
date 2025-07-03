@@ -8,15 +8,15 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace GymCRM.MembershipAPI.Tests.Integration.Services;
 
-public class AuthenticationServiceTests : IClassFixture<TestDatabaseFixture>, IAsyncLifetime
+public class AuthenticationServiceTests : IClassFixture<TestBase>, IAsyncLifetime
 {
-    private readonly TestDatabaseFixture _fixture;
+    private readonly TestBase _fixture;
     private IAuthenticationService _authenticationService;
     private IMembersRepository _membersRepository;
     private IAccountsRepository _accountsRepository;
     private AppDbContext _dbContext;
 
-    public AuthenticationServiceTests(TestDatabaseFixture fixture)
+    public AuthenticationServiceTests(TestBase fixture)
     {
         _fixture = fixture;
     }

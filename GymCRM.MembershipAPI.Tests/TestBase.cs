@@ -1,10 +1,10 @@
-using GymCRM.MembershipAPI.Infrastructure;
-using GymCRM.MembershipAPI.Infrastructure.Implementation;
+using GymCRM.MembershipAPI.Models;
+using GymCRM.MembershipAPI.Models.Implementation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
-using GymCRM.MembershipAPI.Infrastructure.Interface;
+using GymCRM.MembershipAPI.Models.Interface;
 using GymCRM.MembershipAPI.Services.Implementation;
 using GymCRM.MembershipAPI.Services.Interface;
 using Microsoft.AspNetCore.Authentication.JwtBearer;

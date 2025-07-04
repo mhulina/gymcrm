@@ -1,6 +1,6 @@
-using GymCRM.MembershipAPI.Infrastructure.Interface;
+using GymCRM.MembershipAPI.Models.Interface;
 
-namespace GymCRM.MembershipAPI.Infrastructure.Implementation;
+namespace GymCRM.MembershipAPI.Models.Implementation;
 
 public class UnitOfWork : IUnitOfWork
 {

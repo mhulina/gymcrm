@@ -1,7 +1,7 @@
 using GymCRM.MembershipAPI.Models.DTOs;
-using GymCRM.MembershipAPI.Infrastructure.Interface;
+using GymCRM.MembershipAPI.Models.Interface;
 using FluentAssertions;
-using GymCRM.MembershipAPI.Infrastructure;
+using GymCRM.MembershipAPI.Models;
 using GymCRM.MembershipAPI.Services.Interface;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,7 +53,7 @@ public class AuthenticationServiceTests : IClassFixture<TestBase>, IAsyncLifetim
         var accountGuid = await _authenticationService.RegisterAccount(insertAccount, CancellationToken.None);
 
         // Assert: Check Account
-        var accounts = await _accountsRepository.FetchByConditionAsync(a => a.Guid == accountGuid, CancellationToken.None);
+        var accounts = await _accountsRepository.FetchByConditionAsync(a => a.Id == accountGuid, CancellationToken.None);
         accounts.Should().ContainSingle(a => a.Email == email.ToLower());
 
         // Assert: Check Member

@@ -1,8 +1,8 @@
-﻿using GymCRM.MembershipAPI.Infrastructure.Configurations;
-using GymCRM.MembershipAPI.Infrastructure.Entities;
+﻿using GymCRM.MembershipAPI.Models.Configurations;
+using GymCRM.MembershipAPI.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace GymCRM.MembershipAPI.Infrastructure
+namespace GymCRM.MembershipAPI.Models
 {
     public class AppDbContext : DbContext
 	{
@@ -16,17 +16,9 @@ namespace GymCRM.MembershipAPI.Infrastructure
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
 			base.OnModelCreating(modelBuilder);
-
-			var initialAccountEmail = "test@test.com";
-			var initialAccountDateTime = DateTime.UtcNow;
-			var initialAccountGuid = Guid.NewGuid();
 			
-			modelBuilder.ApplyConfiguration(
-				new AccountsConfiguration(
-					initialAccountDateTime, 
-					initialAccountEmail,
-					initialAccountGuid));
-			modelBuilder.ApplyConfiguration(new MembersConfiguration(initialAccountEmail, initialAccountGuid));
+			modelBuilder.ApplyConfiguration(new AccountsConfiguration());
+			modelBuilder.ApplyConfiguration(new MembersConfiguration());
 		}
 	}
 }

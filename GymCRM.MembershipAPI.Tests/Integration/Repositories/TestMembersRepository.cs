@@ -1,9 +1,9 @@
 using FluentAssertions;
 using FluentAssertions.Extensions;
-using GymCRM.MembershipAPI.Infrastructure;
-using GymCRM.MembershipAPI.Infrastructure.Entities;
-using GymCRM.MembershipAPI.Infrastructure.Implementation;
-using GymCRM.MembershipAPI.Infrastructure.Interface;
+using GymCRM.MembershipAPI.Models;
+using GymCRM.MembershipAPI.Models.Entities;
+using GymCRM.MembershipAPI.Models.Implementation;
+using GymCRM.MembershipAPI.Models.Interface;
 using GymCRM.MembershipAPI.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,7 +30,7 @@ public class TestMembersRepository : TestBase
         // Given
         var account = new Account
         {
-            Guid = Guid.NewGuid(),
+            Id = Guid.NewGuid(),
             Email = $"test.account{Guid.NewGuid()}@example.com",
             HashedPassword = "hashedpassword",
             HashSalt = "salty",
@@ -41,7 +41,7 @@ public class TestMembersRepository : TestBase
 
         var member = new Member
         {
-            AccountGuid = account.Guid,
+            AccountGuid = account.Id,
             Email = account.Email.ToLower(),
             AccountType = 1,
             GymSubscriptionType = 0,
@@ -52,10 +52,10 @@ public class TestMembersRepository : TestBase
         await _unitOfWork.SaveAsync(CancellationToken.None);
         
         var members = (await _membersRepository
-            .FetchByCondition(m => m.AccountGuid == account.Guid, CancellationToken.None))
+            .FetchByCondition(m => m.AccountGuid == account.Id, CancellationToken.None))
             .ToList();
         members.Should().ContainSingle(m => m.Email == account.Email.ToLower());
-        var existingMember = members.FirstOrDefault(x => x.AccountGuid == account.Guid);
+        var existingMember = members.FirstOrDefault(x => x.AccountGuid == account.Id);
         existingMember.Should().NotBeNull();
 
         var updatedMember = new Member
@@ -94,7 +94,7 @@ public class TestMembersRepository : TestBase
         // Given
         var account = new Account
         {
-            Guid = Guid.NewGuid(),
+            Id = Guid.NewGuid(),
             Email = $"test.account{Guid.NewGuid()}@example.com",
             HashedPassword = "hashedpassword",
             HashSalt = "salty",
@@ -105,7 +105,7 @@ public class TestMembersRepository : TestBase
 
         var member = new Member
         {
-            AccountGuid = account.Guid,
+            AccountGuid = account.Id,
             Email = account.Email.ToLower(),
             AccountType = 1,
             GymSubscriptionType = 0,
@@ -118,7 +118,7 @@ public class TestMembersRepository : TestBase
         await _unitOfWork.SaveAsync(CancellationToken.None);
 
         // Then
-        var members = await _membersRepository.FetchByCondition(m => m.AccountGuid == account.Guid, CancellationToken.None);
+        var members = await _membersRepository.FetchByCondition(m => m.AccountGuid == account.Id, CancellationToken.None);
         members.Should().ContainSingle(m => m.Email == account.Email.ToLower());
     }
 }

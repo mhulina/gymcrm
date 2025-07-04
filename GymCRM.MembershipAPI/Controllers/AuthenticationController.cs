@@ -41,11 +41,11 @@ public class AuthenticationController : ControllerBase
 	}
 
 	[HttpPost]
-	public ActionResult Login([FromBody] AuthenticationRequestBody authenticationRequest)
+	public async Task<ActionResult> Login([FromBody] AuthenticationRequestBody authenticationRequest)
 	{
 		try
 		{
-			var tokenToReturn = _authenticationService.LoginAccount(authenticationRequest);
+			var tokenToReturn = await _authenticationService.LoginAccount(authenticationRequest);
 
 			return new JsonResult(tokenToReturn);
 		}

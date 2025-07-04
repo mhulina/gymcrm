@@ -1,4 +1,4 @@
-namespace GymCRM.MembershipAPI.Infrastructure.Interface;
+namespace GymCRM.MembershipAPI.Models.Interface;
 
 public interface IUnitOfWork
 {

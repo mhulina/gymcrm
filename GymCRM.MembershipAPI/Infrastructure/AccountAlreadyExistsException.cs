@@ -1,4 +1,4 @@
-namespace GymCRM.MembershipAPI.Infrastructure;
+namespace GymCRM.MembershipAPI.Models;
 
 public class AccountAlreadyExistsException : Exception
 {

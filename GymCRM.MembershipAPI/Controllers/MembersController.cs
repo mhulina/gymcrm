@@ -1,5 +1,5 @@
 ﻿using Asp.Versioning;
-using GymCRM.MembershipAPI.Infrastructure;
+using GymCRM.MembershipAPI.Models;
 using GymCRM.MembershipAPI.Models.DTOs;
 using GymCRM.MembershipAPI.Services.Interface;
 using Microsoft.AspNetCore.Authorization;

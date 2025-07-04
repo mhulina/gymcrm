@@ -1,12 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
-namespace GymCRM.MembershipAPI.Infrastructure.Entities
+namespace GymCRM.MembershipAPI.Models.Entities
 {
     public class Member
     {
-	    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-	    public int Id { get; set; }
+        public Guid Id { get; set; }
 		[Required]
         public int AccountType { get; set; }
         public string? FirstName { get; set; }

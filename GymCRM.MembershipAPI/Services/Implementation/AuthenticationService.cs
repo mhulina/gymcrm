@@ -3,15 +3,15 @@ using System.Security.Authentication;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using GymCRM.MembershipAPI.Infrastructure;
-using GymCRM.MembershipAPI.Infrastructure.Interface;
+using GymCRM.MembershipAPI.Models;
+using GymCRM.MembershipAPI.Models.Interface;
 using GymCRM.MembershipAPI.Models.DTOs;
 using GymCRM.MembershipAPI.Models.Enums;
 using GymCRM.MembershipAPI.Services.Interface;
 using Microsoft.IdentityModel.Tokens;
-using Account = GymCRM.MembershipAPI.Infrastructure.Entities.Account;
+using Account = GymCRM.MembershipAPI.Models.Entities.Account;
 using ILogger = Serilog.ILogger;
-using Member = GymCRM.MembershipAPI.Infrastructure.Entities.Member;
+using Member = GymCRM.MembershipAPI.Models.Entities.Member;
 
 namespace GymCRM.MembershipAPI.Services.Implementation;
 
@@ -70,7 +70,7 @@ public class AuthenticationService : IAuthenticationService
 
 			var member = new Member
 			{
-				AccountGuid = entity.Guid,
+				AccountGuid = entity.Id,
 				Email = insertAccount.Email.ToLower(),
 				AccountType = insertAccount.AccountType ?? 1,
 				GymSubscriptionType = insertAccount.GymSubscriptionType ?? 0,
@@ -81,7 +81,7 @@ public class AuthenticationService : IAuthenticationService
 			_membersRepository.Insert(member);
 			await _unitOfWork.SaveAsync(cancellationToken);
 
-			return entity.Guid;
+			return entity.Id;
 		}
 		catch (Exception ex)
 		{
@@ -135,7 +135,7 @@ public class AuthenticationService : IAuthenticationService
 
 		try
 		{
-			_accountsRepository.Delete(new Account { Guid = accountGuid });
+			_accountsRepository.Delete(new Account { Id = accountGuid });
 			var result = await _unitOfWork.SaveAsync(cancellationToken);
 
 			return result;
@@ -164,7 +164,7 @@ public class AuthenticationService : IAuthenticationService
 
 		var claimsForToken = new List<Claim>
 		{
-			new ("sub", account.Guid.ToString()),
+			new ("sub", account.Id.ToString()),
 			new ("email", account.Email),
 			new ("type", ((AccountType)account.Member.AccountType).ToString())
 		};
@@ -199,7 +199,7 @@ public class AuthenticationService : IAuthenticationService
 
 		var entity = new Account
 		{
-			Guid = accountGuid,
+			Id = accountGuid,
 			Email = insertAccount.Email.ToLower(),
 			DateCreated = dateCreated,
 			HashSalt = hashSalt,

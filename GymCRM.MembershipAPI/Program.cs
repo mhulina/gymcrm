@@ -1,7 +1,7 @@
 using Asp.Versioning;
-using GymCRM.MembershipAPI.Infrastructure;
-using GymCRM.MembershipAPI.Infrastructure.Implementation;
-using GymCRM.MembershipAPI.Infrastructure.Interface;
+using GymCRM.MembershipAPI.Models;
+using GymCRM.MembershipAPI.Models.Implementation;
+using GymCRM.MembershipAPI.Models.Interface;
 using GymCRM.MembershipAPI.Services;
 using GymCRM.MembershipAPI.Services.Implementation;
 using GymCRM.MembershipAPI.Services.Interface;
@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using Member = GymCRM.MembershipAPI.Models.DTOs.Member;
 
 using var log = new LoggerConfiguration()
 	.MinimumLevel.Debug()
@@ -36,9 +37,11 @@ builder.Services.AddCors(opt =>
 			.AllowCredentials());
 });
 
-var mapper = MappingConfig.RegisterMaps().CreateMapper();
-builder.Services.AddSingleton(mapper);
-builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+builder.Services.AddAutoMapper(config =>
+{
+	config.CreateMap<Member, GymCRM.MembershipAPI.Models.Entities.Member>();
+	config.CreateMap<GymCRM.MembershipAPI.Models.Entities.Member, Member>();
+});
 
 var secretForKey = builder.Configuration["Authentication:SecretForKey"];
 

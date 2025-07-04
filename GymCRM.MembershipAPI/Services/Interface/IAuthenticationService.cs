@@ -1,5 +1,5 @@
 using System.Security.Authentication;
-using GymCRM.MembershipAPI.Infrastructure;
+using GymCRM.MembershipAPI.Models;
 using GymCRM.MembershipAPI.Models.DTOs;
 
 namespace GymCRM.MembershipAPI.Services.Interface;

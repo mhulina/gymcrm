@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
-using GymCRM.MembershipAPI.Infrastructure;
-using GymCRM.MembershipAPI.Infrastructure.Interface;
+using GymCRM.MembershipAPI.Models;
+using GymCRM.MembershipAPI.Models.Interface;
 using GymCRM.MembershipAPI.Models.DTOs;
 using GymCRM.MembershipAPI.Services.Interface;
 using ILogger = Serilog.ILogger;
@@ -114,7 +114,7 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 					throw ex;
 				}
 
-				var newMember = _mapper.Map<Infrastructure.Entities.Member>(insertMember);
+				var newMember = _mapper.Map<Models.Entities.Member>(insertMember);
 				var updatedMember = MergeExistingMemberDataWithUpdateData(newMember, existingMember);
 				
 				_repository.Update(updatedMember);
@@ -134,7 +134,7 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 		{
 			try
 			{
-				var newMember = _mapper.Map<Infrastructure.Entities.Member>(insertMember);
+				var newMember = _mapper.Map<Models.Entities.Member>(insertMember);
 				
 				_repository.Insert(newMember);
 				var result = await _unitOfWork.SaveAsync(cancellationToken);
@@ -151,18 +151,18 @@ namespace GymCRM.MembershipAPI.Services.Implementation
 
 		/// <summary>
 		/// Merges non-null and non-empty fields from the provided new member data into an existing member entity,
-		/// returning a new <see cref="Infrastructure.Entities.Member"/> instance with updated data.
+		/// returning a new <see cref="Models.Entities.Member"/> instance with updated data.
 		/// </summary>
 		/// <param name="newMemberData">The new member data containing updated values.</param>
 		/// <param name="existingMemberData">The existing member data to merge into.</param>
 		/// <returns>
-		/// A new <see cref="Infrastructure.Entities.Member"/> instance with merged data.
+		/// A new <see cref="Models.Entities.Member"/> instance with merged data.
 		/// </returns>
-		private Infrastructure.Entities.Member MergeExistingMemberDataWithUpdateData(
-			Infrastructure.Entities.Member newMemberData, 
-			Infrastructure.Entities.Member existingMemberData)
+		private Models.Entities.Member MergeExistingMemberDataWithUpdateData(
+			Models.Entities.Member newMemberData, 
+			Models.Entities.Member existingMemberData)
 		{
-			var updatedMember = new Infrastructure.Entities.Member
+			var updatedMember = new Models.Entities.Member
 			{
 				AccountGuid = newMemberData.AccountGuid,
 				Email = string.IsNullOrWhiteSpace(newMemberData.Email) 

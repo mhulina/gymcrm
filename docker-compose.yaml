@@ -1,4 +1,3 @@
-version: '3.9'
 name: gymcrmapp
 
 services:
@@ -24,11 +23,11 @@ services:
         timeout: 2s
         retries: 5
 
-  membershipapi:
-    container_name: GymCRM.MembershipAPI
+  identityapi:
+    container_name: GymCRM.IdentityAPI
     build:
       context: .
-      dockerfile: GymCRM.MembershipAPI/Dockerfile
+      dockerfile: GymCRM.IdentityAPI/Dockerfile
     ports:
       - 55080:8080
       - 55081:8081
@@ -56,7 +55,7 @@ services:
     networks:
       - GymCRMApp
     depends_on:
-      membershipapi:
+      identityapi:
         condition: service_healthy
     restart: unless-stopped
       

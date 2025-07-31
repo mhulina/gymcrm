@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Authentication;
 using System.Security.Claims;
@@ -5,14 +6,12 @@ using System.Security.Cryptography;
 using System.Text;
 using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.DTOs;
-using GymCRM.IdentityAPI.Models.Entities;
 using GymCRM.IdentityAPI.Models.Enums;
 using GymCRM.IdentityAPI.Models.Interface;
-using GymCRM.IdentityAPI.Services.Interface;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.IdentityModel.Tokens;
 using Account = GymCRM.IdentityAPI.Models.Entities.Account;
-using Entities_Account = GymCRM.IdentityAPI.Models.Entities.Account;
-using Entities_Member = GymCRM.IdentityAPI.Models.Entities.Member;
+using IAuthenticationService = GymCRM.IdentityAPI.Services.Interface.IAuthenticationService;
 using ILogger = Serilog.ILogger;
 using Member = GymCRM.IdentityAPI.Models.Entities.Member;
 
@@ -71,7 +70,7 @@ public class AuthenticationService : IAuthenticationService
 				throw new Exception("Failed to add account");
 			}
 
-			var member = new Entities_Member
+			var member = new Member
 			{
 				AccountGuid = entity.Id,
 				Email = insertAccount.Email.ToLower(),
@@ -138,7 +137,7 @@ public class AuthenticationService : IAuthenticationService
 
 		try
 		{
-			_accountsRepository.Delete(new Entities_Account { Id = accountGuid });
+			_accountsRepository.Delete(new Account { Id = accountGuid });
 			var result = await _unitOfWork.SaveAsync(cancellationToken);
 
 			return result;
@@ -150,6 +149,41 @@ public class AuthenticationService : IAuthenticationService
 			throw;
 		}
 	}
+
+	public async Task<bool> ChangePassword(
+		string email, 
+		string oldPassword, 
+		string newPassword,
+		CancellationToken cancellationToken = default)
+	{
+		if (string.IsNullOrWhiteSpace(email.Trim().ToLower()))
+		{
+			throw new ArgumentException("Email is required");
+		}
+
+		if (string.IsNullOrWhiteSpace(oldPassword.Trim().ToLower())
+		    || string.IsNullOrWhiteSpace(newPassword.Trim().ToLower()))
+		{
+			throw new ArgumentException("Old password and/or password is required");
+		}
+		
+		var modifiedEmail = email.Trim().ToLower();
+		
+		var account = (await _accountsRepository.FetchByConditionAsync(x => x.Email == modifiedEmail, cancellationToken))
+			.FirstOrDefault() ?? throw new AccountDoesntExistException();
+
+		if (!CompareHashedPasswords(account, oldPassword))
+		{
+			throw new AuthenticationFailureException("Password is invalid");
+		}
+		
+		account.HashedPassword = GenerateHashedPassword(newPassword, account.HashSalt, account.DateCreated);
+		
+		_accountsRepository.Update(account);
+		var result = await _unitOfWork.SaveAsync(cancellationToken);
+
+		return result;
+	}
 	
 	/// <summary>
 	/// Generates a JWT token for the specified <see cref="Models.Entities.Account"/> using application configuration for signing.
@@ -157,7 +191,7 @@ public class AuthenticationService : IAuthenticationService
 	/// <param name="account">The <see cref="Models.Entities.Account"/> for which to generate the token.</param>
 	/// <returns>A JWT token as a string.</returns>
 	/// <exception cref="Exception">Thrown when the signing secret is missing in the configuration.</exception>
-	private string GenerateJwtToken(Entities_Account account)
+	private string GenerateJwtToken(Account account)
 	{
 		var securityKey = new SymmetricSecurityKey(
 			Convert.FromBase64String(
@@ -192,23 +226,19 @@ public class AuthenticationService : IAuthenticationService
 	/// <returns>
 	/// A new <see cref="Models.Entities.Account"/> entity with hashed password, salt, and creation metadata.
 	/// </returns>
-	private Entities_Account CreateAccountWithHashedPassword(InsertAccount insertAccount)
+	private static Account CreateAccountWithHashedPassword(InsertAccount insertAccount)
 	{
 		var hashSalt = RandomNumberGenerator.GetHexString(25);
 		var dateCreated = DateTime.UtcNow;
-		var accountGuid = Guid.NewGuid();
-		var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(hashSalt));
-		hmac.Initialize();
+		var accountGuid = Guid.CreateVersion7();
 
-		var entity = new Entities_Account
+		var entity = new Account
 		{
 			Id = accountGuid,
 			Email = insertAccount.Email.ToLower(),
 			DateCreated = dateCreated,
 			HashSalt = hashSalt,
-			HashedPassword = Convert.ToBase64String(
-				hmac.ComputeHash(
-					Encoding.UTF8.GetBytes(hashSalt + dateCreated + insertAccount.Password)))
+			HashedPassword = GenerateHashedPassword(insertAccount.Password, hashSalt, dateCreated)
 		};
 
 		return entity;
@@ -222,16 +252,23 @@ public class AuthenticationService : IAuthenticationService
 	/// <returns>
 	/// True if the hashed provided password matches the stored hash; otherwise, false.
 	/// </returns>
-	private bool CompareHashedPasswords(Entities_Account account, string providedPassword)
+	private static bool CompareHashedPasswords(Account account, string providedPassword)
 	{
-		var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(account.HashSalt));
-		hmac.Initialize();
-		var hashedProvidedPassword = Convert.ToBase64String(
-			hmac.ComputeHash(
-				Encoding.UTF8.GetBytes(account.HashSalt + account.DateCreated + providedPassword)));
+		var hashedProvidedPassword = GenerateHashedPassword(providedPassword, account.HashSalt, account.DateCreated);
 
 		var passwordsAreTheSame = hashedProvidedPassword == account.HashedPassword;
 
 		return passwordsAreTheSame;
+	}
+
+	private static string GenerateHashedPassword(string password, string salt, DateTime dateCreated)
+	{
+		var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(salt));
+		hmac.Initialize();
+		var hashedPassword = Convert.ToBase64String(
+			hmac.ComputeHash(
+				Encoding.UTF8.GetBytes(salt + dateCreated + password)));
+		
+		return hashedPassword;
 	}
 }

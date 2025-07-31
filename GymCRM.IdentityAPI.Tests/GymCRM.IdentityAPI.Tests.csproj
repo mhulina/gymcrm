@@ -6,7 +6,7 @@
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
         <LangVersion>13</LangVersion>
-        <RootNamespace>GymCRM.MembershipAPI.Tests</RootNamespace>
+        <RootNamespace>GymCRM.IdentityAPI.Tests</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>

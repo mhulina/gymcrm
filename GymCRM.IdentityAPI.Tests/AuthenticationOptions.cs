@@ -1,4 +1,4 @@
-namespace GymCRM.MembershipAPI.Tests;
+namespace GymCRM.IdentityAPI.Tests;
 
 public class AuthenticationOptions
 {

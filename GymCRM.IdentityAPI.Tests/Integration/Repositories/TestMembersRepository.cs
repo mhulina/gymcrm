@@ -1,15 +1,11 @@
 using FluentAssertions;
-using FluentAssertions.Extensions;
-using GymCRM.IdentityAPI.Models;
+using GymCRM.IdentityAPI.Infrastructure.Implementation;
 using GymCRM.IdentityAPI.Models.Entities;
 using GymCRM.IdentityAPI.Models.Implementation;
 using GymCRM.IdentityAPI.Models.Interface;
 using GymCRM.IdentityAPI.Models.Enums;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Serilog;
 
-namespace GymCRM.MembershipAPI.Tests.Integration.Repositories;
+namespace GymCRM.IdentityAPI.Tests.Integration.Repositories;
 
 public class TestMembersRepository : TestBase
 {

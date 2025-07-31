@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using GymCRM.IdentityAPI.Infrastructure.Implementation;
 using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.Implementation;
 using GymCRM.IdentityAPI.Models.Interface;

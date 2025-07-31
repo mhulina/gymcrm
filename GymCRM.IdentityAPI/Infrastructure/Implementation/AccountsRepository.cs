@@ -29,8 +29,8 @@ public class AccountsRepository : IAccountsRepository
     {
         var result = await _context.Accounts
             .Where(expression)
-            .AsNoTracking()
             .Include(x => x.Member)
+            .AsNoTracking()
             .ToListAsync(cancellationToken);
 
         return result;

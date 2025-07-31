@@ -2,41 +2,42 @@ using GymCRM.IdentityAPI.Models.DTOs;
 using GymCRM.IdentityAPI.Models.Interface;
 using FluentAssertions;
 using GymCRM.IdentityAPI.Models;
+using GymCRM.IdentityAPI.Models.Enums;
 using GymCRM.IdentityAPI.Services.Interface;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace GymCRM.MembershipAPI.Tests.Integration.Services;
+namespace GymCRM.IdentityAPI.Tests.Integration.Services;
 
-public class AuthenticationServiceTests : IClassFixture<TestBase>, IAsyncLifetime
+public class AuthenticationServiceTests : TestBase
 {
-    private readonly TestBase _fixture;
     private IAuthenticationService _authenticationService;
     private IMembersRepository _membersRepository;
     private IAccountsRepository _accountsRepository;
-    private AppDbContext _dbContext;
 
-    public AuthenticationServiceTests(TestBase fixture)
+    public AuthenticationServiceTests()
     {
-        _fixture = fixture;
-    }
-
-    public async Task InitializeAsync()
-    {
-        _authenticationService = _fixture.ServiceProvider.GetRequiredService<IAuthenticationService>();
-        _membersRepository = _fixture.ServiceProvider.GetRequiredService<IMembersRepository>();
-        _accountsRepository = _fixture.ServiceProvider.GetRequiredService<IAccountsRepository>();
-        _dbContext = _fixture.ServiceProvider.GetRequiredService<AppDbContext>();
+        _authenticationService = ServiceProvider.GetRequiredService<IAuthenticationService>();
+        _membersRepository = ServiceProvider.GetRequiredService<IMembersRepository>();
+        _accountsRepository = ServiceProvider.GetRequiredService<IAccountsRepository>();
 
         // Clear Accounts and Members tables for test isolation
-        await _dbContext.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Accounts\" RESTART IDENTITY CASCADE;");
-        await _dbContext.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Members\" RESTART IDENTITY CASCADE;");
+        _context.Database
+            .ExecuteSqlRawAsync("TRUNCATE TABLE \"Accounts\" RESTART IDENTITY CASCADE;")
+            .GetAwaiter()
+            .GetResult();
+        _context.Database
+            .ExecuteSqlRawAsync("TRUNCATE TABLE \"Members\" RESTART IDENTITY CASCADE;")
+            .GetAwaiter()
+            .GetResult();
+
+        ClearDatabase();
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
-    public async Task RegisterAccount_Should_Create_Account_And_Member()
+    public async Task GivenValidInsertAccount_WhenRegisteringAccount_ThenAccountAndMemberAreCreatedProperly()
     {
         // Arrange
         var email = $"user{Guid.NewGuid():N}@test.com";
@@ -58,7 +59,51 @@ public class AuthenticationServiceTests : IClassFixture<TestBase>, IAsyncLifetim
 
         // Assert: Check Member
         var members = await _membersRepository.FetchByCondition(m => m.AccountGuid == accountGuid, CancellationToken.None);
-        members.Should().ContainSingle(m => m.Email == email.ToLower() && m.AccountType == 2 && m.GymSubscriptionType == 1);
+        members
+            .Should()
+            .ContainSingle(m => m.Email == email.ToLower() 
+                && m.AccountType == 2 
+                && m.GymSubscriptionType == 1);
+    }
+
+    [Fact]
+    public async Task GivenValidPasswordForExistingAccount_WhenChangingPassword_ThenPasswordIsChangedAndCanLoginWithNewPassword()
+    {
+        // Given
+        var email = $"user{Guid.NewGuid():N}@test.com";
+        var oldPassword = "oldPassword01";
+        var insertAccount = new InsertAccount
+        {
+            Email = email,
+            AccountType = (int)AccountType.Member,
+            Gender = (int)Gender.Male,
+            Password = oldPassword,
+            GymSubscriptionType = (int)GymSubscriptionType.Monthly
+        };
+        var accountGuid = await _authenticationService.RegisterAccount(insertAccount, CancellationToken.None);
+        accountGuid.Should().NotBe(Guid.Empty);
+
+        var newPassword = "newPassword02";
+        
+        // When
+        using (var scope = ServiceProvider.CreateScope())
+        {
+            var passwordChanged = await 
+                scope.ServiceProvider
+                    .GetRequiredService<IAuthenticationService>()
+                    .ChangePassword(email, oldPassword, newPassword, CancellationToken.None);
+            passwordChanged.Should().BeTrue();
+        }
+        
+        // Then
+        var authenticationRequestBody = new AuthenticationRequestBody
+        {
+            Password = newPassword,
+            Username = email
+        };
+        var result = await _authenticationService.LoginAccount(authenticationRequestBody, CancellationToken.None);
+        
+        result.Should().NotBeNull();
     }
 }
 

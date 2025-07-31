@@ -1,6 +1,7 @@
+using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.Interface;
 
-namespace GymCRM.IdentityAPI.Models.Implementation;
+namespace GymCRM.IdentityAPI.Infrastructure.Implementation;
 
 public class UnitOfWork : IUnitOfWork
 {

@@ -1,6 +1,7 @@
 using System.Security.Authentication;
 using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.DTOs;
+using Microsoft.AspNetCore.Authentication;
 
 namespace GymCRM.IdentityAPI.Services.Interface;
 
@@ -41,4 +42,29 @@ public interface IAuthenticationService
 	/// </returns>
 	/// <exception cref="ArgumentException">Thrown when the provided GUID is empty.</exception>
 	Task<bool> DeleteAccount(Guid accountGuid, CancellationToken cancellationToken = default);
+	/// <summary>
+	/// Changes the password for an existing account, given a valid email and current password.
+	/// </summary>
+	/// <param name="email">The email address associated with the account.</param>
+	/// <param name="oldPassword">The current password of the account.</param>
+	/// <param name="newPassword">The new password to set for the account.</param>
+	/// <param name="cancellationToken">Optional cancellation token for the async operation.</param>
+	/// <returns>
+	/// A task that represents the asynchronous operation. The task result contains a boolean indicating
+	/// whether the password change was successful.
+	/// </returns>
+	/// <exception cref="ArgumentException">
+	/// Thrown when the email, old password, or new password is null, empty, or whitespace.
+	/// </exception>
+	/// <exception cref="AccountDoesntExistException">
+	/// Thrown when no account is found with the provided email.
+	/// </exception>
+	/// <exception cref="AuthenticationFailureException">
+	/// Thrown when the provided old password does not match the stored password.
+	/// </exception>
+	Task<bool> ChangePassword(
+		string email,
+		string oldPassword,
+		string newPassword,
+		CancellationToken cancellationToken = default);
 }

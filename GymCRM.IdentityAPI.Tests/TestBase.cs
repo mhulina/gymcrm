@@ -1,3 +1,4 @@
+using GymCRM.IdentityAPI.Infrastructure.Implementation;
 using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.Implementation;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +14,7 @@ using Serilog;
 using AuthenticationService = GymCRM.IdentityAPI.Services.Implementation.AuthenticationService;
 using IAuthenticationService = GymCRM.IdentityAPI.Services.Interface.IAuthenticationService;
 
-namespace GymCRM.MembershipAPI.Tests;
+namespace GymCRM.IdentityAPI.Tests;
 
 public class TestBase : IDisposable
 {

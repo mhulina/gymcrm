@@ -12,6 +12,8 @@
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "ajv": "^8.17.1",
+    "axios": "^1.8.4",
+    "bootstrap": "^5.3.7",
     "jwt-decode": "^4.0.0",
     "react": "^19.0.0",
     "react-bootstrap": "^2.10.9",
@@ -44,5 +46,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@types/bootstrap": "^5.2.10"
   }
 }

@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.35201.131
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GymCRM.MembershipAPI", "GymCRM.MembershipAPI\GymCRM.MembershipAPI.csproj", "{284F8697-1677-4FAF-BC37-19B4D8451D37}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GymCRM.IdentityAPI", "GymCRM.IdentityAPI\GymCRM.IdentityAPI.csproj", "{284F8697-1677-4FAF-BC37-19B4D8451D37}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GymCRM.WorkoutAPI", "GymCRM.WorkoutAPI\GymCRM.WorkoutAPI.csproj", "{A3E3E46E-BA2E-4E50-981A-4E33941B3A22}"
 EndProject
@@ -20,6 +20,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 		docker-compose.yaml = docker-compose.yaml
 	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{5E22CEDF-20BF-4814-B210-76518B0B16E7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GymCRM.IdentityAPI.Tests", "GymCRM.IdentityAPI.Tests\GymCRM.IdentityAPI.Tests.csproj", "{EEDB9293-A623-4E51-9A20-6FA49E9566BD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,11 +55,18 @@ Global
 		{0249A8E7-575B-404E-AAEB-B34A9D28E498}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0249A8E7-575B-404E-AAEB-B34A9D28E498}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0249A8E7-575B-404E-AAEB-B34A9D28E498}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EEDB9293-A623-4E51-9A20-6FA49E9566BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EEDB9293-A623-4E51-9A20-6FA49E9566BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EEDB9293-A623-4E51-9A20-6FA49E9566BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EEDB9293-A623-4E51-9A20-6FA49E9566BD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BF8D2F17-3A28-495B-93DD-C86E243F496E}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{EEDB9293-A623-4E51-9A20-6FA49E9566BD} = {5E22CEDF-20BF-4814-B210-76518B0B16E7}
 	EndGlobalSection
 EndGlobal

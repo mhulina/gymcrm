@@ -1,15 +1,15 @@
-﻿using GymCRM.IdentityAPI.Models.Entities;
+﻿using GymCRM.IdentityAPI.Infrastructure;
+using GymCRM.IdentityAPI.Models.Entities;
 using GymCRM.IdentityAPI.Models.Interface;
 using Microsoft.EntityFrameworkCore;
-using ILogger = Serilog.ILogger;
 
 namespace GymCRM.IdentityAPI.Models.Implementation
 {
 	public class MembersRepository : IMembersRepository
 	{
-		private readonly AppDbContext _context;
+		private readonly IdentityDbContext _context;
 
-		public MembersRepository(AppDbContext context)
+		public MembersRepository(IdentityDbContext context)
 		{
 			_context = context;
 		}

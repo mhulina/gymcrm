@@ -1,15 +1,16 @@
-﻿using GymCRM.IdentityAPI.Models.Configurations;
+﻿using GymCRM.IdentityAPI.Infrastructure.Configurations;
+using GymCRM.IdentityAPI.Models.Configurations;
 using GymCRM.IdentityAPI.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace GymCRM.IdentityAPI.Models
+namespace GymCRM.IdentityAPI.Infrastructure
 {
-    public class AppDbContext : DbContext
+    public class IdentityDbContext : DbContext
 	{
 		public virtual DbSet<Member> Members { get; set; }
 		public virtual DbSet<Account> Accounts { get; set; }
 		
-		public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) 
+		public IdentityDbContext(DbContextOptions<IdentityDbContext> options) : base(options) 
 		{
 		}
 
@@ -17,6 +18,7 @@ namespace GymCRM.IdentityAPI.Models
 		{
 			base.OnModelCreating(modelBuilder);
 			
+			modelBuilder.HasDefaultSchema("identity_db");
 			modelBuilder.ApplyConfiguration(new AccountsConfiguration());
 			modelBuilder.ApplyConfiguration(new MembersConfiguration());
 		}

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace GymCRM.IdentityAPI.Migrations
+namespace GymCRM.IdentityAPI.Persistence.Migrations
 {
     /// <inheritdoc />
     public partial class Initial : Migration
@@ -12,8 +12,12 @@ namespace GymCRM.IdentityAPI.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.EnsureSchema(
+                name: "identity_db");
+
             migrationBuilder.CreateTable(
                 name: "Accounts",
+                schema: "identity_db",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -29,6 +33,7 @@ namespace GymCRM.IdentityAPI.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Members",
+                schema: "identity_db",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -53,6 +58,7 @@ namespace GymCRM.IdentityAPI.Migrations
                     table.ForeignKey(
                         name: "FK_Account_Members",
                         column: x => x.AccountGuid,
+                        principalSchema: "identity_db",
                         principalTable: "Accounts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -60,18 +66,21 @@ namespace GymCRM.IdentityAPI.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_Email",
+                schema: "identity_db",
                 table: "Accounts",
                 column: "Email",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Email1",
+                schema: "identity_db",
                 table: "Members",
                 column: "Email",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Members_AccountGuid",
+                schema: "identity_db",
                 table: "Members",
                 column: "AccountGuid",
                 unique: true);
@@ -81,10 +90,12 @@ namespace GymCRM.IdentityAPI.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Members");
+                name: "Members",
+                schema: "identity_db");
 
             migrationBuilder.DropTable(
-                name: "Accounts");
+                name: "Accounts",
+                schema: "identity_db");
         }
     }
 }

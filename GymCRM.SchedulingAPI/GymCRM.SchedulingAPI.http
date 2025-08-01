@@ -1,6 +1,6 @@
-@GymCRM.SchedulingAPI_HostAddress = http://localhost:5095
+@GymCRM.SchedulingAPI_HostAddress = http://localhost:55085
 
-GET {{GymCRM.SchedulingAPI_HostAddress}}/weatherforecast/
+GET {{GymCRM.SchedulingAPI_HostAddress}}
 Accept: application/json
 
 ###

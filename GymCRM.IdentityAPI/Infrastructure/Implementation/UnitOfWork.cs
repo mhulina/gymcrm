@@ -5,9 +5,9 @@ namespace GymCRM.IdentityAPI.Infrastructure.Implementation;
 
 public class UnitOfWork : IUnitOfWork
 {
-    private readonly AppDbContext _context;
+    private readonly IdentityDbContext _context;
 
-    public UnitOfWork(AppDbContext context)
+    public UnitOfWork(IdentityDbContext context)
     {
         _context = context;
     }

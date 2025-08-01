@@ -1,3 +1,4 @@
+using GymCRM.IdentityAPI.Infrastructure;
 using GymCRM.IdentityAPI.Infrastructure.Implementation;
 using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.Implementation;
@@ -21,7 +22,7 @@ public class TestBase : IDisposable
     private string _testDbConnectionString;
     private string _connectionStringWithoutDb;
     private IConfiguration _configuration;
-    protected readonly AppDbContext _context;
+    protected readonly IdentityDbContext _context;
     
     public IServiceProvider ServiceProvider { get; private set; }
     
@@ -34,7 +35,7 @@ public class TestBase : IDisposable
         
         services.AddSingleton<IConfiguration>(_configuration);
         
-        services.AddDbContext<AppDbContext>(options => 
+        services.AddDbContext<IdentityDbContext>(options => 
             options.UseNpgsql(_testDbConnectionString));
 
         services.AddScoped<IMembersRepository, MembersRepository>();
@@ -84,7 +85,7 @@ public class TestBase : IDisposable
         services.AddLogging(lb => lb.AddSerilog(serilogLogger));
         
         ServiceProvider = services.BuildServiceProvider();
-        _context = ServiceProvider.GetService<AppDbContext>();
+        _context = ServiceProvider.GetService<IdentityDbContext>();
     }
 
     private void LoadConfiguration()
@@ -121,11 +122,11 @@ public class TestBase : IDisposable
             }
         }
 
-        var options = new DbContextOptionsBuilder<AppDbContext>()
+        var options = new DbContextOptionsBuilder<IdentityDbContext>()
             .UseNpgsql(_testDbConnectionString)
             .Options;
 
-        using var dbContext = new AppDbContext(options);
+        using var dbContext = new IdentityDbContext(options);
         dbContext.Database.Migrate();
     }
     

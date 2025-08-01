@@ -1,11 +1,12 @@
 using Asp.Versioning;
+using GymCRM.IdentityAPI.Infrastructure;
 using GymCRM.IdentityAPI.Infrastructure.Implementation;
-using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.Implementation;
 using GymCRM.IdentityAPI.Models.Interface;
 using GymCRM.IdentityAPI.Services.Implementation;
 using GymCRM.IdentityAPI.Services.Interface;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -22,7 +23,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog(logger: log);
 
 // Add services to the container.
-builder.Services.AddDbContext<AppDbContext>(option =>
+builder.Services.AddDbContext<IdentityDbContext>(option =>
 {
 	option.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
@@ -155,13 +156,13 @@ void ApplyMigration()
 {
 	using (var scope = app.Services.CreateScope())
 	{
-		var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+		var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
 
 		if (!db.Database.CanConnect())
 		{
-			db.Database.Migrate();
+			throw new ConnectionAbortedException("Database connection could not be established");
 		}
-		else if (db.Database.GetPendingMigrations().Any())
+		if (db.Database.GetPendingMigrations().Any())
 		{
 			db.Database.Migrate();
 		}

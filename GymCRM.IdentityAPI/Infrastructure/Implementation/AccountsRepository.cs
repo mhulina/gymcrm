@@ -3,13 +3,13 @@ using GymCRM.IdentityAPI.Models.Entities;
 using GymCRM.IdentityAPI.Models.Interface;
 using Microsoft.EntityFrameworkCore;
 
-namespace GymCRM.IdentityAPI.Models.Implementation;
+namespace GymCRM.IdentityAPI.Infrastructure.Implementation;
 
 public class AccountsRepository : IAccountsRepository
 {
-    private readonly AppDbContext _context;
+    private readonly IdentityDbContext _context;
 
-    public AccountsRepository(AppDbContext context)
+    public AccountsRepository(IdentityDbContext context)
     {
         _context = context;
     }

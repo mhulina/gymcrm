@@ -11,7 +11,8 @@ services:
       - PG_VERSION=17.2-1.pgdg120+1
       - PGDATA=/var/lib/postgresql/data
     volumes:
-      - /var/lib/postgresql/data
+      - ./init-dbs.sql:/docker-entrypoint-initdb.d/init-dbs.sql
+      - postgres_data:/var/lib/postgresql/data
     ports:
       - 5432:5432
     networks:
@@ -44,6 +45,28 @@ services:
       interval: 5s
       retries: 3
       timeout: 2s
+      
+  schedulingapi:
+    container_name: GymCRM.SchedulingAPI
+    build:
+      context: .
+      dockerfile: GymCRM.SchedulingAPI/Dockerfile
+    ports:
+      - 55085:8082
+      - 55086:8083
+    networks:
+      - GymCRMApp
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "--silent", "--fail", "http://localhost:8082/health" ]
+      interval: 5s
+      retries: 3
+      timeout: 2s
     
   webapp:
     container_name: GymCRMWebApp
@@ -62,3 +85,6 @@ services:
 networks:
   GymCRMApp:
     driver: bridge
+    
+volumes:
+  postgres_data:

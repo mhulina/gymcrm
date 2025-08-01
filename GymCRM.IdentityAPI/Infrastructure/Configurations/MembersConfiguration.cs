@@ -8,7 +8,7 @@ namespace GymCRM.IdentityAPI.Models.Configurations
 	{
 		public void Configure(EntityTypeBuilder<Member> modelBuilder)
 		{
-			modelBuilder.ToTable("Members");
+			modelBuilder.ToTable("Members", "identity_db");
 
 			modelBuilder.HasKey(x => x.Id);
 			modelBuilder.HasIndex(x => x.Email, "IX_Email").IsUnique();

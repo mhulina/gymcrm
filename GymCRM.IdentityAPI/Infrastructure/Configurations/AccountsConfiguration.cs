@@ -1,16 +1,14 @@
-using System.Security.Cryptography;
-using System.Text;
 using GymCRM.IdentityAPI.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace GymCRM.IdentityAPI.Models.Configurations;
+namespace GymCRM.IdentityAPI.Infrastructure.Configurations;
 
 public class AccountsConfiguration : IEntityTypeConfiguration<Account>
 {
     public void Configure(EntityTypeBuilder<Account> modelBuilder)
     {
-        modelBuilder.ToTable("Accounts");
+        modelBuilder.ToTable("Accounts", "identity_db");
 
         modelBuilder.HasKey(x => x.Id);
         modelBuilder.HasIndex(x => x.Email, "IX_Email").IsUnique();

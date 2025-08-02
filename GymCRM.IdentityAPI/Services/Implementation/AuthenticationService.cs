@@ -1,9 +1,9 @@
-using System.ComponentModel;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Authentication;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using GymCRM.IdentityAPI.Infrastructure.Interface;
 using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.DTOs;
 using GymCRM.IdentityAPI.Models.Enums;

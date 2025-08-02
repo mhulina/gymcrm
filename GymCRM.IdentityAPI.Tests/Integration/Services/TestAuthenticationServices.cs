@@ -1,7 +1,7 @@
 using GymCRM.IdentityAPI.Models.DTOs;
 using GymCRM.IdentityAPI.Models.Interface;
 using FluentAssertions;
-using GymCRM.IdentityAPI.Models;
+using GymCRM.IdentityAPI.Infrastructure.Interface;
 using GymCRM.IdentityAPI.Models.Enums;
 using GymCRM.IdentityAPI.Services.Interface;
 using Microsoft.EntityFrameworkCore;

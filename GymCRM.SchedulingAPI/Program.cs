@@ -1,5 +1,10 @@
 using Asp.Versioning;
 using GymCRM.SchedulingAPI.Infrastructure;
+using GymCRM.SchedulingAPI.Infrastructure.Implementation;
+using GymCRM.SchedulingAPI.Infrastructure.Interface;
+using GymCRM.SchedulingAPI.Models.DTOs;
+using GymCRM.SchedulingAPI.Services.Implementation;
+using GymCRM.SchedulingAPI.Services.Interface;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.EntityFrameworkCore;
@@ -30,6 +35,11 @@ builder.Services.AddCors(opt =>
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials());
+});
+builder.Services.AddAutoMapper(config =>
+{
+	config.CreateMap<TrainingSession, GymCRM.SchedulingAPI.Models.Entities.TrainingSession>();
+	config.CreateMap<GymCRM.SchedulingAPI.Models.Entities.TrainingSession, TrainingSession>();
 });
 
 var secretForKey = builder.Configuration["Authentication:SecretForKey"];
@@ -79,13 +89,18 @@ builder.Services
 		opt.SubstituteApiVersionInUrl = true;
 	});
 
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+builder.Services.AddScoped<ITrainingSessionsRepository, TrainingSessionsRepository>();
+builder.Services.AddScoped<ITrainingSessionsService, TrainingSessionsService>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-	c.SwaggerDoc("v1", new OpenApiInfo { Title = "IdentityAPI", Version = "v1.0" });
-	c.SwaggerDoc("v2", new OpenApiInfo { Title = "IdentityAPI", Version = "v2.0" });
+	c.SwaggerDoc("v1", new OpenApiInfo { Title = "SchedulingAPI", Version = "v1.0" });
+	c.SwaggerDoc("v2", new OpenApiInfo { Title = "SchedulingAPI", Version = "v2.0" });
 	c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
 	{
 		Name = "Authorization",
@@ -115,15 +130,18 @@ builder.Services.AddHealthChecks();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+// if (app.Environment.IsDevelopment())
+// {
     app.UseSwagger();
     app.UseSwaggerUI();
-}
+// }
 
 app.UseHttpsRedirection();
 
+app.UseCors();
+
 app.UseAuthorization();
+app.MapHealthChecks("/health");
 
 app.MapControllers();
 ApplyMigration();

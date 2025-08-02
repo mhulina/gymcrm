@@ -52,8 +52,8 @@ services:
       context: .
       dockerfile: GymCRM.SchedulingAPI/Dockerfile
     ports:
-      - 55085:8082
-      - 55086:8083
+      - 55085:8080
+      - 55086:8081
     networks:
       - GymCRMApp
     environment:

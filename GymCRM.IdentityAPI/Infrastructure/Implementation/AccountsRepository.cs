@@ -1,6 +1,6 @@
 using System.Linq.Expressions;
+using GymCRM.IdentityAPI.Infrastructure.Interface;
 using GymCRM.IdentityAPI.Models.Entities;
-using GymCRM.IdentityAPI.Models.Interface;
 using Microsoft.EntityFrameworkCore;
 
 namespace GymCRM.IdentityAPI.Infrastructure.Implementation;

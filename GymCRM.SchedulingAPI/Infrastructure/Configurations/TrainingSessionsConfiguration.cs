@@ -19,5 +19,6 @@ public class TrainingSessionsConfiguration : IEntityTypeConfiguration<TrainingSe
         modelBuilder.Property(x => x.DateCreated).IsRequired();
         modelBuilder.Property(x => x.DateModified).IsRequired();
         modelBuilder.Property(x => x.Status).IsRequired();
+        modelBuilder.Property(x => x.Description).HasMaxLength(2000);
     }
 }

@@ -1,5 +1,6 @@
 using FluentAssertions;
 using GymCRM.IdentityAPI.Infrastructure.Implementation;
+using GymCRM.IdentityAPI.Infrastructure.Interface;
 using GymCRM.IdentityAPI.Models.Entities;
 using GymCRM.IdentityAPI.Models.Implementation;
 using GymCRM.IdentityAPI.Models.Interface;

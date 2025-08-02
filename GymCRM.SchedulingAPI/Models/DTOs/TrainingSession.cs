@@ -1,4 +1,6 @@
-﻿namespace GymCRM.SchedulingAPI.Models.Entities;
+﻿using GymCRM.SchedulingAPI.Models.Enums;
+
+namespace GymCRM.SchedulingAPI.Models.DTOs;
 
 public class TrainingSession
 {

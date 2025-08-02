@@ -5,7 +5,6 @@ using GymCRM.IdentityAPI.Models.Interface;
 using GymCRM.IdentityAPI.Services.Interface;
 using DTOs_Member = GymCRM.IdentityAPI.Models.DTOs.Member;
 using ILogger = Serilog.ILogger;
-using Member = GymCRM.IdentityAPI.Models.DTOs.Member;
 
 namespace GymCRM.IdentityAPI.Services.Implementation
 {

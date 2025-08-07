@@ -29,6 +29,12 @@ namespace GymCRM.SchedulingAPI.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("DateModified")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("DayOfWeek")
                         .HasColumnType("integer");
 
@@ -38,11 +44,11 @@ namespace GymCRM.SchedulingAPI.Persistence.Migrations
                     b.Property<bool>("IsAvailable")
                         .HasColumnType("boolean");
 
-                    b.Property<Guid>("MemberId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("TrainerId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 

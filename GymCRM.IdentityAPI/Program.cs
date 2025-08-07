@@ -1,3 +1,4 @@
+using System.Reflection;
 using Asp.Versioning;
 using GymCRM.IdentityAPI.Infrastructure;
 using GymCRM.IdentityAPI.Infrastructure.Implementation;
@@ -128,6 +129,10 @@ builder.Services.AddSwaggerGen(c =>
 			new string[] { }
 		}
 	});
+	
+	var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+	var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+	c.IncludeXmlComments(xmlPath);
 });
 builder.Services.AddHealthChecks();
 

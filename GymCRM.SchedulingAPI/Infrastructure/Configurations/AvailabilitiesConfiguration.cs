@@ -12,10 +12,12 @@ public class AvailabilitiesConfiguration : IEntityTypeConfiguration<Availability
         
         modelBuilder.HasKey(x => x.Id);
         
-        modelBuilder.Property(x => x.MemberId).IsRequired();
+        modelBuilder.Property(x => x.TrainerId).IsRequired();
         modelBuilder.Property(x => x.StartDate).IsRequired();
         modelBuilder.Property(x => x.EndDate).IsRequired();
         modelBuilder.Property(x => x.IsAvailable).IsRequired();
         modelBuilder.Property(x => x.DayOfWeek).IsRequired();
+        modelBuilder.Property(x => x.DateCreated).IsRequired();
+        modelBuilder.Property(x => x.DateModified).IsRequired();
     }
 }

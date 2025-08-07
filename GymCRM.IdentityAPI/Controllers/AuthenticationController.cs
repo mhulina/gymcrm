@@ -20,6 +20,18 @@ public class AuthenticationController : ControllerBase
 		_authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
 	}
 
+	/// <summary>
+	/// Registers a new account with the provided account details.
+	/// </summary>
+	/// <param name="insertAccount">The details of the account to be registered.</param>
+	/// <returns>
+	/// A <see cref="CreatedResult"/> with the newly created account's GUID if successful,
+	/// a <see cref="StatusCodeResult"/> with 500 status code if account creation fails,
+	/// or a <see cref="BadRequestResult"/> if an exception occurs.
+	/// </returns>
+	/// <response code="201">Returns the GUID of the newly created account.</response>
+	/// <response code="500">Indicates that account registration failed.</response>
+	/// <response code="400">Indicates an unexpected error occurred.</response>
 	[HttpPost]
 	public async Task<ActionResult<Guid>> Register([FromBody] InsertAccount insertAccount)
 	{
@@ -29,7 +41,7 @@ public class AuthenticationController : ControllerBase
 
 			if (registeredAccountGuid == Guid.Empty)
 			{
-				return new StatusCodeResult(500);
+				return new StatusCodeResult(StatusCodes.Status500InternalServerError);
 			}
 
 			return new CreatedResult();
@@ -40,6 +52,18 @@ public class AuthenticationController : ControllerBase
 		}
 	}
 
+	/// <summary>
+	/// Authenticates an account and returns a JWT token if credentials are valid.
+	/// </summary>
+	/// <param name="authenticationRequest">The account login credentials.</param>
+	/// <returns>
+	/// A <see cref="JsonResult"/> with the JWT token if login is successful,
+	/// an <see cref="UnauthorizedObjectResult"/> with a message if authentication fails,
+	/// or a <see cref="StatusCodeResult"/> with 500 status code if an error occurs.
+	/// </returns>
+	/// <response code="200">Returns a JWT token upon successful authentication.</response>
+	/// <response code="401">Indicates that the authentication credentials are invalid.</response>
+	/// <response code="500">Indicates an unexpected error occurred.</response>
 	[HttpPost]
 	public async Task<ActionResult> Login([FromBody] AuthenticationRequestBody authenticationRequest)
 	{
@@ -55,7 +79,7 @@ public class AuthenticationController : ControllerBase
 		}
 		catch (Exception)
 		{
-			return new StatusCodeResult(500);
+			return new StatusCodeResult(StatusCodes.Status500InternalServerError);
 		}
 	}
 }

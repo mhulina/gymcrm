@@ -113,4 +113,39 @@ public class TrainingSessionsService : ITrainingSessionsService
 
         return result;
     }
+
+    public async Task<bool> DeleteTrainingSessionAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        if (id == Guid.Empty)
+        {
+            throw new ArgumentException($"{id} is an invalid value for ID", nameof(id));
+        }
+
+        var trainingSessionEntity = new TrainingSession
+        {
+            Id = id
+        };
+        
+        _trainingSessionsRepository.Remove(trainingSessionEntity);
+        var result = await _unitOfWork.SaveChangesAsync(cancellationToken);
+        
+        return result;
+    }
+
+    public Task<bool> UpdateTrainingSessionAsync(
+        Models.DTOs.TrainingSession updatedTrainingSession, 
+        CancellationToken cancellationToken = default)
+    {
+        if (updatedTrainingSession is null)
+        {
+            throw new ArgumentNullException(nameof(updatedTrainingSession));
+        }
+
+        var mappedTrainingSession = _mapper.Map<TrainingSession>(updatedTrainingSession);
+        
+        _trainingSessionsRepository.Update(mappedTrainingSession);
+        var result = _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return result;
+    }
 }

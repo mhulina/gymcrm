@@ -142,6 +142,7 @@ public class TrainingSessionsService : ITrainingSessionsService
         }
 
         var mappedTrainingSession = _mapper.Map<TrainingSession>(updatedTrainingSession);
+        mappedTrainingSession.DateModified = DateTime.UtcNow;
         
         _trainingSessionsRepository.Update(mappedTrainingSession);
         var result = _unitOfWork.SaveChangesAsync(cancellationToken);

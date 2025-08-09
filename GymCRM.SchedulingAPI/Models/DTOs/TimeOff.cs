@@ -1,4 +1,4 @@
-﻿namespace GymCRM.SchedulingAPI.Models.Entities;
+﻿namespace GymCRM.SchedulingAPI.Models.DTOs;
 
 public class TimeOff
 {
@@ -6,6 +6,4 @@ public class TimeOff
     public Guid TrainerId { get; set; }
     public DateTime Date { get; set; }
     public string Reason { get; set; }
-    public DateTime DateCreated { get; set; }
-    public DateTime DateModified { get; set; }
 }

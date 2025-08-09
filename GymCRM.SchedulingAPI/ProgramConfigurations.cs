@@ -21,6 +21,8 @@ public static class ProgramConfigurations
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IAvailabilitiesRepository, AvailabilitiesRepository>();
         services.AddScoped<IAvailabilitiesService, AvailabilitiesService>();
+        services.AddScoped<ITimeOffRepository, TimeOffRepository>();
+        services.AddScoped<ITimeOffService, TimeOffService>();
         
         return services;
     }
@@ -33,6 +35,8 @@ public static class ProgramConfigurations
             config.CreateMap<GymCRM.SchedulingAPI.Models.Entities.TrainingSession, TrainingSession>();
             config.CreateMap<Availability, GymCRM.SchedulingAPI.Models.Entities.Availability>();
             config.CreateMap<GymCRM.SchedulingAPI.Models.Entities.Availability, Availability>();
+            config.CreateMap<GymCRM.SchedulingAPI.Models.Entities.TimeOff, TimeOff>();
+            config.CreateMap<TimeOff, GymCRM.SchedulingAPI.Models.Entities.TimeOff>();
         });
 
         return services;

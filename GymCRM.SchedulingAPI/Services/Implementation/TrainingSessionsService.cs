@@ -50,7 +50,7 @@ public class TrainingSessionsService : ITrainingSessionsService
         CancellationToken cancellationToken = default)
     {
         var result = await _trainingSessionsRepository.FetchByConditionAsync(
-            x => x.Status == (int)TrainingSessionStatus.Pending,
+            x => x.Status == (int)TrainingSessionStatus.Booked,
             cancellationToken);
         var mappedResult = result
             .Select(x => _mapper.Map<Models.DTOs.TrainingSession>(x))
@@ -100,7 +100,7 @@ public class TrainingSessionsService : ITrainingSessionsService
             Id = Guid.CreateVersion7(),
             TrainerId = insertTrainingSession.TrainerId,
             ClientId = insertTrainingSession.ClientId,
-            Status = (int)TrainingSessionStatus.Pending,
+            Status = (int)TrainingSessionStatus.Booked,
             Description = insertTrainingSession.Description,
             StartTime = insertTrainingSession.StartTime,
             EndTime = insertTrainingSession.EndTime,

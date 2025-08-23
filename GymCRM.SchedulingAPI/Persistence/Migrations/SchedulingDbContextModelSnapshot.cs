@@ -55,6 +55,46 @@ namespace GymCRM.SchedulingAPI.Persistence.Migrations
                     b.ToTable("Availabilities", "scheduling_db");
                 });
 
+            modelBuilder.Entity("GymCRM.SchedulingAPI.Models.Entities.Holiday", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CountryCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EnglishName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("LocalName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RegionCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Holidays", "scheduling_db");
+                });
+
             modelBuilder.Entity("GymCRM.SchedulingAPI.Models.Entities.SessionType", b =>
                 {
                     b.Property<Guid>("Id")

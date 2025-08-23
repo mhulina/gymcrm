@@ -145,7 +145,7 @@ public class TimeOffController : ControllerBase
                 return new BadRequestResult();
             }
             
-            return new OkResult();
+            return new NoContentResult();
         }
         catch (Exception)
         {
@@ -175,7 +175,7 @@ public class TimeOffController : ControllerBase
                 return new BadRequestResult();
             }
             
-            return new OkResult();
+            return new NoContentResult();
         }
         catch (Exception)
         {

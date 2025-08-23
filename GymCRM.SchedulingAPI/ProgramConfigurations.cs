@@ -3,6 +3,7 @@ using Asp.Versioning;
 using GymCRM.SchedulingAPI.Infrastructure.Implementation;
 using GymCRM.SchedulingAPI.Infrastructure.Interface;
 using GymCRM.SchedulingAPI.Models.DTOs;
+using GymCRM.SchedulingAPI.Services;
 using GymCRM.SchedulingAPI.Services.Implementation;
 using GymCRM.SchedulingAPI.Services.Interface;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -23,6 +24,7 @@ public static class ProgramConfigurations
         services.AddScoped<IAvailabilitiesService, AvailabilitiesService>();
         services.AddScoped<ITimeOffRepository, TimeOffRepository>();
         services.AddScoped<ITimeOffService, TimeOffService>();
+        services.AddHttpClient<HolidaySeeder>();
         
         return services;
     }

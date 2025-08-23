@@ -2,7 +2,9 @@
 
 public enum TrainingSessionStatus
 {
+    Booked,
     Cancelled,
-    Pending,
-    Completed
+    Completed,
+    NoShow,
+    Reschedule
 }

@@ -34,6 +34,26 @@ namespace GymCRM.SchedulingAPI.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Holidays",
+                schema: "scheduling_db",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    EnglishName = table.Column<string>(type: "text", nullable: false),
+                    LocalName = table.Column<string>(type: "text", nullable: false),
+                    CountryCode = table.Column<string>(type: "text", nullable: false),
+                    Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Type = table.Column<string>(type: "text", nullable: false),
+                    RegionCode = table.Column<string>(type: "text", nullable: false),
+                    Year = table.Column<int>(type: "integer", nullable: false),
+                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Holidays", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "SessionTypes",
                 schema: "scheduling_db",
                 columns: table => new
@@ -91,6 +111,10 @@ namespace GymCRM.SchedulingAPI.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "Availabilities",
+                schema: "scheduling_db");
+
+            migrationBuilder.DropTable(
+                name: "Holidays",
                 schema: "scheduling_db");
 
             migrationBuilder.DropTable(

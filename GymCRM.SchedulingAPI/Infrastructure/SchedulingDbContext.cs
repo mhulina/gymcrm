@@ -10,6 +10,7 @@ public class SchedulingDbContext : DbContext
     public virtual DbSet<SessionType> SessionTypes { get; set; }
     public virtual DbSet<Availability> Availabilities { get; set; }
     public virtual DbSet<TimeOff> TimeOff { get; set; }
+    public virtual DbSet<Holiday> Holidays { get; set; }
 
     public SchedulingDbContext(DbContextOptions<SchedulingDbContext> options) : base(options) { }
     
@@ -23,5 +24,6 @@ public class SchedulingDbContext : DbContext
         modelBuilder.ApplyConfiguration(new SessionTypesConfiguration());
         modelBuilder.ApplyConfiguration(new AvailabilitiesConfiguration());
         modelBuilder.ApplyConfiguration(new TimeOffConfiguration());
+        modelBuilder.ApplyConfiguration(new HolidaysConfiguration());
     }
 }

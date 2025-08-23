@@ -1,5 +1,6 @@
 using GymCRM.SchedulingAPI;
 using GymCRM.SchedulingAPI.Infrastructure;
+using GymCRM.SchedulingAPI.Services;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -59,6 +60,13 @@ app.MapHealthChecks("/health");
 
 app.MapControllers();
 ApplyMigration();
+
+using (var scope = app.Services.CreateScope())
+{
+	var seeder = scope.ServiceProvider.GetRequiredService<HolidaySeeder>();
+	await seeder.SeedAsync("HR", DateTime.UtcNow.Year);
+}
+
 app.Run();
 
 return;
@@ -67,14 +75,19 @@ void ApplyMigration()
 {
 	using var scope = app.Services.CreateScope();
 	var db = scope.ServiceProvider.GetRequiredService<SchedulingDbContext>();
+	var pendingMigrations = db.Database.GetPendingMigrations().ToList();
 
 	if (!db.Database.CanConnect())
 	{
 		throw new ConnectionAbortedException("Database connection could not be established");
 	}
 		
-	if (db.Database.GetPendingMigrations().Any())
+	if (!pendingMigrations.Any())
 	{
-		db.Database.Migrate();
+		Console.WriteLine("No pending migrations");
+		return;
 	}
+	
+	Console.WriteLine($"Applying migrations: {string.Join(", ", pendingMigrations)}");
+	db.Database.Migrate();
 }

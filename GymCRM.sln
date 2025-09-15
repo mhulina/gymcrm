@@ -25,6 +25,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{5E22CEDF
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GymCRM.IdentityAPI.Tests", "GymCRM.IdentityAPI.Tests\GymCRM.IdentityAPI.Tests.csproj", "{EEDB9293-A623-4E51-9A20-6FA49E9566BD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GymCRM.SchedulingAPI.Tests", "GymCRM.SchedulingAPI.Tests\GymCRM.SchedulingAPI.Tests.csproj", "{3D55FE90-C364-47B0-90DB-2BFFB76C37B9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -59,6 +61,10 @@ Global
 		{EEDB9293-A623-4E51-9A20-6FA49E9566BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EEDB9293-A623-4E51-9A20-6FA49E9566BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EEDB9293-A623-4E51-9A20-6FA49E9566BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D55FE90-C364-47B0-90DB-2BFFB76C37B9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D55FE90-C364-47B0-90DB-2BFFB76C37B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D55FE90-C364-47B0-90DB-2BFFB76C37B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D55FE90-C364-47B0-90DB-2BFFB76C37B9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -68,5 +74,6 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{EEDB9293-A623-4E51-9A20-6FA49E9566BD} = {5E22CEDF-20BF-4814-B210-76518B0B16E7}
+		{3D55FE90-C364-47B0-90DB-2BFFB76C37B9} = {5E22CEDF-20BF-4814-B210-76518B0B16E7}
 	EndGlobalSection
 EndGlobal

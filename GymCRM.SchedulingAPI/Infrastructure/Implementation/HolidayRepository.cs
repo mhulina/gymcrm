@@ -36,11 +36,11 @@ public class HolidayRepository : IHolidayRepository
         return result;
     }
 
-    public async Task<List<Holiday>> GetByMonthAsync(DateTime date, CancellationToken cancellationToken)
+    public async Task<List<Holiday>> GetByMonthAsync(int month, int year, CancellationToken cancellationToken)
     {
         var result = await _context.Holidays
-            .Where(x => x.Date.Month == date.Month 
-                && x.Date.Year == date.Year)
+            .Where(x => x.Date.Month == month 
+                && x.Date.Year == year)
             .ToListAsync(cancellationToken: cancellationToken);
         
         return result;

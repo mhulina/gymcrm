@@ -9,6 +9,7 @@ using GymCRM.SchedulingAPI.Services.Interface;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Holiday = GymCRM.SchedulingAPI.Models.Entities.Holiday;
 
 namespace GymCRM.SchedulingAPI;
 
@@ -24,6 +25,8 @@ public static class ProgramConfigurations
         services.AddScoped<IAvailabilitiesService, AvailabilitiesService>();
         services.AddScoped<ITimeOffRepository, TimeOffRepository>();
         services.AddScoped<ITimeOffService, TimeOffService>();
+        services.AddScoped<IHolidayRepository, HolidayRepository>();
+        services.AddScoped<IHolidayService, HolidayService>();
         services.AddHttpClient<HolidaySeeder>();
         
         return services;
@@ -39,6 +42,8 @@ public static class ProgramConfigurations
             config.CreateMap<GymCRM.SchedulingAPI.Models.Entities.Availability, Availability>();
             config.CreateMap<GymCRM.SchedulingAPI.Models.Entities.TimeOff, TimeOff>();
             config.CreateMap<TimeOff, GymCRM.SchedulingAPI.Models.Entities.TimeOff>();
+            config.CreateMap<Holiday, Models.DTOs.Holiday>();
+            config.CreateMap<Models.DTOs.Holiday, Holiday>();
         });
 
         return services;

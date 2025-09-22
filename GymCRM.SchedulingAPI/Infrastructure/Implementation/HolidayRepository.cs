@@ -31,7 +31,9 @@ public class HolidayRepository : IHolidayRepository
     public async Task<Holiday> GetByDateAsync(DateTime date, CancellationToken cancellationToken)
     {
         var result = await _context.Holidays
-            .FirstOrDefaultAsync(x => x.Date == date.Date, cancellationToken: cancellationToken);
+            .FirstOrDefaultAsync(
+                x => x.Date == DateTime.SpecifyKind(date.Date, DateTimeKind.Utc), 
+                cancellationToken: cancellationToken);
         
         return result;
     }
@@ -46,10 +48,10 @@ public class HolidayRepository : IHolidayRepository
         return result;
     }
 
-    public async Task<List<Holiday>> GetByYearAsync(DateTime date, CancellationToken cancellationToken)
+    public async Task<List<Holiday>> GetByYearAsync(int year, CancellationToken cancellationToken)
     {
         var result = await _context.Holidays
-            .Where(x => x.Year == date.Year)
+            .Where(x => x.Year == year)
             .ToListAsync(cancellationToken: cancellationToken);
         
         return result;

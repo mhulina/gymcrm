@@ -1,4 +1,5 @@
 ﻿using GymCRM.SchedulingAPI.Infrastructure;
+using GymCRM.SchedulingAPI.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,7 +34,7 @@ public class TestBase : IDisposable
         EnsureDatabaseExistsAndMigrate();
 
         var services = new ServiceCollection();
-        services.AddSingleton<IConfiguration>(_configuration);
+        services.AddSingleton(_configuration);
 
         services.AddDbContext<SchedulingDbContext>(options =>
             options.UseNpgsql(_testDbConnectionString));
@@ -53,6 +54,13 @@ public class TestBase : IDisposable
 
         ServiceProvider = services.BuildServiceProvider();
         _context = ServiceProvider.GetRequiredService<SchedulingDbContext>();
+        
+        var seeder = new HolidaySeeder(new HttpClient(), _context);
+        Task
+            .Run(async () =>
+                await seeder.SeedAsync("HR", DateTime.UtcNow.Year))
+            .GetAwaiter()
+            .GetResult();
     }
 
     private void EnsureDatabaseExistsAndMigrate()

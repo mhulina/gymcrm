@@ -28,6 +28,7 @@ public static class ProgramConfigurations
         services.AddScoped<IHolidayRepository, HolidayRepository>();
         services.AddScoped<IHolidayService, HolidayService>();
         services.AddHttpClient<HolidaySeeder>();
+        services.AddScoped<ICalendarService, CalendarService>();
         
         return services;
     }

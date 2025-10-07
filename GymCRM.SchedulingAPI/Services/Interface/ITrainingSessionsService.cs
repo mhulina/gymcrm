@@ -39,6 +39,15 @@ public interface ITrainingSessionsService
         Guid clientId,
         CancellationToken cancellationToken = default);
     /// <summary>
+    /// Retrieves all training sessions associated with a specific trainer ID.
+    /// </summary>
+    /// <param name="trainerId">The unique identifier of the trainer.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A collection of training sessions for the specified client.</returns>
+    Task<IEnumerable<TrainingSession>> GetTrainingSessionsForTrainerIdAsync(
+        Guid trainerId,
+        CancellationToken cancellationToken = default);
+    /// <summary>
     /// Inserts a new training session into the data store.
     /// </summary>
     /// <param name="insertTrainingSession">The training session details to insert.</param>

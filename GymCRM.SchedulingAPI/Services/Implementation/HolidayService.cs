@@ -25,8 +25,16 @@ public class HolidayService : IHolidayService
         }
         
         var holidaysForMonth = await _holidayRepository.GetByMonthAsync(month, year, cancellationToken);
-        var mappedHolidaysForMonth = _mapper.Map<List<Holiday>>(holidaysForMonth);
+        var mappedHolidays = _mapper.Map<List<Holiday>>(holidaysForMonth);
         
-        return mappedHolidaysForMonth;
+        return mappedHolidays;
+    }
+
+    public async Task<List<Holiday>> FetchAllHolidays(CancellationToken cancellationToken = default)
+    {
+        var result = await _holidayRepository.GetAllAsync(cancellationToken: cancellationToken);
+        var mappedResult = _mapper.Map<List<Holiday>>(result);
+
+        return mappedResult;
     }
 }

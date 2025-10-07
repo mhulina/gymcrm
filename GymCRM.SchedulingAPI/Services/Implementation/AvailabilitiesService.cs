@@ -8,17 +8,23 @@ namespace GymCRM.SchedulingAPI.Services.Implementation;
 public class AvailabilitiesService : IAvailabilitiesService
 {
     private readonly IAvailabilitiesRepository _availabilitiesRepository;
+    private readonly IHolidayService _holidayService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly ILogger _logger;
 
     public AvailabilitiesService(
         IAvailabilitiesRepository availabilitiesRepository,
+        IHolidayService holidayService,
         IUnitOfWork unitOfWork,
-        IMapper mapper)
+        IMapper mapper,
+        ILogger logger)
     {
         _availabilitiesRepository = availabilitiesRepository;
+        _holidayService = holidayService;
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _logger = logger;
     }
     
     public async Task<IEnumerable<Availability>> GetAvailabilitiesAsync(CancellationToken cancellationToken = default)
@@ -50,6 +56,38 @@ public class AvailabilitiesService : IAvailabilitiesService
             throw new ArgumentNullException(nameof(insertAvailability));
         }
 
+        var holidays = await _holidayService.FetchAllHolidays(cancellationToken: cancellationToken);
+
+        foreach (var holiday in holidays)
+        {
+            if (insertAvailability.StartDate == holiday.Date)
+            {
+                insertAvailability.StartDate = insertAvailability.StartDate.AddDays(1);
+            }
+
+            if (insertAvailability.EndDate == holiday.Date)
+            {
+                insertAvailability.EndDate = insertAvailability.EndDate.AddDays(-1);
+            }
+
+            if (insertAvailability.StartDate > insertAvailability.EndDate)
+            {
+                _logger.LogError($"Start date, {insertAvailability.StartDate} is greater than end date, {insertAvailability.EndDate}");
+                return false;
+            }
+
+            if (insertAvailability.StartDate != insertAvailability.EndDate)
+            {
+                continue;
+            }
+            
+            _logger.LogInformation($"Insert availability failed for trainer, ID: {insertAvailability.TrainerId}." +
+                $"Start (Date: {insertAvailability.StartDate}) and end (Date: {insertAvailability.EndDate}) dates are " +
+                $"the same and they are a holiday.");
+                
+            return false;
+        }
+        
         var availability = new Models.Entities.Availability
         {
             Id = Guid.CreateVersion7(),

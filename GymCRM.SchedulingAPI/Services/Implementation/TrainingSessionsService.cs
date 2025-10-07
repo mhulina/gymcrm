@@ -85,6 +85,20 @@ public class TrainingSessionsService : ITrainingSessionsService
         
         return mappedResult;
     }
+    
+    public async Task<IEnumerable<Models.DTOs.TrainingSession>> GetTrainingSessionsForTrainerIdAsync(
+        Guid trainerId, 
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _trainingSessionsRepository.FetchByConditionAsync(
+            x => x.TrainerId == trainerId,
+            cancellationToken);
+        var mappedResult = result
+            .Select(x => _mapper.Map<Models.DTOs.TrainingSession>(x))
+            .ToList();
+        
+        return mappedResult;
+    }
 
     public async Task<bool> InsertTrainingSessionAsync(
         InsertTrainingSession insertTrainingSession,

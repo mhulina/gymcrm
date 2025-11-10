@@ -1,5 +1,6 @@
 ﻿using GymCRM.SchedulingAPI.Infrastructure;
 using GymCRM.SchedulingAPI.Models.Entities;
+using GymCRM.Shared.Utilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace GymCRM.SchedulingAPI.Services;
@@ -27,8 +28,8 @@ public class HolidaySeeder
 
         foreach (var holiday in response)
         {
-            bool exists = await _context.Holidays
-                .AnyAsync(h => h.Date == DateTime.SpecifyKind(holiday.Date, DateTimeKind.Utc) 
+            var exists = await _context.Holidays
+                .AnyAsync(h => h.Date == DateTimeHelpers.EnsureUtc(holiday.Date) 
                     && h.CountryCode == countryCode, cancellationToken);
             
             if (!exists)
@@ -36,7 +37,7 @@ public class HolidaySeeder
                 _context.Holidays.Add(new Holiday
                 {
                     Id = Guid.CreateVersion7(),
-                    Date = DateTime.SpecifyKind(holiday.Date, DateTimeKind.Utc),
+                    Date = DateTimeHelpers.EnsureUtc(holiday.Date),
                     CountryCode = countryCode,
                     EnglishName = holiday.Name,
                     LocalName = holiday.LocalName,

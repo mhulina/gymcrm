@@ -2,7 +2,7 @@
 
 namespace GymCRM.SchedulingAPI.Infrastructure.Interface;
 
-public interface IAvailabilitiesRepository : IGenericRepository<Availability>
+public interface ITrainerAvailabilitiesRepository : IGenericRepository<TrainerAvailability>
 {
     
 }

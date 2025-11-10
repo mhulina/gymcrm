@@ -27,6 +27,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GymCRM.IdentityAPI.Tests", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GymCRM.SchedulingAPI.Tests", "GymCRM.SchedulingAPI.Tests\GymCRM.SchedulingAPI.Tests.csproj", "{3D55FE90-C364-47B0-90DB-2BFFB76C37B9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GymCRM.Shared", "GymCRM.Shared\GymCRM.Shared.csproj", "{935871B9-73A6-423B-8B6A-023702AF7A14}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -65,6 +67,10 @@ Global
 		{3D55FE90-C364-47B0-90DB-2BFFB76C37B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3D55FE90-C364-47B0-90DB-2BFFB76C37B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3D55FE90-C364-47B0-90DB-2BFFB76C37B9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{935871B9-73A6-423B-8B6A-023702AF7A14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{935871B9-73A6-423B-8B6A-023702AF7A14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{935871B9-73A6-423B-8B6A-023702AF7A14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{935871B9-73A6-423B-8B6A-023702AF7A14}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

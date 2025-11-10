@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace GymCRM.SchedulingAPI.Persistence.Migrations
+namespace GymCRM.SchedulingAPI.Migrations
 {
     /// <inheritdoc />
     public partial class Initial : Migration
@@ -13,25 +13,6 @@ namespace GymCRM.SchedulingAPI.Persistence.Migrations
         {
             migrationBuilder.EnsureSchema(
                 name: "scheduling_db");
-
-            migrationBuilder.CreateTable(
-                name: "Availabilities",
-                schema: "scheduling_db",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    TrainerId = table.Column<Guid>(type: "uuid", nullable: false),
-                    DayOfWeek = table.Column<int>(type: "integer", nullable: false),
-                    StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    IsAvailable = table.Column<bool>(type: "boolean", nullable: false),
-                    DateCreated = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    DateModified = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Availabilities", x => x.Id);
-                });
 
             migrationBuilder.CreateTable(
                 name: "Holidays",
@@ -86,6 +67,25 @@ namespace GymCRM.SchedulingAPI.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "TrainerAvailabilities",
+                schema: "scheduling_db",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    TrainerId = table.Column<Guid>(type: "uuid", nullable: false),
+                    DayOfWeek = table.Column<int>(type: "integer", nullable: false),
+                    StartDateUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    EndDateUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IsAvailable = table.Column<bool>(type: "boolean", nullable: false),
+                    DateCreatedUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    DateModifiedUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TrainerAvailabilities", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "TrainingSessions",
                 schema: "scheduling_db",
                 columns: table => new
@@ -110,10 +110,6 @@ namespace GymCRM.SchedulingAPI.Persistence.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Availabilities",
-                schema: "scheduling_db");
-
-            migrationBuilder.DropTable(
                 name: "Holidays",
                 schema: "scheduling_db");
 
@@ -123,6 +119,10 @@ namespace GymCRM.SchedulingAPI.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "TimeOff",
+                schema: "scheduling_db");
+
+            migrationBuilder.DropTable(
+                name: "TrainerAvailabilities",
                 schema: "scheduling_db");
 
             migrationBuilder.DropTable(

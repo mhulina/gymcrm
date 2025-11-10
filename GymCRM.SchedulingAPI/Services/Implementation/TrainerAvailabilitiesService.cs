@@ -5,44 +5,44 @@ using GymCRM.SchedulingAPI.Services.Interface;
 
 namespace GymCRM.SchedulingAPI.Services.Implementation;
 
-public class AvailabilitiesService : IAvailabilitiesService
+public class TrainerAvailabilitiesService : ITrainerAvailabilitiesService
 {
-    private readonly IAvailabilitiesRepository _availabilitiesRepository;
+    private readonly ITrainerAvailabilitiesRepository _trainerAvailabilitiesRepository;
     private readonly IHolidayService _holidayService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
-    private readonly ILogger _logger;
+    private readonly ILogger<TrainerAvailabilitiesService> _logger;
 
-    public AvailabilitiesService(
-        IAvailabilitiesRepository availabilitiesRepository,
+    public TrainerAvailabilitiesService(
+        ITrainerAvailabilitiesRepository trainerAvailabilitiesRepository,
         IHolidayService holidayService,
         IUnitOfWork unitOfWork,
         IMapper mapper,
-        ILogger logger)
+        ILogger<TrainerAvailabilitiesService> logger)
     {
-        _availabilitiesRepository = availabilitiesRepository;
+        _trainerAvailabilitiesRepository = trainerAvailabilitiesRepository;
         _holidayService = holidayService;
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _logger = logger;
     }
     
-    public async Task<IEnumerable<Availability>> GetAvailabilitiesAsync(CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<TrainerAvailability>> GetAvailabilitiesAsync(CancellationToken cancellationToken = default)
     {
-        var result = await _availabilitiesRepository.FetchAllAsync(cancellationToken: cancellationToken);
-        var mappedResult = _mapper.Map<IEnumerable<Availability>>(result);
+        var result = await _trainerAvailabilitiesRepository.FetchAllAsync(cancellationToken: cancellationToken);
+        var mappedResult = _mapper.Map<IEnumerable<TrainerAvailability>>(result);
         
         return mappedResult;
     }
 
-    public async Task<IEnumerable<Availability>> GetAvailabilitiesForTrainerIdAsync(
+    public async Task<IEnumerable<TrainerAvailability>> GetAvailabilitiesForTrainerIdAsync(
         Guid id, 
         CancellationToken cancellationToken = default)
     {
-        var result = await _availabilitiesRepository.FetchByConditionAsync(
+        var result = await _trainerAvailabilitiesRepository.FetchByConditionAsync(
             x => x.TrainerId == id,
             cancellationToken: cancellationToken);
-        var mappedResult = _mapper.Map<IEnumerable<Availability>>(result);
+        var mappedResult = _mapper.Map<IEnumerable<TrainerAvailability>>(result);
         
         return mappedResult;
     }
@@ -88,19 +88,19 @@ public class AvailabilitiesService : IAvailabilitiesService
             return false;
         }
         
-        var availability = new Models.Entities.Availability
+        var availability = new Models.Entities.TrainerAvailability
         {
             Id = Guid.CreateVersion7(),
             TrainerId = insertAvailability.TrainerId,
             DayOfWeek = insertAvailability.DayOfWeek,
-            StartDate = insertAvailability.StartDate,
-            EndDate = insertAvailability.EndDate,
+            StartDateUtc = insertAvailability.StartDate,
+            EndDateUtc = insertAvailability.EndDate,
             IsAvailable = insertAvailability.IsAvailable,
-            DateCreated = DateTime.UtcNow,
-            DateModified = DateTime.UtcNow
+            DateCreatedUtc = DateTime.UtcNow,
+            DateModifiedUtc = DateTime.UtcNow
         };
         
-        _availabilitiesRepository.Add(availability);
+        _trainerAvailabilitiesRepository.Add(availability);
         var result = await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return result;
@@ -113,29 +113,29 @@ public class AvailabilitiesService : IAvailabilitiesService
             throw new ArgumentException(nameof(id));
         }
 
-        var availability = new Models.Entities.Availability
+        var availability = new Models.Entities.TrainerAvailability
         {
             Id = id
         };
         
-        _availabilitiesRepository.Remove(availability);
+        _trainerAvailabilitiesRepository.Remove(availability);
         var result = await _unitOfWork.SaveChangesAsync(cancellationToken);
         
         return result;
     }
 
     public async Task<bool> UpdateAvailabilityAsync(
-        Availability availability,
+        TrainerAvailability trainerAvailability,
         CancellationToken cancellationToken = default)
     {
-        if (availability is null)
+        if (trainerAvailability is null)
         {
-            throw new ArgumentNullException(nameof(availability));
+            throw new ArgumentNullException(nameof(trainerAvailability));
         }
         
-        var mappedAvailability = _mapper.Map<Models.Entities.Availability>(availability);
+        var mappedAvailability = _mapper.Map<Models.Entities.TrainerAvailability>(trainerAvailability);
         
-        _availabilitiesRepository.Update(mappedAvailability);
+        _trainerAvailabilitiesRepository.Update(mappedAvailability);
         var result = await _unitOfWork.SaveChangesAsync(cancellationToken);
         
         return result;

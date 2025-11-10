@@ -14,11 +14,11 @@ namespace GymCRM.SchedulingAPI.Controllers;
 [ApiController]
 public class AvailabilitiesController : ControllerBase
 {
-    private readonly IAvailabilitiesService _availabilitiesService;
+    private readonly ITrainerAvailabilitiesService _trainerAvailabilitiesService;
 
-    public AvailabilitiesController(IAvailabilitiesService availabilitiesService)
+    public AvailabilitiesController(ITrainerAvailabilitiesService trainerAvailabilitiesService)
     {
-        _availabilitiesService = availabilitiesService ?? throw new ArgumentNullException(nameof(availabilitiesService));
+        _trainerAvailabilitiesService = trainerAvailabilitiesService ?? throw new ArgumentNullException(nameof(trainerAvailabilitiesService));
     }
 
     /// <summary>
@@ -26,16 +26,16 @@ public class AvailabilitiesController : ControllerBase
     /// </summary>
     /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
     /// <returns>
-    /// An <see cref="ActionResult{T}"/> containing an enumerable collection of <see cref="Availability"/> objects.
+    /// An <see cref="ActionResult{T}"/> containing an enumerable collection of <see cref="TrainerAvailability"/> objects.
     /// </returns>
     /// <response code="200">Returns the list of availabilities.</response>
     /// <response code="500">An unexpected error occurred on the server.</response>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Availability>>> GetAvailabilities(CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<TrainerAvailability>>> GetAvailabilities(CancellationToken cancellationToken)
     {
         try
         {
-            var result = await _availabilitiesService.GetAvailabilitiesAsync(cancellationToken: cancellationToken);
+            var result = await _trainerAvailabilitiesService.GetAvailabilitiesAsync(cancellationToken: cancellationToken);
             
             return new OkObjectResult(result);
         }
@@ -51,18 +51,18 @@ public class AvailabilitiesController : ControllerBase
     /// <param name="id">The unique identifier of the trainer.</param>
     /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
     /// <returns>
-    /// An <see cref="ActionResult{T}"/> containing an enumerable collection of <see cref="Availability"/> objects for the given trainer.
+    /// An <see cref="ActionResult{T}"/> containing an enumerable collection of <see cref="TrainerAvailability"/> objects for the given trainer.
     /// </returns>
     /// <response code="200">Returns the list of availabilities for the specified trainer.</response>
     /// <response code="500">An unexpected error occurred on the server.</response>
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<IEnumerable<Availability>>> GetAvailabilitiesForTrainerId(
+    public async Task<ActionResult<IEnumerable<TrainerAvailability>>> GetAvailabilitiesForTrainerId(
         Guid id,
         CancellationToken cancellationToken)
     {
         try
         {
-            var result = await _availabilitiesService.GetAvailabilitiesForTrainerIdAsync(
+            var result = await _trainerAvailabilitiesService.GetAvailabilitiesForTrainerIdAsync(
                 id, 
                 cancellationToken: cancellationToken);
             
@@ -90,7 +90,7 @@ public class AvailabilitiesController : ControllerBase
     {
         try
         {
-            var result = await _availabilitiesService.AddAvailabilityAsync(insertAvailability, cancellationToken: cancellationToken);
+            var result = await _trainerAvailabilitiesService.AddAvailabilityAsync(insertAvailability, cancellationToken: cancellationToken);
 
             if (!result)
             {
@@ -121,7 +121,7 @@ public class AvailabilitiesController : ControllerBase
     {
         try
         {
-            var result = await _availabilitiesService.DeleteAvailabilityAsync(id, cancellationToken: cancellationToken);
+            var result = await _trainerAvailabilitiesService.DeleteAvailabilityAsync(id, cancellationToken: cancellationToken);
 
             if (!result)
             {
@@ -139,7 +139,7 @@ public class AvailabilitiesController : ControllerBase
     /// <summary>
     /// Updates an existing availability record.
     /// </summary>
-    /// <param name="updatedAvailability">The updated <see cref="Availability"/> object.</param>
+    /// <param name="updatedTrainerAvailability">The updated <see cref="TrainerAvailability"/> object.</param>
     /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
     /// <returns>
     /// A result indicating the outcome of the update operation.
@@ -149,13 +149,13 @@ public class AvailabilitiesController : ControllerBase
     /// <response code="500">An unexpected error occurred on the server.</response>
     [HttpPut]
     public async Task<ActionResult> UpdateAvailability(
-        [FromBody] Availability updatedAvailability,
+        [FromBody] TrainerAvailability updatedTrainerAvailability,
         CancellationToken cancellationToken)
     {
         try
         {
-            var result = await _availabilitiesService.UpdateAvailabilityAsync(
-                updatedAvailability, 
+            var result = await _trainerAvailabilitiesService.UpdateAvailabilityAsync(
+                updatedTrainerAvailability, 
                 cancellationToken: cancellationToken);
 
             if (!result)

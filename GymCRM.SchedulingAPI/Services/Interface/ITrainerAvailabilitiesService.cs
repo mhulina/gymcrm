@@ -2,21 +2,21 @@
 
 namespace GymCRM.SchedulingAPI.Services.Interface;
 
-public interface IAvailabilitiesService
+public interface ITrainerAvailabilitiesService
 {
     /// <summary>
     /// Retrieves all availability records.
     /// </summary>
     /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
-    /// <returns>A task representing the asynchronous operation, containing a collection of <see cref="Availability"/> objects.</returns>
-    Task<IEnumerable<Availability>> GetAvailabilitiesAsync(CancellationToken cancellationToken = default);
+    /// <returns>A task representing the asynchronous operation, containing a collection of <see cref="TrainerAvailability"/> objects.</returns>
+    Task<IEnumerable<TrainerAvailability>> GetAvailabilitiesAsync(CancellationToken cancellationToken = default);
     /// <summary>
     /// Retrieves all availability records for a specific trainer.
     /// </summary>
     /// <param name="id">The unique identifier of the trainer.</param>
     /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
-    /// <returns>A task representing the asynchronous operation, containing a collection of <see cref="Availability"/> objects for the given trainer.</returns>
-    Task<IEnumerable<Availability>> GetAvailabilitiesForTrainerIdAsync(Guid id, CancellationToken cancellationToken = default);
+    /// <returns>A task representing the asynchronous operation, containing a collection of <see cref="TrainerAvailability"/> objects for the given trainer.</returns>
+    Task<IEnumerable<TrainerAvailability>> GetAvailabilitiesForTrainerIdAsync(Guid id, CancellationToken cancellationToken = default);
     /// <summary>
     /// Adds a new availability record.
     /// </summary>
@@ -36,9 +36,9 @@ public interface IAvailabilitiesService
     /// <summary>
     /// Updates an existing availability record.
     /// </summary>
-    /// <param name="availability">The updated <see cref="Availability"/> object.</param>
+    /// <param name="trainerAvailability">The updated <see cref="TrainerAvailability"/> object.</param>
     /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
     /// <returns>A task representing the asynchronous operation, containing a boolean indicating whether the availability was successfully updated.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="availability"/> is null.</exception>
-    Task<bool> UpdateAvailabilityAsync(Availability availability, CancellationToken cancellationToken = default);
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="trainerAvailability"/> is null.</exception>
+    Task<bool> UpdateAvailabilityAsync(TrainerAvailability trainerAvailability, CancellationToken cancellationToken = default);
 }

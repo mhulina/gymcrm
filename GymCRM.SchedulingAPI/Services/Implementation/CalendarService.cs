@@ -5,18 +5,18 @@ namespace GymCRM.SchedulingAPI.Services.Implementation;
 
 public class CalendarService : ICalendarService
 {
-    private readonly IAvailabilitiesService _availabilitiesService;
+    private readonly ITrainerAvailabilitiesService _trainerAvailabilitiesService;
     private readonly IHolidayService _holidayService;
     private readonly ITimeOffService _timeOffService;
     private readonly ITrainingSessionsService _trainingSessionsService;
 
     public CalendarService(
-        IAvailabilitiesService availabilitiesService,
+        ITrainerAvailabilitiesService trainerAvailabilitiesService,
         IHolidayService holidayService,
         ITimeOffService timeOffService,
         ITrainingSessionsService trainingSessionsService)
     {
-        _availabilitiesService = availabilitiesService;
+        _trainerAvailabilitiesService = trainerAvailabilitiesService;
         _holidayService = holidayService;
         _timeOffService = timeOffService;
         _trainingSessionsService = trainingSessionsService;
@@ -28,7 +28,7 @@ public class CalendarService : ICalendarService
         int year, 
         CancellationToken cancellationToken = default)
     {
-        var availabilities = await _availabilitiesService.GetAvailabilitiesForTrainerIdAsync(
+        var availabilities = await _trainerAvailabilitiesService.GetAvailabilitiesForTrainerIdAsync(
                 trainerId,
                 cancellationToken: cancellationToken);
         var holidaysInMonth = await _holidayService.FetchHolidaysForMonth(month, year, cancellationToken: cancellationToken);

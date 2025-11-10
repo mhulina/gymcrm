@@ -6,6 +6,7 @@ using GymCRM.SchedulingAPI.Models.DTOs;
 using GymCRM.SchedulingAPI.Services;
 using GymCRM.SchedulingAPI.Services.Implementation;
 using GymCRM.SchedulingAPI.Services.Interface;
+using GymCRM.Shared;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -21,8 +22,8 @@ public static class ProgramConfigurations
         services.AddScoped<ITrainingSessionsRepository, TrainingSessionsRepository>();
         services.AddScoped<ITrainingSessionsService, TrainingSessionsService>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
-        services.AddScoped<IAvailabilitiesRepository, AvailabilitiesRepository>();
-        services.AddScoped<IAvailabilitiesService, AvailabilitiesService>();
+        services.AddScoped<ITrainerAvailabilitiesRepository, TrainerAvailabilitiesRepository>();
+        services.AddScoped<ITrainerAvailabilitiesService, TrainerAvailabilitiesService>();
         services.AddScoped<ITimeOffRepository, TimeOffRepository>();
         services.AddScoped<ITimeOffService, TimeOffService>();
         services.AddScoped<IHolidayRepository, HolidayRepository>();
@@ -39,8 +40,8 @@ public static class ProgramConfigurations
         {
             config.CreateMap<TrainingSession, GymCRM.SchedulingAPI.Models.Entities.TrainingSession>();
             config.CreateMap<GymCRM.SchedulingAPI.Models.Entities.TrainingSession, TrainingSession>();
-            config.CreateMap<Availability, GymCRM.SchedulingAPI.Models.Entities.Availability>();
-            config.CreateMap<GymCRM.SchedulingAPI.Models.Entities.Availability, Availability>();
+            config.CreateMap<TrainerAvailability, GymCRM.SchedulingAPI.Models.Entities.TrainerAvailability>();
+            config.CreateMap<GymCRM.SchedulingAPI.Models.Entities.TrainerAvailability, TrainerAvailability>();
             config.CreateMap<GymCRM.SchedulingAPI.Models.Entities.TimeOff, TimeOff>();
             config.CreateMap<TimeOff, GymCRM.SchedulingAPI.Models.Entities.TimeOff>();
             config.CreateMap<Holiday, Models.DTOs.Holiday>();

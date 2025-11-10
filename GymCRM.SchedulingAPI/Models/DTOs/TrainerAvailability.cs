@@ -1,6 +1,6 @@
 ﻿namespace GymCRM.SchedulingAPI.Models.DTOs;
 
-public class Availability
+public class TrainerAvailability
 {
     public Guid Id { get; set; }
     public Guid TrainerId { get; set; }

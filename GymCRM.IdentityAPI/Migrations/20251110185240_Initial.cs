@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace GymCRM.IdentityAPI.Persistence.Migrations
+namespace GymCRM.IdentityAPI.Migrations
 {
     /// <inheritdoc />
     public partial class Initial : Migration
@@ -45,6 +45,7 @@ namespace GymCRM.IdentityAPI.Persistence.Migrations
                     Email = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: false),
                     PhoneNumber = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true),
                     MobileNumber = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true),
+                    TimeZone = table.Column<string>(type: "text", nullable: false),
                     DateModified = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     PersonalTrainerId = table.Column<Guid>(type: "uuid", nullable: true),
                     WorkoutGroupIds = table.Column<List<Guid>>(type: "uuid[]", nullable: true),

@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GymCRM.IdentityAPI.Migrations
 {
     [DbContext(typeof(IdentityDbContext))]
-    [Migration("20251110185240_Initial")]
+    [Migration("20251117222915_Initial")]
     partial class Initial
     {
         /// <inheritdoc />

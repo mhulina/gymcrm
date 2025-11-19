@@ -7,20 +7,26 @@ namespace GymCRM.SchedulingAPI.Services.Implementation;
 
 public class TrainerAvailabilitiesService : ITrainerAvailabilitiesService
 {
+    private readonly ITrainerWorkingHoursRepository _trainerWorkingHoursRepository;
     private readonly ITrainerAvailabilitiesRepository _trainerAvailabilitiesRepository;
+    private readonly ITrainerDailyAvailabilitiesRepository _trainerDailyAvailabilitiesRepository;
     private readonly IHolidayService _holidayService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ILogger<TrainerAvailabilitiesService> _logger;
 
     public TrainerAvailabilitiesService(
+        ITrainerWorkingHoursRepository trainerWorkingHoursRepository,
         ITrainerAvailabilitiesRepository trainerAvailabilitiesRepository,
+        ITrainerDailyAvailabilitiesRepository trainerDailyAvailabilitiesRepository,
         IHolidayService holidayService,
         IUnitOfWork unitOfWork,
         IMapper mapper,
         ILogger<TrainerAvailabilitiesService> logger)
     {
+        _trainerWorkingHoursRepository = trainerWorkingHoursRepository;
         _trainerAvailabilitiesRepository = trainerAvailabilitiesRepository;
+        _trainerDailyAvailabilitiesRepository = trainerDailyAvailabilitiesRepository;
         _holidayService = holidayService;
         _unitOfWork = unitOfWork;
         _mapper = mapper;
@@ -55,52 +61,51 @@ public class TrainerAvailabilitiesService : ITrainerAvailabilitiesService
         {
             throw new ArgumentNullException(nameof(insertAvailability));
         }
-
-        var holidays = await _holidayService.FetchAllHolidays(cancellationToken: cancellationToken);
-
-        foreach (var holiday in holidays)
-        {
-            if (insertAvailability.StartDate == holiday.Date)
-            {
-                insertAvailability.StartDate = insertAvailability.StartDate.AddDays(1);
-            }
-
-            if (insertAvailability.EndDate == holiday.Date)
-            {
-                insertAvailability.EndDate = insertAvailability.EndDate.AddDays(-1);
-            }
-
-            if (insertAvailability.StartDate > insertAvailability.EndDate)
-            {
-                _logger.LogError($"Start date, {insertAvailability.StartDate} is greater than end date, {insertAvailability.EndDate}");
-                return false;
-            }
-
-            if (insertAvailability.StartDate != insertAvailability.EndDate)
-            {
-                continue;
-            }
-            
-            _logger.LogInformation($"Insert availability failed for trainer, ID: {insertAvailability.TrainerId}." +
-                $"Start (Date: {insertAvailability.StartDate}) and end (Date: {insertAvailability.EndDate}) dates are " +
-                $"the same and they are a holiday.");
-                
-            return false;
-        }
         
         var availability = new Models.Entities.TrainerAvailability
         {
             Id = Guid.CreateVersion7(),
             TrainerId = insertAvailability.TrainerId,
-            DayOfWeek = insertAvailability.DayOfWeek,
-            StartDateUtc = insertAvailability.StartDate,
-            EndDateUtc = insertAvailability.EndDate,
-            IsAvailable = insertAvailability.IsAvailable,
+            WorkingWeekends = insertAvailability.WorkingWeekends,
             DateCreatedUtc = DateTime.UtcNow,
             DateModifiedUtc = DateTime.UtcNow
         };
+
+        var dailyAvailabilities = new List<Models.Entities.TrainerDailyAvailability>();
+        var dailyWorkingHours = new List<Models.Entities.TrainerWorkingHours>();
+        
+        foreach (var insertAvailabilityDailyAvailability in insertAvailability.DailyAvailabilities)
+        {
+            var dailyAvailability = new Models.Entities.TrainerDailyAvailability
+            {
+                Id = Guid.CreateVersion7(),
+                AvailabilityId = availability.Id,
+                DayOfWeek = insertAvailabilityDailyAvailability.DayOfWeek,
+                DateCreatedUtc = DateTime.UtcNow,
+                DateModifiedUtc = DateTime.UtcNow
+            };
+
+            foreach (var insertAvailabilityDailyWorkingHours in insertAvailabilityDailyAvailability.WorkingHours)
+            {
+                var dailyWorkingHour = new Models.Entities.TrainerWorkingHours
+                {
+                    Id = Guid.CreateVersion7(),
+                    DailyAvailabilityId = dailyAvailability.Id,
+                    StartTime = insertAvailabilityDailyWorkingHours.StartTime,
+                    EndTime = insertAvailabilityDailyWorkingHours.EndTime,
+                    DateCreatedUtc = DateTime.UtcNow,
+                    DateModifiedUtc = DateTime.UtcNow
+                };
+                
+                dailyWorkingHours.Add(dailyWorkingHour);
+            }
+            
+            dailyAvailabilities.Add(dailyAvailability);
+        }
         
         _trainerAvailabilitiesRepository.Add(availability);
+        _trainerDailyAvailabilitiesRepository.AddRange(dailyAvailabilities);
+        _trainerWorkingHoursRepository.AddRange(dailyWorkingHours);
         var result = await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return result;

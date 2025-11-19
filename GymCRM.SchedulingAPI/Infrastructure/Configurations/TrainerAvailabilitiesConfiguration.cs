@@ -13,10 +13,7 @@ public class TrainerAvailabilitiesConfiguration : IEntityTypeConfiguration<Train
         modelBuilder.HasKey(x => x.Id);
         
         modelBuilder.Property(x => x.TrainerId).IsRequired();
-        modelBuilder.Property(x => x.StartDateUtc).IsRequired();
-        modelBuilder.Property(x => x.EndDateUtc).IsRequired();
-        modelBuilder.Property(x => x.IsAvailable).IsRequired();
-        modelBuilder.Property(x => x.DayOfWeek).IsRequired();
+        modelBuilder.Property(x => x.WorkingWeekends).HasDefaultValue(false);
         modelBuilder.Property(x => x.DateCreatedUtc).IsRequired();
         modelBuilder.Property(x => x.DateModifiedUtc).IsRequired();
     }

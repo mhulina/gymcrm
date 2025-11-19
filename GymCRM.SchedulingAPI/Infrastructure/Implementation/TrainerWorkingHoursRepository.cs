@@ -5,28 +5,28 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GymCRM.SchedulingAPI.Infrastructure.Implementation;
 
-public class TrainerAvailabilitiesRepository : GenericRepository<TrainerAvailability>, ITrainerAvailabilitiesRepository
+public class TrainerWorkingHoursRepository : GenericRepository<TrainerWorkingHours>, ITrainerWorkingHoursRepository
 {
-    public TrainerAvailabilitiesRepository(SchedulingDbContext context) : base(context) {}
+    public TrainerWorkingHoursRepository(SchedulingDbContext context) : base(context) { }
     
-    public async Task<IEnumerable<TrainerAvailability>> FetchAllAsync(CancellationToken cancellationToken)
+    public async Task<IEnumerable<TrainerWorkingHours>> FetchAllAsync(CancellationToken cancellationToken)
     {
         var result = await _dbSet
             .AsNoTracking()
-            .Include(x => x.DailyAvailabilities)
+            .Include(x => x.DailyAvailability)
             .ToListAsync(cancellationToken: cancellationToken);
         
         return result;
     }
 
-    public async Task<IEnumerable<TrainerAvailability>> FetchByConditionAsync(
-        Expression<Func<TrainerAvailability, bool>> expression, 
+    public async Task<IEnumerable<TrainerWorkingHours>> FetchByConditionAsync(
+        Expression<Func<TrainerWorkingHours, bool>> expression, 
         CancellationToken cancellationToken)
     {
         var result = await _dbSet
             .AsNoTracking()
             .Where(expression)
-            .Include(x => x.DailyAvailabilities)
+            .Include(x => x.DailyAvailability)
             .ToListAsync(cancellationToken: cancellationToken);
 
         return result;

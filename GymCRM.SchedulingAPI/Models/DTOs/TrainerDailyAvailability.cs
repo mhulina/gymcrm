@@ -2,12 +2,12 @@
 
 namespace GymCRM.SchedulingAPI.Models.DTOs;
 
-public class TrainerAvailability
+public class TrainerDailyAvailability
 {
     public Guid Id { get; set; }
-    public Guid TrainerId { get; set; }
-    public bool WorkingWeekends { get; set; }
+    public string DayOfWeek { get; set; }
+    public bool IsDayOff { get; set; }
     public DateTime DateCreatedUtc { get; set; }
     public DateTime DateModifiedUtc { get; set; }
-    public List<TrainerDailyAvailability> DailyAvailabilities { get; set; }
+    public List<TrainerWorkingHours> WorkingHours { get; set; }
 }

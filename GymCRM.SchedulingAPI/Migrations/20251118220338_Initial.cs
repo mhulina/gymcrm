@@ -73,10 +73,7 @@ namespace GymCRM.SchedulingAPI.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     TrainerId = table.Column<Guid>(type: "uuid", nullable: false),
-                    DayOfWeek = table.Column<int>(type: "integer", nullable: false),
-                    StartDateUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    EndDateUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    IsAvailable = table.Column<bool>(type: "boolean", nullable: false),
+                    WorkingWeekends = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     DateCreatedUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     DateModifiedUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -104,6 +101,66 @@ namespace GymCRM.SchedulingAPI.Migrations
                 {
                     table.PrimaryKey("PK_TrainingSessions", x => x.Id);
                 });
+
+            migrationBuilder.CreateTable(
+                name: "TrainerDailyAvailabilities",
+                schema: "scheduling_db",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    DayOfWeek = table.Column<string>(type: "text", nullable: false),
+                    IsDayOff = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DateCreatedUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    DateModifiedUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    AvailabilityId = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TrainerDailyAvailabilities", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TrainerDailyAvailabilities_TrainerAvailabilities_Availabili~",
+                        column: x => x.AvailabilityId,
+                        principalSchema: "scheduling_db",
+                        principalTable: "TrainerAvailabilities",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TrainerWorkingHours",
+                schema: "scheduling_db",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    StartTime = table.Column<TimeOnly>(type: "time without time zone", nullable: false),
+                    EndTime = table.Column<TimeOnly>(type: "time without time zone", nullable: false),
+                    DateCreatedUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    DateModifiedUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    DailyAvailabilityId = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TrainerWorkingHours", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TrainerWorkingHours_TrainerDailyAvailabilities_DailyAvailab~",
+                        column: x => x.DailyAvailabilityId,
+                        principalSchema: "scheduling_db",
+                        principalTable: "TrainerDailyAvailabilities",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TrainerDailyAvailabilities_AvailabilityId",
+                schema: "scheduling_db",
+                table: "TrainerDailyAvailabilities",
+                column: "AvailabilityId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TrainerWorkingHours_DailyAvailabilityId",
+                schema: "scheduling_db",
+                table: "TrainerWorkingHours",
+                column: "DailyAvailabilityId");
         }
 
         /// <inheritdoc />
@@ -122,11 +179,19 @@ namespace GymCRM.SchedulingAPI.Migrations
                 schema: "scheduling_db");
 
             migrationBuilder.DropTable(
-                name: "TrainerAvailabilities",
+                name: "TrainerWorkingHours",
                 schema: "scheduling_db");
 
             migrationBuilder.DropTable(
                 name: "TrainingSessions",
+                schema: "scheduling_db");
+
+            migrationBuilder.DropTable(
+                name: "TrainerDailyAvailabilities",
+                schema: "scheduling_db");
+
+            migrationBuilder.DropTable(
+                name: "TrainerAvailabilities",
                 schema: "scheduling_db");
         }
     }

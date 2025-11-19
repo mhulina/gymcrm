@@ -126,24 +126,76 @@ namespace GymCRM.SchedulingAPI.Migrations
                     b.Property<DateTime>("DateModifiedUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("DayOfWeek")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("EndDateUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsAvailable")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("StartDateUtc")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<Guid>("TrainerId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("WorkingWeekends")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.HasKey("Id");
 
                     b.ToTable("TrainerAvailabilities", "scheduling_db");
+                });
+
+            modelBuilder.Entity("GymCRM.SchedulingAPI.Models.Entities.TrainerDailyAvailability", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AvailabilityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("DateCreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("DateModifiedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DayOfWeek")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDayOff")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AvailabilityId");
+
+                    b.ToTable("TrainerDailyAvailabilities", "scheduling_db");
+                });
+
+            modelBuilder.Entity("GymCRM.SchedulingAPI.Models.Entities.TrainerWorkingHours", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DailyAvailabilityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("DateCreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("DateModifiedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DailyAvailabilityId");
+
+                    b.ToTable("TrainerWorkingHours", "scheduling_db");
                 });
 
             modelBuilder.Entity("GymCRM.SchedulingAPI.Models.Entities.TrainingSession", b =>
@@ -180,6 +232,38 @@ namespace GymCRM.SchedulingAPI.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("TrainingSessions", "scheduling_db");
+                });
+
+            modelBuilder.Entity("GymCRM.SchedulingAPI.Models.Entities.TrainerDailyAvailability", b =>
+                {
+                    b.HasOne("GymCRM.SchedulingAPI.Models.Entities.TrainerAvailability", "Availability")
+                        .WithMany("DailyAvailabilities")
+                        .HasForeignKey("AvailabilityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Availability");
+                });
+
+            modelBuilder.Entity("GymCRM.SchedulingAPI.Models.Entities.TrainerWorkingHours", b =>
+                {
+                    b.HasOne("GymCRM.SchedulingAPI.Models.Entities.TrainerDailyAvailability", "DailyAvailability")
+                        .WithMany("WorkingHours")
+                        .HasForeignKey("DailyAvailabilityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DailyAvailability");
+                });
+
+            modelBuilder.Entity("GymCRM.SchedulingAPI.Models.Entities.TrainerAvailability", b =>
+                {
+                    b.Navigation("DailyAvailabilities");
+                });
+
+            modelBuilder.Entity("GymCRM.SchedulingAPI.Models.Entities.TrainerDailyAvailability", b =>
+                {
+                    b.Navigation("WorkingHours");
                 });
 #pragma warning restore 612, 618
         }

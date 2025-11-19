@@ -48,4 +48,9 @@ public class GenericRepository<TEntity> : IGenericRepository<TEntity> where TEnt
     {
         _dbSet.Update(entity);
     }
+
+    public void AddRange(IEnumerable<TEntity> entities)
+    {
+        _dbSet.AddRange(entities);
+    }
 }

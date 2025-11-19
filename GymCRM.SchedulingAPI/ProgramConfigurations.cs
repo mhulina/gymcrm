@@ -7,8 +7,10 @@ using GymCRM.SchedulingAPI.Services;
 using GymCRM.SchedulingAPI.Services.Implementation;
 using GymCRM.SchedulingAPI.Services.Interface;
 using GymCRM.Shared;
+using GymCRM.Shared.Utilities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using Holiday = GymCRM.SchedulingAPI.Models.Entities.Holiday;
 
@@ -23,6 +25,8 @@ public static class ProgramConfigurations
         services.AddScoped<ITrainingSessionsService, TrainingSessionsService>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<ITrainerAvailabilitiesRepository, TrainerAvailabilitiesRepository>();
+        services.AddScoped<ITrainerDailyAvailabilitiesRepository, TrainerDailyAvailabilitiesesRepository>();
+        services.AddScoped<ITrainerWorkingHoursRepository, TrainerWorkingHoursRepository>();
         services.AddScoped<ITrainerAvailabilitiesService, TrainerAvailabilitiesService>();
         services.AddScoped<ITimeOffRepository, TimeOffRepository>();
         services.AddScoped<ITimeOffService, TimeOffService>();
@@ -42,6 +46,10 @@ public static class ProgramConfigurations
             config.CreateMap<GymCRM.SchedulingAPI.Models.Entities.TrainingSession, TrainingSession>();
             config.CreateMap<TrainerAvailability, GymCRM.SchedulingAPI.Models.Entities.TrainerAvailability>();
             config.CreateMap<GymCRM.SchedulingAPI.Models.Entities.TrainerAvailability, TrainerAvailability>();
+            config.CreateMap<TrainerDailyAvailability, GymCRM.SchedulingAPI.Models.Entities.TrainerDailyAvailability>();
+            config.CreateMap<GymCRM.SchedulingAPI.Models.Entities.TrainerDailyAvailability, TrainerDailyAvailability>();
+            config.CreateMap<TrainerWorkingHours, GymCRM.SchedulingAPI.Models.Entities.TrainerWorkingHours>();
+            config.CreateMap<GymCRM.SchedulingAPI.Models.Entities.TrainerWorkingHours, TrainerWorkingHours>();
             config.CreateMap<GymCRM.SchedulingAPI.Models.Entities.TimeOff, TimeOff>();
             config.CreateMap<TimeOff, GymCRM.SchedulingAPI.Models.Entities.TimeOff>();
             config.CreateMap<Holiday, Models.DTOs.Holiday>();
@@ -151,8 +159,33 @@ public static class ProgramConfigurations
             var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
             var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
             opt.IncludeXmlComments(xmlPath);
+            
+            opt.MapType<TimeOnly>(() => new OpenApiSchema
+            {
+                Type = "string",
+                Format = "HH:mm",
+                Example = new OpenApiString("09:30")
+            });
+
+            opt.MapType<DateOnly>(() => new OpenApiSchema
+            {
+                Type = "string",
+                Format = "yyyy-MM-dd",
+                Example = new OpenApiString("2025-01-01")
+            });
         });
         
         return services;
+    }
+
+    public static IMvcBuilder AddJsonTimeOnlyAndDateOnlyConverters(this IMvcBuilder builder)
+    {
+        builder.AddJsonOptions(opt =>
+        {
+            opt.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
+            opt.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
+        });
+        
+        return builder;
     }
 }

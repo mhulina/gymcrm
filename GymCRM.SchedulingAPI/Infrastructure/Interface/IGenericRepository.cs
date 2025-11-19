@@ -10,5 +10,6 @@ public interface IGenericRepository<TEntity> where TEntity : class
         CancellationToken cancellationToken);
     void Remove(TEntity entity);
     void Add(TEntity entity);
+    void AddRange(IEnumerable<TEntity> entities);
     void Update(TEntity entity);
 }

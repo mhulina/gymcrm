@@ -34,7 +34,8 @@ builder.Services
 	.Authentication(builder, secretForKey)
 	.ApiVersioning()
 	.AddProjectServices()
-	.AddControllers();
+	.AddControllers()
+	.AddJsonTimeOnlyAndDateOnlyConverters();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services

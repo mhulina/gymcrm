@@ -37,12 +37,12 @@ public class CalendarService : ICalendarService
             trainerId,
             cancellationToken: cancellationToken);
         
-        var availabilitiesInMonth = availabilities
-            .Where(x => (x.StartDate.Month == month && x.StartDate.Year == year)
-                && (x.EndDate.Month == month && x.EndDate.Year == year)
-                && !holidaysInMonth.Exists(y => y.Date == x.StartDate || y.Date == x.EndDate)
-                && x.TrainerId == trainerId)
-            .ToList();
+        // var availabilitiesInMonth = availabilities
+        //     .Where(x => (x.StartDate.Month == month && x.StartDate.Year == year)
+        //         && (x.EndDate.Month == month && x.EndDate.Year == year)
+        //         && !holidaysInMonth.Exists(y => y.Date == x.StartDate || y.Date == x.EndDate)
+        //         && x.TrainerId == trainerId)
+        //     .ToList();
         var timeOffsInMonth = timeOffs
             .Where(x => x.Date.Month == month 
                 && x.Date.Year == year
@@ -59,7 +59,7 @@ public class CalendarService : ICalendarService
             Month = month,
             Year = year,
             TrainerId = trainerId,
-            Availabilities = availabilitiesInMonth,
+            // Availabilities = availabilitiesInMonth,
             TimeOffs = timeOffsInMonth,
             TrainingSessions = trainingSessionsInMonth
         };

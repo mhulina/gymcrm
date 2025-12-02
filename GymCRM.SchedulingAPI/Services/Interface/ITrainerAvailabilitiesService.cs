@@ -41,4 +41,10 @@ public interface ITrainerAvailabilitiesService
     /// <returns>A task representing the asynchronous operation, containing a boolean indicating whether the availability was successfully updated.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="trainerAvailability"/> is null.</exception>
     Task<bool> UpdateAvailabilityAsync(TrainerAvailability trainerAvailability, CancellationToken cancellationToken = default);
+
+    Task<bool> AddWorkingHoursToDailyAvailability(
+        Guid trainerId,
+        string nameOfDay,
+        List<InsertWorkingHours> newWorkingHours,
+        CancellationToken cancellationToken = default);
 }

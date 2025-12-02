@@ -11,6 +11,7 @@ public class TrainerAvailabilitiesConfiguration : IEntityTypeConfiguration<Train
         modelBuilder.ToTable("TrainerAvailabilities", "scheduling_db");
         
         modelBuilder.HasKey(x => x.Id);
+        modelBuilder.HasIndex(x => x.TrainerId).IsUnique();
         
         modelBuilder.Property(x => x.TrainerId).IsRequired();
         modelBuilder.Property(x => x.WorkingWeekends).HasDefaultValue(false);

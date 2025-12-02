@@ -32,11 +32,11 @@ namespace GymCRM.IdentityAPI.Controllers
 		/// <response code="200">Returns the list of all users.</response>
 		/// <response code="500">Indicates an unexpected error occurred.</response>
 		[HttpGet]
-		public ActionResult<List<Member>> GetAllUsers()
+		public async Task<ActionResult<List<Member>>> GetAllUsers()
 		{
 			try
 			{
-				var result = _membersService.GetAllUsersAsync();
+				var result = await _membersService.GetAllUsersAsync();
 
 				return new OkObjectResult(result);
 			}

@@ -3,7 +3,6 @@ using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.DTOs;
 using GymCRM.IdentityAPI.Models.Interface;
 using GymCRM.IdentityAPI.Services.Interface;
-using DTOs_Member = GymCRM.IdentityAPI.Models.DTOs.Member;
 using ILogger = Serilog.ILogger;
 
 namespace GymCRM.IdentityAPI.Services.Implementation
@@ -27,12 +26,12 @@ namespace GymCRM.IdentityAPI.Services.Implementation
 			_mapper = mapper;
 		}
 
-		public async Task<List<DTOs_Member>> GetAllUsersAsync(CancellationToken cancellationToken = default)
+		public async Task<List<Member>> GetAllUsersAsync(CancellationToken cancellationToken = default)
 		{
 			try
 			{
 				var dbUsers = await _repository.FetchAll(cancellationToken);
-				var memberDtos = _mapper.Map<List<DTOs_Member>>(dbUsers);
+				var memberDtos = _mapper.Map<List<Member>>(dbUsers);
 
 				return memberDtos;
 			}
@@ -44,7 +43,7 @@ namespace GymCRM.IdentityAPI.Services.Implementation
 			}
 		}
 
-		public async Task<DTOs_Member> GetUserByGuidAsync(Guid guid, CancellationToken cancellationToken = default)
+		public async Task<Member> GetUserByGuidAsync(Guid guid, CancellationToken cancellationToken = default)
 		{
 			if (guid == Guid.Empty)
 			{
@@ -56,7 +55,7 @@ namespace GymCRM.IdentityAPI.Services.Implementation
 				var user = (await _repository
 					.FetchByCondition(x => x.AccountGuid == guid, cancellationToken))
 					.FirstOrDefault();
-				var memberDto = _mapper.Map<DTOs_Member>(user);
+				var memberDto = _mapper.Map<Member>(user);
 
 				return memberDto;
 			}
@@ -68,7 +67,7 @@ namespace GymCRM.IdentityAPI.Services.Implementation
 			}
 		}
 
-		public async Task<DTOs_Member> GetUserByEmailAsync(string email, CancellationToken cancellationToken = default)
+		public async Task<Member> GetUserByEmailAsync(string email, CancellationToken cancellationToken = default)
 		{
 			if (string.IsNullOrWhiteSpace(email))
 			{
@@ -80,7 +79,7 @@ namespace GymCRM.IdentityAPI.Services.Implementation
 				var user = (await _repository
 					.FetchByCondition(x => x.Email == email, cancellationToken))
 					.FirstOrDefault();
-				var memberDto = _mapper.Map<DTOs_Member>(user);
+				var memberDto = _mapper.Map<Member>(user);
 
 				return memberDto;
 			}
@@ -92,7 +91,7 @@ namespace GymCRM.IdentityAPI.Services.Implementation
 			}
 		}
 
-		public async Task<bool> UpdateMemberAsync(DTOs_Member insertMember, CancellationToken cancellationToken = default)
+		public async Task<bool> UpdateMemberAsync(Member insertMember, CancellationToken cancellationToken = default)
 		{
 			if (insertMember == null
 			    || insertMember.AccountGuid == Guid.Empty)

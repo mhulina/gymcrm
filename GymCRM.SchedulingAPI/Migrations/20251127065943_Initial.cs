@@ -151,6 +151,13 @@ namespace GymCRM.SchedulingAPI.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_TrainerAvailabilities_TrainerId",
+                schema: "scheduling_db",
+                table: "TrainerAvailabilities",
+                column: "TrainerId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_TrainerDailyAvailabilities_AvailabilityId",
                 schema: "scheduling_db",
                 table: "TrainerDailyAvailabilities",

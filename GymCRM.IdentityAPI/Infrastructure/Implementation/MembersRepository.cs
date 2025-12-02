@@ -18,6 +18,7 @@ namespace GymCRM.IdentityAPI.Models.Implementation
 		{
 			var result = await _context.Members
 				.AsNoTracking()
+				.Include(x => x.Account)
 				.ToListAsync(cancellationToken: cancellationToken);
 
 			return result;

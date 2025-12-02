@@ -14,6 +14,9 @@ public class TestHolidayRepository : TestBase
     {
         _holidayRepository = new HolidayRepository(_context);
         _unitOfWork = new UnitOfWork(_context);
+        
+        var seeder = new HolidaySeeder(new HttpClient(), _context);
+        seeder.SeedAsync("HR", DateTime.UtcNow.Year).Wait();
     }
 
     [Fact]

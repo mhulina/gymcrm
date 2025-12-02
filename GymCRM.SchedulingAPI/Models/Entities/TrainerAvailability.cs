@@ -7,6 +7,4 @@ public class TrainerAvailability
     public bool WorkingWeekends { get; set; }
     public DateTime DateCreatedUtc { get; set; }
     public DateTime DateModifiedUtc { get; set; }
-    
-    public virtual ICollection<TrainerDailyAvailability> DailyAvailabilities { get; set; }
 }

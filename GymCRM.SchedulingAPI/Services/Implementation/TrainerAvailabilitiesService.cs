@@ -2,6 +2,8 @@
 using GymCRM.SchedulingAPI.Infrastructure.Interface;
 using GymCRM.SchedulingAPI.Models.DTOs;
 using GymCRM.SchedulingAPI.Services.Interface;
+using TrainerDailyAvailability = GymCRM.SchedulingAPI.Models.Entities.TrainerDailyAvailability;
+using TrainerWorkingHours = GymCRM.SchedulingAPI.Models.Entities.TrainerWorkingHours;
 
 namespace GymCRM.SchedulingAPI.Services.Implementation;
 
@@ -71,44 +73,85 @@ public class TrainerAvailabilitiesService : ITrainerAvailabilitiesService
             DateModifiedUtc = DateTime.UtcNow
         };
 
-        var dailyAvailabilities = new List<Models.Entities.TrainerDailyAvailability>();
-        var dailyWorkingHours = new List<Models.Entities.TrainerWorkingHours>();
-        
-        foreach (var insertAvailabilityDailyAvailability in insertAvailability.DailyAvailabilities)
-        {
-            var dailyAvailability = new Models.Entities.TrainerDailyAvailability
-            {
-                Id = Guid.CreateVersion7(),
-                AvailabilityId = availability.Id,
-                DayOfWeek = insertAvailabilityDailyAvailability.DayOfWeek,
-                DateCreatedUtc = DateTime.UtcNow,
-                DateModifiedUtc = DateTime.UtcNow
-            };
+        var (dailyAvailabilities, dailyWorkingHours) = CreateTrainerDailyAvailabilitiesAndWorkingHours(
+            insertAvailability, 
+            availability);
 
-            foreach (var insertAvailabilityDailyWorkingHours in insertAvailabilityDailyAvailability.WorkingHours)
-            {
-                var dailyWorkingHour = new Models.Entities.TrainerWorkingHours
-                {
-                    Id = Guid.CreateVersion7(),
-                    DailyAvailabilityId = dailyAvailability.Id,
-                    StartTime = insertAvailabilityDailyWorkingHours.StartTime,
-                    EndTime = insertAvailabilityDailyWorkingHours.EndTime,
-                    DateCreatedUtc = DateTime.UtcNow,
-                    DateModifiedUtc = DateTime.UtcNow
-                };
-                
-                dailyWorkingHours.Add(dailyWorkingHour);
-            }
-            
-            dailyAvailabilities.Add(dailyAvailability);
+        if (dailyAvailabilities is null
+            || dailyAvailabilities.Count < 1)
+        {
+            return false;
         }
-        
+
         _trainerAvailabilitiesRepository.Add(availability);
         _trainerDailyAvailabilitiesRepository.AddRange(dailyAvailabilities);
         _trainerWorkingHoursRepository.AddRange(dailyWorkingHours);
         var result = await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return result;
+    }
+
+    public async Task<bool> AddWorkingHoursToDailyAvailability(
+        Guid trainerId, 
+        string nameOfDay,
+        List<InsertWorkingHours> newWorkingHours,
+        CancellationToken cancellationToken = default)
+    {
+        if (trainerId.Equals(Guid.Empty))
+        {
+            _logger.LogError($"Invalid trainer ID: {trainerId}");
+            throw new ArgumentException($"{trainerId} is an invalid ID", nameof(trainerId));
+        }
+
+        if (!Enum.GetNames<DayOfWeek>().Contains(nameOfDay))
+        {
+            _logger.LogError($"Invalid day of week: {nameOfDay}");
+            throw new InvalidOperationException($"{nameOfDay} is not a valid day of the week");
+        }
+
+        if (newWorkingHours is null
+            || newWorkingHours.Count < 1)
+        {
+            _logger.LogInformation($"No working hours have been added");
+            return true;
+        }
+        
+        var trainerAvailability = (await _trainerAvailabilitiesRepository
+            .FetchByConditionAsync(x => x.TrainerId == trainerId, cancellationToken))
+            .FirstOrDefault();
+
+        if (trainerAvailability is null)
+        {
+            _logger.LogWarning($"Trainer, ID:{trainerId}, doesn't have any availabilities created");
+            return false;
+        }
+
+        var trainerDailyAvailability = (await _trainerDailyAvailabilitiesRepository
+            .FetchByConditionAsync(
+                x => x.AvailabilityId == trainerAvailability.Id 
+                     && x.DayOfWeek == nameOfDay,
+                cancellationToken))
+            .FirstOrDefault();
+        var dailyAvailabilityId = trainerDailyAvailability?.Id ?? Guid.Empty;
+
+        if (dailyAvailabilityId != Guid.Empty)
+        {
+            var result = await InsertWorkingHoursForDay(dailyAvailabilityId, newWorkingHours, cancellationToken);
+            return result;
+        }
+        
+        (dailyAvailabilityId, var newDailyAvailabilityInserted) = await InsertDailyAvailabilityForDay(
+            trainerId, 
+            nameOfDay, 
+            trainerAvailability.Id,
+            cancellationToken);
+            
+        if (!newDailyAvailabilityInserted)
+        {
+            return false;
+        };
+
+        return await InsertWorkingHoursForDay(dailyAvailabilityId, newWorkingHours, cancellationToken);
     }
 
     public async Task<bool> DeleteAvailabilityAsync(Guid id, CancellationToken cancellationToken = default)
@@ -144,5 +187,121 @@ public class TrainerAvailabilitiesService : ITrainerAvailabilitiesService
         var result = await _unitOfWork.SaveChangesAsync(cancellationToken);
         
         return result;
+    }
+
+    private async Task<bool> InsertWorkingHoursForDay(
+        Guid dailyAvailabilityId,
+        List<InsertWorkingHours> newWorkingHours, 
+        CancellationToken cancellationToken)
+    {
+        var workingHours = newWorkingHours
+            .Select(x => new TrainerWorkingHours
+            {
+                Id = Guid.CreateVersion7(),
+                DailyAvailabilityId = dailyAvailabilityId,
+                StartTime = x.StartTime,
+                EndTime = x.EndTime,
+                DateCreatedUtc = DateTime.UtcNow,
+                DateModifiedUtc = DateTime.UtcNow
+            })
+            .ToList();
+
+        try
+        {
+            _trainerWorkingHoursRepository.AddRange(workingHours);
+            var result = await _unitOfWork.SaveChangesAsync(cancellationToken);
+            
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, ex.Message);
+            throw;
+        }
+    }
+
+    private async Task<(Guid dailyAvailabilityId, bool addWorkingHoursToDailyAvailability)> InsertDailyAvailabilityForDay(
+        Guid trainerId, 
+        string nameOfDay, 
+        Guid trainerAvailabilityId,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation($"Trainer, ID:{trainerId}, has no daily availability created on the day {nameOfDay}. Creating daily availability");
+
+        var dailyAvailabilityId = Guid.CreateVersion7();
+        var dailyAvailability = new TrainerDailyAvailability
+        {
+            Id = dailyAvailabilityId,
+            AvailabilityId = trainerAvailabilityId,
+            DayOfWeek = nameOfDay,
+            DateCreatedUtc = DateTime.UtcNow,
+            DateModifiedUtc = DateTime.UtcNow
+        };
+            
+        _trainerDailyAvailabilitiesRepository.Add(dailyAvailability);
+
+        try
+        {
+            var trainerDailyAvailabilitySaved = await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            if (!trainerDailyAvailabilitySaved)
+            {
+                _logger.LogError($"Could not create daily availability for Trainer ID: {trainerId}. Working hours have not been created");
+                return (dailyAvailabilityId, false);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, ex.Message);
+            throw;
+        }
+
+        return (dailyAvailabilityId, true);
+    }
+
+    private (List<TrainerDailyAvailability> dailyAvailabilities, List<TrainerWorkingHours> dailyWorkingHours) 
+        CreateTrainerDailyAvailabilitiesAndWorkingHours(InsertAvailability insertAvailability, Models.Entities.TrainerAvailability availability)
+    {
+        var dailyAvailabilities = new List<TrainerDailyAvailability>();
+        var dailyWorkingHours = new List<TrainerWorkingHours>();
+        
+        foreach (var insertAvailabilityDailyAvailability in insertAvailability.DailyAvailabilities)
+        {
+            var validDailyAvailability = Enum.GetNames(typeof(DayOfWeek)).Contains(insertAvailabilityDailyAvailability.DayOfWeek);
+
+            if (!validDailyAvailability)
+            {
+                continue;
+            }
+            
+            var dailyAvailability = new TrainerDailyAvailability
+            {
+                Id = Guid.CreateVersion7(),
+                AvailabilityId = availability.Id,
+                DayOfWeek = insertAvailabilityDailyAvailability.DayOfWeek,
+                DateCreatedUtc = DateTime.UtcNow,
+                DateModifiedUtc = DateTime.UtcNow
+            };
+
+            dailyWorkingHours.AddRange(insertAvailabilityDailyAvailability.WorkingHours
+                .Select(insertAvailabilityDailyWorkingHours => new TrainerWorkingHours
+                {
+                    Id = Guid.CreateVersion7(),
+                    DailyAvailabilityId = dailyAvailability.Id,
+                    StartTime = insertAvailabilityDailyWorkingHours.StartTime,
+                    EndTime = insertAvailabilityDailyWorkingHours.EndTime,
+                    DateCreatedUtc = DateTime.UtcNow,
+                    DateModifiedUtc = DateTime.UtcNow
+                }));
+
+            dailyAvailabilities.Add(dailyAvailability);
+        }
+
+        if (dailyAvailabilities.Count < 1)
+        {
+            _logger.LogWarning($"No daily availabilities have been added");
+        }
+
+        return (dailyAvailabilities, dailyWorkingHours);
     }
 }

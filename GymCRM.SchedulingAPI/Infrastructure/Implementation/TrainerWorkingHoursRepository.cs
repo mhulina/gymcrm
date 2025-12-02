@@ -13,7 +13,6 @@ public class TrainerWorkingHoursRepository : GenericRepository<TrainerWorkingHou
     {
         var result = await _dbSet
             .AsNoTracking()
-            .Include(x => x.DailyAvailability)
             .ToListAsync(cancellationToken: cancellationToken);
         
         return result;
@@ -26,7 +25,6 @@ public class TrainerWorkingHoursRepository : GenericRepository<TrainerWorkingHou
         var result = await _dbSet
             .AsNoTracking()
             .Where(expression)
-            .Include(x => x.DailyAvailability)
             .ToListAsync(cancellationToken: cancellationToken);
 
         return result;

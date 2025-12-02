@@ -54,13 +54,6 @@ public class TestBase : IDisposable
 
         ServiceProvider = services.BuildServiceProvider();
         _context = ServiceProvider.GetRequiredService<SchedulingDbContext>();
-        
-        var seeder = new HolidaySeeder(new HttpClient(), _context);
-        Task
-            .Run(async () =>
-                await seeder.SeedAsync("HR", DateTime.UtcNow.Year))
-            .GetAwaiter()
-            .GetResult();
     }
 
     private void EnsureDatabaseExistsAndMigrate()
@@ -74,6 +67,7 @@ public class TestBase : IDisposable
         using (var cmd = new NpgsqlCommand($"SELECT 1 FROM pg_database WHERE datname = '{dbName}';", conn))
         {
             var exists = cmd.ExecuteScalar();
+            
             if (exists == null)
             {
                 using var createCmd = new NpgsqlCommand($"CREATE DATABASE \"{dbName}\";", conn);

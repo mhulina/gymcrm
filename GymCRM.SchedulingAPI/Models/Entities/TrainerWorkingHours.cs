@@ -8,6 +8,4 @@ public class TrainerWorkingHours
     public DateTime DateCreatedUtc { get; set; }
     public DateTime DateModifiedUtc { get; set; }
     public Guid DailyAvailabilityId { get; set; }
-    
-    public virtual TrainerDailyAvailability DailyAvailability { get; set; }
 }

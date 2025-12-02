@@ -18,8 +18,8 @@ public class TrainerDailyAvailabilityConfiguration : IEntityTypeConfiguration<Tr
         modelBuilder.Property(x => x.DateModifiedUtc).IsRequired();
         
         modelBuilder
-            .HasOne(x => x.Availability)
-            .WithMany(x => x.DailyAvailabilities)
+            .HasOne<TrainerAvailability>()
+            .WithMany()
             .HasForeignKey(x => x.AvailabilityId)
             .OnDelete(DeleteBehavior.Cascade);
     }

@@ -363,3 +363,7 @@ MigrationBackup/
 FodyWeavers.xsd
 
 .idea/
+
+.env
+.env.development
+.env.production

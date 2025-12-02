@@ -105,6 +105,34 @@ public class AvailabilitiesController : ControllerBase
         }
     }
 
+    [HttpPost("{trainerId:guid}/{nameOfDay}/workinghours")]
+    public async Task<ActionResult<bool>> AddWorkingHoursToDailyAvailability(
+        [FromRoute] Guid trainerId,
+        [FromRoute] string nameOfDay,
+        [FromBody] List<InsertWorkingHours> insertWorkingHours,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _trainerAvailabilitiesService.AddWorkingHoursToDailyAvailability(
+                trainerId,
+                nameOfDay,
+                insertWorkingHours, 
+                cancellationToken);
+
+            if (!result)
+            {
+                return new BadRequestResult();
+            }
+            
+            return new CreatedResult();
+        }
+        catch (Exception)
+        {
+            return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+        }
+    }
+
     /// <summary>
     /// Deletes an existing availability record by its unique identifier.
     /// </summary>

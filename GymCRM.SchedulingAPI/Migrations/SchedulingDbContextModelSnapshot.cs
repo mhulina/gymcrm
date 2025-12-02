@@ -136,6 +136,9 @@ namespace GymCRM.SchedulingAPI.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("TrainerId")
+                        .IsUnique();
+
                     b.ToTable("TrainerAvailabilities", "scheduling_db");
                 });
 
@@ -236,34 +239,20 @@ namespace GymCRM.SchedulingAPI.Migrations
 
             modelBuilder.Entity("GymCRM.SchedulingAPI.Models.Entities.TrainerDailyAvailability", b =>
                 {
-                    b.HasOne("GymCRM.SchedulingAPI.Models.Entities.TrainerAvailability", "Availability")
-                        .WithMany("DailyAvailabilities")
+                    b.HasOne("GymCRM.SchedulingAPI.Models.Entities.TrainerAvailability", null)
+                        .WithMany()
                         .HasForeignKey("AvailabilityId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Availability");
                 });
 
             modelBuilder.Entity("GymCRM.SchedulingAPI.Models.Entities.TrainerWorkingHours", b =>
                 {
-                    b.HasOne("GymCRM.SchedulingAPI.Models.Entities.TrainerDailyAvailability", "DailyAvailability")
-                        .WithMany("WorkingHours")
+                    b.HasOne("GymCRM.SchedulingAPI.Models.Entities.TrainerDailyAvailability", null)
+                        .WithMany()
                         .HasForeignKey("DailyAvailabilityId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("DailyAvailability");
-                });
-
-            modelBuilder.Entity("GymCRM.SchedulingAPI.Models.Entities.TrainerAvailability", b =>
-                {
-                    b.Navigation("DailyAvailabilities");
-                });
-
-            modelBuilder.Entity("GymCRM.SchedulingAPI.Models.Entities.TrainerDailyAvailability", b =>
-                {
-                    b.Navigation("WorkingHours");
                 });
 #pragma warning restore 612, 618
         }

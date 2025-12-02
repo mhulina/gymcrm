@@ -18,8 +18,8 @@ public class TrainerWorkingHoursConfiguration : IEntityTypeConfiguration<Trainer
         modelBuilder.Property(x => x.DateModifiedUtc).IsRequired();
         
         modelBuilder
-            .HasOne(x => x.DailyAvailability)
-            .WithMany(x => x.WorkingHours)
+            .HasOne<TrainerDailyAvailability>()
+            .WithMany()
             .HasForeignKey(x => x.DailyAvailabilityId)
             .OnDelete(DeleteBehavior.Cascade);
             

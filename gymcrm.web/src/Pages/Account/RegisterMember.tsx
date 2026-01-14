@@ -5,21 +5,18 @@ import Form from "react-bootstrap/Form";
 import {handleMemberRegistration} from "../../utils/MembershipApi";
 import Button from "react-bootstrap/Button";
 import {useNavigate} from "react-router-dom";
-
-export enum AccountType {
-    Admin = 0,
-    Member = 1,
-    Trainer = 2,
-}
+import {useAuth} from "../../contexts/AuthContext";
 
 export default function RegisterMember() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const navigate = useNavigate();
+    const { setIsAuthenticated } = useAuth();
 
     async function handleSubmit(event: { preventDefault: () => void; }) {
         event.preventDefault();
-        await handleMemberRegistration(email, password, navigate);
+        const success = await handleMemberRegistration(email, password, navigate);
+        setIsAuthenticated(success);
     }
     function validateForm() {
         return email.length > 0 && password.length > 0;

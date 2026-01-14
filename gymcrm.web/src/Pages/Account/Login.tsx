@@ -5,19 +5,25 @@ import "./Login.css";
 import {useNavigate} from "react-router-dom";
 import Layout from "../../Layout";
 import {handleLogin} from "../../utils/MembershipApi";
+import {useAuth} from "../../contexts/AuthContext";
 
 export default function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const navigate = useNavigate();
+    const { setIsAuthenticated } = useAuth();
 
     function validateForm() {
         return email.length > 0 && password.length > 0;
     }
 
-    function handleSubmit(event: { preventDefault: () => void; }) {
+    async function handleSubmit(event: { preventDefault: () => void; }) {
         event.preventDefault();
-        handleLogin(email, password, navigate);
+        const success = await handleLogin(email, password, navigate);
+        
+        if (success) {
+            setIsAuthenticated(true);
+        }
     }
     
     return (

@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using GymCRM.IdentityAPI.Models.Entities;
 
-namespace GymCRM.IdentityAPI.Models.Interface;
+namespace GymCRM.IdentityAPI.Infrastructure.Interface;
 
 public interface IAccountsRepository : IDisposable
 {

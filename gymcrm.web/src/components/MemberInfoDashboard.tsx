@@ -1,20 +1,6 @@
 import {AccountTypeDropdown} from "./AccountTypeDropdown";
 import {GymSubscriptionTypeDropdown} from "./GymSubscriptionTypeDropdown";
-
-interface MemberData{
-    accountGuid: string,
-    accountType: number,
-    firstName: string,
-    middleName: string,
-    lastName: string,
-    email: string,
-    phoneNumber: string,
-    mobileNumber: string,
-    personalTrainerId: number,
-    workoutGroupIds: Array<number>,
-    workingExperienceInMonths: number,
-    gymSubscriptionType: number
-}
+import {MemberData} from "../models/Member";
 
 export function MemberInfoDashboard ({ userData }: { userData: MemberData }) {
     return (<div className="MemberHomePage">

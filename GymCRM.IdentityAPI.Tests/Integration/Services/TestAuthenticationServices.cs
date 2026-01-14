@@ -1,7 +1,7 @@
 using GymCRM.IdentityAPI.Models.DTOs;
 using GymCRM.IdentityAPI.Models.Interface;
 using FluentAssertions;
-using GymCRM.IdentityAPI.Models;
+using GymCRM.IdentityAPI.Infrastructure.Interface;
 using GymCRM.IdentityAPI.Models.Enums;
 using GymCRM.IdentityAPI.Services.Interface;
 using Microsoft.EntityFrameworkCore;
@@ -22,16 +22,21 @@ public class AuthenticationServiceTests : TestBase
         _accountsRepository = ServiceProvider.GetRequiredService<IAccountsRepository>();
 
         // Clear Accounts and Members tables for test isolation
-        _context.Database
-            .ExecuteSqlRawAsync("TRUNCATE TABLE \"Accounts\" RESTART IDENTITY CASCADE;")
-            .GetAwaiter()
-            .GetResult();
-        _context.Database
-            .ExecuteSqlRawAsync("TRUNCATE TABLE \"Members\" RESTART IDENTITY CASCADE;")
-            .GetAwaiter()
-            .GetResult();
-
-        ClearDatabase();
+        try
+        {
+            _context.Database
+                .ExecuteSqlRawAsync("TRUNCATE TABLE \"Accounts\" RESTART IDENTITY CASCADE;")
+                .GetAwaiter()
+                .GetResult();
+            _context.Database
+                .ExecuteSqlRawAsync("TRUNCATE TABLE \"Members\" RESTART IDENTITY CASCADE;")
+                .GetAwaiter()
+                .GetResult();
+        }
+        catch
+        {
+            ClearDatabase();
+        }
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -86,14 +91,8 @@ public class AuthenticationServiceTests : TestBase
         var newPassword = "newPassword02";
         
         // When
-        using (var scope = ServiceProvider.CreateScope())
-        {
-            var passwordChanged = await 
-                scope.ServiceProvider
-                    .GetRequiredService<IAuthenticationService>()
-                    .ChangePassword(email, oldPassword, newPassword, CancellationToken.None);
-            passwordChanged.Should().BeTrue();
-        }
+        var passwordChanged = await _authenticationService.ChangePassword(email, oldPassword, newPassword, CancellationToken.None);
+        passwordChanged.Should().BeTrue();
         
         // Then
         var authenticationRequestBody = new AuthenticationRequestBody

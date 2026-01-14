@@ -31,7 +31,9 @@ public interface IAuthenticationService
 	/// <exception cref="AuthenticationException">
 	/// Thrown when the account does not exist or when the provided password is incorrect.
 	/// </exception>
-	Task<string> LoginAccount(AuthenticationRequestBody accountDto, CancellationToken cancellationToken = default);
+	Task<(string accessToken, string refreshToken)> LoginAccount(
+		AuthenticationRequestBody accountDto, 
+		CancellationToken cancellationToken = default);
 	/// <summary>
 	/// Deletes an account from the system asynchronously using the provided account GUID.
 	/// </summary>
@@ -67,4 +69,11 @@ public interface IAuthenticationService
 		string oldPassword,
 		string newPassword,
 		CancellationToken cancellationToken = default);
+	/// <summary>
+	/// Generates a JWT token for the specified <see cref="Models.Entities.Account"/> using application configuration for signing.
+	/// </summary>
+	/// <param name="account">The <see cref="Models.Entities.Account"/> for which to generate the token.</param>
+	/// <returns>A JWT token as a string.</returns>
+	/// <exception cref="Exception">Thrown when the signing secret is missing in the configuration.</exception>
+	string GenerateJwtToken(Models.Entities.Account account);
 }

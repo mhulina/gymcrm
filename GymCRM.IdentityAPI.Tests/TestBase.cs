@@ -1,5 +1,6 @@
+using GymCRM.IdentityAPI.Infrastructure;
 using GymCRM.IdentityAPI.Infrastructure.Implementation;
-using GymCRM.IdentityAPI.Models;
+using GymCRM.IdentityAPI.Infrastructure.Interface;
 using GymCRM.IdentityAPI.Models.Implementation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -21,7 +22,7 @@ public class TestBase : IDisposable
     private string _testDbConnectionString;
     private string _connectionStringWithoutDb;
     private IConfiguration _configuration;
-    protected readonly AppDbContext _context;
+    protected readonly IdentityDbContext _context;
     
     public IServiceProvider ServiceProvider { get; private set; }
     
@@ -34,7 +35,7 @@ public class TestBase : IDisposable
         
         services.AddSingleton<IConfiguration>(_configuration);
         
-        services.AddDbContext<AppDbContext>(options => 
+        services.AddDbContext<IdentityDbContext>(options => 
             options.UseNpgsql(_testDbConnectionString));
 
         services.AddScoped<IMembersRepository, MembersRepository>();
@@ -84,13 +85,14 @@ public class TestBase : IDisposable
         services.AddLogging(lb => lb.AddSerilog(serilogLogger));
         
         ServiceProvider = services.BuildServiceProvider();
-        _context = ServiceProvider.GetService<AppDbContext>();
+        _context = ServiceProvider.GetService<IdentityDbContext>();
     }
 
     private void LoadConfiguration()
     {
         _configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.Test.json")
+            .AddEnvironmentVariables()
             .Build();
         
         _testDbConnectionString = _configuration.GetConnectionString("DefaultConnection");
@@ -98,7 +100,7 @@ public class TestBase : IDisposable
         // Strip the Database part from the connection string to connect to the server for DB creation
         var builder = new NpgsqlConnectionStringBuilder(_testDbConnectionString)
         {
-            Database = null
+            Database = "postgres"
         };
         _connectionStringWithoutDb = builder.ToString();
     }
@@ -121,35 +123,72 @@ public class TestBase : IDisposable
             }
         }
 
-        var options = new DbContextOptionsBuilder<AppDbContext>()
+        var options = new DbContextOptionsBuilder<IdentityDbContext>()
             .UseNpgsql(_testDbConnectionString)
             .Options;
 
-        using var dbContext = new AppDbContext(options);
+        using var dbContext = new IdentityDbContext(options);
         dbContext.Database.Migrate();
     }
     
     protected void ClearDatabase()
     {
-        var entityTypes = _context.Model.GetEntityTypes();
-
-        foreach (var entityType in entityTypes)
+        try
         {
-            var clrType = entityType.ClrType;
+            // Use TRUNCATE CASCADE to handle foreign keys automatically
+            var schema = _context.Model.GetDefaultSchema() ?? "identity_db";
+        
+            // Get all table names
+            var tableNames = _context.Model.GetEntityTypes()
+                .Where(et => !et.IsOwned())
+                .Select(et => et.GetTableName())
+                .Where(name => !string.IsNullOrEmpty(name))
+                .Distinct()
+                .ToList();
 
-            // Get the DbSet dynamically
-            var dbSet = _context.GetType()
-                .GetMethod("Set", Type.EmptyTypes)
-                .MakeGenericMethod(clrType)
-                .Invoke(_context, null);
-
-            // Get the entities to remove
-            var entities = ((IQueryable)dbSet).Cast<object>().ToList();
-
-            _context.RemoveRange(entities);
+            // Truncate all tables with CASCADE
+            foreach (var tableName in tableNames)
+            {
+                try
+                {
+                    _context.Database.ExecuteSqlRaw(
+                        $"TRUNCATE TABLE \"{schema}\".\"{tableName}\" RESTART IDENTITY CASCADE");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Warning: Could not truncate {tableName}: {ex.Message}");
+                }
+            }
         }
-
-        _context.SaveChanges();
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error clearing database with TRUNCATE, trying manual deletion: {ex.Message}");
+        
+            // Fallback: Manual deletion in correct order
+            try
+            {
+                // Delete Members first (child table)
+                var members = _context.Members.ToList();
+                if (members.Any())
+                {
+                    _context.Members.RemoveRange(members);
+                }
+            
+                // Delete Accounts second (parent table)
+                var accounts = _context.Accounts.ToList();
+                if (accounts.Any())
+                {
+                    _context.Accounts.RemoveRange(accounts);
+                }
+            
+                _context.SaveChanges();
+            }
+            catch (Exception innerEx)
+            {
+                Console.WriteLine($"Error in fallback deletion: {innerEx.Message}");
+                // Don't throw - let the test framework handle it
+            }
+        }
     }
 
     public void Dispose()

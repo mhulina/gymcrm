@@ -17,5 +17,6 @@ namespace GymCRM.IdentityAPI.Models.DTOs
 		public List<Guid>? WorkoutGroupIds { get; set; }
         public int? WorkingExperienceInMonths {  get; set; }
         public int GymSubscriptionType { get; set; }
+        public string TimeZone { get; set; }
 	}
 }

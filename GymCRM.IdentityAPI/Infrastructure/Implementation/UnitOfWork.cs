@@ -1,13 +1,13 @@
-using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.Interface;
+using Microsoft.EntityFrameworkCore;
 
 namespace GymCRM.IdentityAPI.Infrastructure.Implementation;
 
 public class UnitOfWork : IUnitOfWork
 {
-    private readonly AppDbContext _context;
+    private readonly IdentityDbContext _context;
 
-    public UnitOfWork(AppDbContext context)
+    public UnitOfWork(IdentityDbContext context)
     {
         _context = context;
     }
@@ -17,5 +17,33 @@ public class UnitOfWork : IUnitOfWork
         var result = await _context.SaveChangesAsync(cancellationToken);
         
         return result > 0;
+    }
+
+    public void DetachAll()
+    {
+        foreach (var entityEntry in _context.ChangeTracker.Entries().ToList())
+        {
+            entityEntry.State = EntityState.Detached;
+        }
+    }
+
+    public void Detach<T>(T entity) where T : class
+    {
+        var entry = _context.Entry(entity);
+        
+        if (entry.State != EntityState.Detached)
+        {
+            entry.State = EntityState.Detached;
+        }
+        
+        var keyValue = entry.Property("Id").CurrentValue;
+        var trackedEntry = _context.ChangeTracker.Entries<T>()
+            .FirstOrDefault(e => e.Property("Id").CurrentValue?.Equals(keyValue) == true 
+                && e.State != EntityState.Detached);
+    
+        if (trackedEntry != null)
+        {
+            trackedEntry.State = EntityState.Detached;
+        }
     }
 }

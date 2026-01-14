@@ -1,13 +1,15 @@
-using System.ComponentModel;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Authentication;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using GymCRM.IdentityAPI.Infrastructure.Interface;
 using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.DTOs;
+using GymCRM.IdentityAPI.Models.Entities;
 using GymCRM.IdentityAPI.Models.Enums;
 using GymCRM.IdentityAPI.Models.Interface;
+using GymCRM.IdentityAPI.Services.Interface;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.IdentityModel.Tokens;
 using Account = GymCRM.IdentityAPI.Models.Entities.Account;
@@ -22,6 +24,7 @@ public class AuthenticationService : IAuthenticationService
 	private readonly IUnitOfWork _unitOfWork;
 	private readonly IAccountsRepository _accountsRepository;
 	private readonly IMembersRepository _membersRepository;
+	private readonly IRefreshTokenService _refreshTokenService;
 	private readonly IConfiguration _configuration;
 	private readonly ILogger _logger;
 
@@ -29,12 +32,14 @@ public class AuthenticationService : IAuthenticationService
 		IUnitOfWork unitOfWork,
 		IAccountsRepository accountsRepository,
 		IMembersRepository membersRepository,
+		IRefreshTokenService refreshTokenService,
 		IConfiguration configuration,
 		ILogger logger)
 	{
 		_unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
 		_accountsRepository = accountsRepository ?? throw new ArgumentNullException(nameof(accountsRepository));
 		_membersRepository = membersRepository ?? throw new ArgumentNullException(nameof(membersRepository));
+		_refreshTokenService = refreshTokenService ?? throw new ArgumentNullException(nameof(refreshTokenService));
 		_configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 		_logger = logger;
 	}
@@ -72,12 +77,14 @@ public class AuthenticationService : IAuthenticationService
 
 			var member = new Member
 			{
+				Id = Guid.CreateVersion7(),
 				AccountGuid = entity.Id,
 				Email = insertAccount.Email.ToLower(),
 				AccountType = insertAccount.AccountType ?? 1,
 				GymSubscriptionType = insertAccount.GymSubscriptionType ?? 0,
 				Gender = insertAccount.Gender ?? 0,
-				DateModified = entity.DateCreated
+				DateModified = entity.DateCreated,
+				TimeZone = TimeZoneInfo.Utc.Id,
 			};
 
 			_membersRepository.Insert(member);
@@ -93,7 +100,7 @@ public class AuthenticationService : IAuthenticationService
 		}
 	}
 
-	public async Task<string> LoginAccount(
+	public async Task<(string accessToken, string refreshToken)> LoginAccount(
 		AuthenticationRequestBody accountDto, 
 		CancellationToken cancellationToken = default)
 	{
@@ -110,16 +117,56 @@ public class AuthenticationService : IAuthenticationService
 				.FirstOrDefault()
 				?? throw new AuthenticationException("Account with this email does not exist");
 
+			if (account.LockoutUntil.HasValue
+			    && account.LockoutUntil > DateTime.UtcNow)
+			{
+				var remainingTime = account.LockoutUntil.Value - DateTime.UtcNow;
+				throw new AuthenticationException($"Account locked. Try again in {remainingTime.Minutes} minutes");
+			}
+
 			var passwordsAreTheSame = CompareHashedPasswords(account, accountDto.Password);
 
 			if (!passwordsAreTheSame)
 			{
-				throw new AuthenticationException("Password is incorrect");
+				account.FailedLoginAttempts++;
+
+				if (account.FailedLoginAttempts >= 5)
+				{
+					account.LockoutUntil = DateTime.UtcNow.AddMinutes(15);
+					_logger.Warning(
+						"Account {Email} locker after {LoginAttempts} failed login attempts",
+						account.Email,
+						account.FailedLoginAttempts);
+				}
+				
+				_accountsRepository.Update(account);
+				await _unitOfWork.SaveAsync(cancellationToken);
+				
+				throw new AuthenticationException("Invalid credentials");
 			}
 
-			var tokenToReturn = GenerateJwtToken(account);
+			account.FailedLoginAttempts = 0;
+			account.LockoutUntil = null;
+			_accountsRepository.Update(account);
+			await _unitOfWork.SaveAsync(cancellationToken);
+			
+			var refreshToken = _refreshTokenService.GenerateRefreshToken(account.Id);
+			var accessToken = GenerateJwtToken(account);
+			
+			var result = await _refreshTokenService.SaveRefreshTokenAsync(
+				refreshToken, 
+				cancellationToken: cancellationToken);
 
-			return tokenToReturn;
+			if (result)
+			{
+				return (accessToken, refreshToken.Token);
+			}
+			
+			_logger.Warning(
+				"Failed to refresh token for account ID: {AccountId}",
+				account.Id);
+
+			throw new AuthenticationFailureException($"Failed to refresh token for account ID: {account.Id}");
 		}
 		catch (Exception ex)
 		{
@@ -179,20 +226,20 @@ public class AuthenticationService : IAuthenticationService
 		
 		account.HashedPassword = GenerateHashedPassword(newPassword, account.HashSalt, account.DateCreated);
 		
+		_unitOfWork.Detach(account);
 		_accountsRepository.Update(account);
 		var result = await _unitOfWork.SaveAsync(cancellationToken);
 
 		return result;
 	}
 	
-	/// <summary>
-	/// Generates a JWT token for the specified <see cref="Models.Entities.Account"/> using application configuration for signing.
-	/// </summary>
-	/// <param name="account">The <see cref="Models.Entities.Account"/> for which to generate the token.</param>
-	/// <returns>A JWT token as a string.</returns>
-	/// <exception cref="Exception">Thrown when the signing secret is missing in the configuration.</exception>
-	private string GenerateJwtToken(Account account)
+	public string GenerateJwtToken(Account account)
 	{
+		if (account is null)
+		{
+			throw new ArgumentNullException(nameof(account));
+		}
+		
 		var securityKey = new SymmetricSecurityKey(
 			Convert.FromBase64String(
 				_configuration["Authentication:SecretForKey"]
@@ -203,7 +250,8 @@ public class AuthenticationService : IAuthenticationService
 		{
 			new ("sub", account.Id.ToString()),
 			new ("email", account.Email),
-			new ("type", ((AccountType)account.Member.AccountType).ToString())
+			new ("type", ((AccountType)account.Member.AccountType).ToString()),
+			new ("timezone", account.Member.TimeZone)
 		};
 
 		var jwtSecurityToken = new JwtSecurityToken(

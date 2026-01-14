@@ -15,6 +15,8 @@ public class Account
     public string HashSalt { get; set; }
     [Required]
     public string HashedPassword { get; set; }
+    public int FailedLoginAttempts { get; set; }
+    public DateTime? LockoutUntil { get; set; }
     
-    public Member Member { get; set; }
+    public virtual Member Member { get; set; }
 }

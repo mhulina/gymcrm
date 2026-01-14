@@ -16,6 +16,7 @@ namespace GymCRM.IdentityAPI.Models.Entities
         public string Email { get; set; }
         public string? PhoneNumber { get; set; }
         public string? MobileNumber { get; set; }
+        public string TimeZone { get; set; }
         public DateTime DateModified { get; set; }
         public Guid? PersonalTrainerId { get; set; }
         public List<Guid>? WorkoutGroupIds { get; set; }

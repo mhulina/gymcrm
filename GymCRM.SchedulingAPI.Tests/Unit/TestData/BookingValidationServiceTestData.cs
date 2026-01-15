@@ -12,6 +12,81 @@ public class BookingValidationServiceTestData
         List<TimeOff>,
         List<TrainingSession>,
         List<Holiday>,
+        ValidationResult> BookingStartsWithinBufferTimeOfExistingTrainingSession()
+    {
+        var theoryData = new TheoryData<
+            InsertTrainingSession,
+            bool,
+            List<TimeOff>,
+            List<TrainingSession>,
+            List<Holiday>,
+            ValidationResult>();
+
+        var insertTrainingSession = new InsertTrainingSession
+        {
+            ClientId = Guid.CreateVersion7(),
+            TrainerId = Guid.CreateVersion7(),
+            StartTime = DateTime.UtcNow.AddDays(1),
+            EndTime = DateTime.UtcNow.AddDays(1).AddMinutes(60)
+        };
+        var holidays = new List<Holiday>
+        {
+            new()
+            {
+                Id = Guid.CreateVersion7(),
+                CountryCode = "HR",
+                Date = insertTrainingSession.StartTime.Date.AddDays(4),
+                EnglishName = "TestoHoliday",
+                LocalName = "TestoHoliday",
+                RegionCode = string.Empty,
+                Type = "Public",
+                Year = insertTrainingSession.StartTime.AddDays(4).Year
+            }
+        };
+        var timeOffs = new List<TimeOff>
+        {
+            new()
+            {
+                Id = Guid.CreateVersion7(),
+                Date = insertTrainingSession.StartTime.Date.AddDays(3),
+                Reason = "TestoTimeOff",
+                TrainerId = insertTrainingSession.TrainerId
+            }
+        };
+        var trainingSession = new TrainingSession
+        {
+            Id = Guid.CreateVersion7(),
+            StartTime = insertTrainingSession.StartTime.AddMinutes(-60),
+            EndTime = insertTrainingSession.EndTime.AddMinutes(-60),
+            TrainerId = insertTrainingSession.TrainerId,
+            ClientId = Guid.CreateVersion7(),
+            Status = (int)TrainingSessionStatus.Booked
+        };
+        
+        var validationResult = ValidationResult.Fail(ValidationMessages.BookingOverlapsExisting);
+        theoryData.Add(insertTrainingSession, true, timeOffs, [trainingSession], holidays, validationResult);
+
+        trainingSession.StartTime = trainingSession.StartTime.AddMinutes(-14);
+        trainingSession.EndTime = trainingSession.EndTime.AddMinutes(-14);
+        theoryData.Add(insertTrainingSession, true, timeOffs, [trainingSession], holidays, validationResult);
+
+        trainingSession.StartTime = trainingSession.StartTime.AddMinutes(74);
+        trainingSession.EndTime = trainingSession.EndTime.AddMinutes(74);
+        theoryData.Add(insertTrainingSession, true, timeOffs, [trainingSession], holidays, validationResult);
+
+        trainingSession.StartTime = trainingSession.StartTime.AddMinutes(14);
+        trainingSession.EndTime = trainingSession.EndTime.AddMinutes(14);
+        theoryData.Add(insertTrainingSession, true, timeOffs, [trainingSession], holidays, validationResult);
+        
+        return theoryData;
+    }
+    
+    public static TheoryData<
+        InsertTrainingSession,
+        bool,
+        List<TimeOff>,
+        List<TrainingSession>,
+        List<Holiday>,
         ValidationResult> BookingEndDateBeforeStartDate()
     {
         var theoryData = new TheoryData<
@@ -154,25 +229,21 @@ public class BookingValidationServiceTestData
             List<Holiday>,
             ValidationResult>();
 
-        var insertTrainingSession = new InsertTrainingSession
-        {
-            ClientId = Guid.CreateVersion7(),
-            TrainerId = Guid.CreateVersion7(),
-            StartTime = DateTime.UtcNow.AddDays(1),
-            EndTime = DateTime.UtcNow.AddDays(1).AddMinutes(30)
-        };
+        var baseTrainerId = Guid.CreateVersion7();
+        var baseClientId = Guid.CreateVersion7();
+        var baseStartTime = DateTime.UtcNow.AddDays(1).Date.AddHours(10);
         var holidays = new List<Holiday>
         {
             new()
             {
                 Id = Guid.CreateVersion7(),
                 CountryCode = "HR",
-                Date = insertTrainingSession.StartTime.Date.AddDays(4),
+                Date = baseStartTime.AddDays(4),
                 EnglishName = "TestoHoliday",
                 LocalName = "TestoHoliday",
                 RegionCode = string.Empty,
                 Type = "Public",
-                Year = insertTrainingSession.StartTime.AddDays(4).Year
+                Year = baseStartTime.AddDays(4).Year
             }
         };
         var timeOffs = new List<TimeOff>
@@ -180,32 +251,173 @@ public class BookingValidationServiceTestData
             new()
             {
                 Id = Guid.CreateVersion7(),
-                Date = insertTrainingSession.StartTime.Date.AddDays(3),
+                Date = baseStartTime.Date.AddDays(3),
                 Reason = "TestoTimeOff",
-                TrainerId = insertTrainingSession.TrainerId
+                TrainerId = baseTrainerId
             }
         };
-        var trainingSessions = new List<TrainingSession>
+        
+        // ========================================================================
+        // SCENARIO 1: Valid 30-minute booking with existing session 1 day later
+        // ========================================================================
+        var booking1 = new InsertTrainingSession
         {
-            new()
-            {
-                Id = Guid.CreateVersion7(),
-                StartTime = insertTrainingSession.StartTime.AddDays(1),
-                EndTime = insertTrainingSession.EndTime.AddDays(1),
-                TrainerId = insertTrainingSession.TrainerId,
-                ClientId = Guid.CreateVersion7(),
-                Status = (int)TrainingSessionStatus.Booked
-            }
+            ClientId = baseClientId,
+            TrainerId = baseTrainerId,
+            StartTime = baseStartTime,
+            EndTime = baseStartTime.AddMinutes(30)
         };
-        
-        var validationResult = ValidationResult.Success();
-        theoryData.Add(insertTrainingSession, true, timeOffs, trainingSessions, holidays, validationResult);
-        
-        insertTrainingSession.EndTime = insertTrainingSession.EndTime.AddMinutes(30);
-        theoryData.Add(insertTrainingSession, true, timeOffs, trainingSessions, holidays, validationResult);
-        
-        insertTrainingSession.EndTime = insertTrainingSession.EndTime.AddMinutes(30);
-        theoryData.Add(insertTrainingSession, true, timeOffs, trainingSessions, holidays, validationResult);
+        var existingSession1 = new TrainingSession
+        {
+            Id = Guid.CreateVersion7(),
+            StartTime = baseStartTime.AddDays(1),
+            EndTime = baseStartTime.AddDays(1).AddMinutes(30),
+            TrainerId = baseTrainerId,
+            ClientId = Guid.CreateVersion7(),
+            Status = (int)TrainingSessionStatus.Booked
+        };
+        theoryData.Add(
+            booking1,
+            true,
+            new List<TimeOff>(timeOffs),
+            new List<TrainingSession> { existingSession1 },
+            new List<Holiday>(holidays),
+            ValidationResult.Success());
+
+        // ========================================================================
+        // SCENARIO 2: Valid 60-minute booking with existing session 1 day later
+        // ========================================================================
+        var booking2 = new InsertTrainingSession
+        {
+            ClientId = baseClientId,
+            TrainerId = baseTrainerId,
+            StartTime = baseStartTime,
+            EndTime = baseStartTime.AddMinutes(60)
+        };
+        var existingSession2 = new TrainingSession
+        {
+            Id = Guid.CreateVersion7(),
+            StartTime = baseStartTime.AddDays(1),
+            EndTime = baseStartTime.AddDays(1).AddMinutes(30),
+            TrainerId = baseTrainerId,
+            ClientId = Guid.CreateVersion7(),
+            Status = (int)TrainingSessionStatus.Booked
+        };
+        theoryData.Add(
+            booking2,
+            true,
+            new List<TimeOff>(timeOffs),
+            new List<TrainingSession> { existingSession2 },
+            new List<Holiday>(holidays),
+            ValidationResult.Success());
+
+        // ========================================================================
+        // SCENARIO 3: Valid 90-minute booking with existing session 1 day later
+        // ========================================================================
+        var booking3 = new InsertTrainingSession
+        {
+            ClientId = baseClientId,
+            TrainerId = baseTrainerId,
+            StartTime = baseStartTime,
+            EndTime = baseStartTime.AddMinutes(90)
+        };
+        var existingSession3 = new TrainingSession
+        {
+            Id = Guid.CreateVersion7(),
+            StartTime = baseStartTime.AddDays(1),
+            EndTime = baseStartTime.AddDays(1).AddMinutes(30),
+            TrainerId = baseTrainerId,
+            ClientId = Guid.CreateVersion7(),
+            Status = (int)TrainingSessionStatus.Booked
+        };
+        theoryData.Add(
+            booking3,
+            true,
+            new List<TimeOff>(timeOffs),
+            new List<TrainingSession> { existingSession3 },
+            new List<Holiday>(holidays),
+            ValidationResult.Success());
+
+        // ========================================================================
+        // SCENARIO 4: Valid booking - exactly 15 minutes AFTER existing session
+        // ========================================================================
+        var booking4 = new InsertTrainingSession
+        {
+            ClientId = baseClientId,
+            TrainerId = baseTrainerId,
+            StartTime = baseStartTime.AddMinutes(75),
+            EndTime = baseStartTime.AddMinutes(135)
+        };
+        var existingSession4 = new TrainingSession
+        {
+            Id = Guid.CreateVersion7(),
+            StartTime = baseStartTime,
+            EndTime = baseStartTime.AddMinutes(60),
+            TrainerId = baseTrainerId,
+            ClientId = Guid.CreateVersion7(),
+            Status = (int)TrainingSessionStatus.Booked
+        };
+        theoryData.Add(
+            booking4,
+            true,
+            new List<TimeOff>(timeOffs),
+            new List<TrainingSession> { existingSession4 },
+            new List<Holiday>(holidays),
+            ValidationResult.Success());
+
+        // ========================================================================
+        // SCENARIO 5: Valid booking - exactly 15 minutes BEFORE existing session
+        // ========================================================================
+        var booking5 = new InsertTrainingSession
+        {
+            ClientId = baseClientId,
+            TrainerId = baseTrainerId,
+            StartTime = baseStartTime,
+            EndTime = baseStartTime.AddMinutes(60)
+        };
+        var existingSession5 = new TrainingSession
+        {
+            Id = Guid.CreateVersion7(),
+            StartTime = baseStartTime.AddMinutes(75),
+            EndTime = baseStartTime.AddMinutes(135),
+            TrainerId = baseTrainerId,
+            ClientId = Guid.CreateVersion7(),
+            Status = (int)TrainingSessionStatus.Booked
+        };
+        theoryData.Add(
+            booking5,
+            true,
+            new List<TimeOff>(timeOffs),
+            new List<TrainingSession> { existingSession5 },
+            new List<Holiday>(holidays),
+            ValidationResult.Success());
+
+        // ========================================================================
+        // SCENARIO 6: Valid booking - 16 minutes AFTER existing session
+        // ========================================================================
+        var booking6 = new InsertTrainingSession
+        {
+            ClientId = baseClientId,
+            TrainerId = baseTrainerId,
+            StartTime = baseStartTime.AddMinutes(76),
+            EndTime = baseStartTime.AddMinutes(136)
+        };
+        var existingSession6 = new TrainingSession
+        {
+            Id = Guid.CreateVersion7(),
+            StartTime = baseStartTime,
+            EndTime = baseStartTime.AddMinutes(60),
+            TrainerId = baseTrainerId,
+            ClientId = Guid.CreateVersion7(),
+            Status = (int)TrainingSessionStatus.Booked
+        };
+        theoryData.Add(
+            booking6,
+            true,
+            new List<TimeOff>(timeOffs),
+            new List<TrainingSession> { existingSession6 },
+            new List<Holiday>(holidays),
+            ValidationResult.Success());
 
         return theoryData;
     }

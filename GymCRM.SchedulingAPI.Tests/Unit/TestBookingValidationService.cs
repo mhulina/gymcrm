@@ -77,6 +77,9 @@ public class TestBookingValidationService
         nameof(BookingValidationServiceTestData.BookingOverlapsWithExistingTrainingSession), 
         MemberType = typeof(BookingValidationServiceTestData))]
     [MemberData(
+        nameof(BookingValidationServiceTestData.BookingStartsWithinBufferTimeOfExistingTrainingSession), 
+        MemberType = typeof(BookingValidationServiceTestData))]
+    [MemberData(
         nameof(BookingValidationServiceTestData.ValidBooking), 
         MemberType = typeof(BookingValidationServiceTestData))]
     public async Task GivenValidBookingParameter_WhenValidatingBooking_ThenExpectedResultIsReturned(

@@ -431,77 +431,161 @@ public class BookingValidationServiceTestData
         ValidationResult> BookingOverlapsWithExistingTrainingSession()
     {
         var theoryData = new TheoryData<
-            InsertTrainingSession,
-            bool,
-            List<TimeOff>,
-            List<TrainingSession>,
-            List<Holiday>,
-            ValidationResult>();
+        InsertTrainingSession,
+        bool,
+        List<TimeOff>,
+        List<TrainingSession>,
+        List<Holiday>,
+        ValidationResult>();
 
-        var insertTrainingSession = new InsertTrainingSession
-        {
-            ClientId = Guid.CreateVersion7(),
-            TrainerId = Guid.CreateVersion7(),
-            StartTime = DateTime.UtcNow.AddDays(1),
-            EndTime = DateTime.UtcNow.AddDays(1).AddMinutes(90)
-        };
-        var holidays = new List<Holiday>
+        var baseTrainerId = Guid.CreateVersion7();
+        var baseStartTime = DateTime.UtcNow.AddDays(1).Date.AddHours(10);
+        
+        var createHolidays = () => new List<Holiday>
         {
             new()
             {
                 Id = Guid.CreateVersion7(),
                 CountryCode = "HR",
-                Date = insertTrainingSession.StartTime.Date.AddDays(4),
+                Date = baseStartTime.AddDays(4),
                 EnglishName = "TestoHoliday",
                 LocalName = "TestoHoliday",
                 RegionCode = string.Empty,
                 Type = "Public",
-                Year = insertTrainingSession.StartTime.AddDays(4).Year
+                Year = baseStartTime.AddDays(4).Year
             }
         };
-        var timeOffs = new List<TimeOff>
+
+        var createTimeOffs = () => new List<TimeOff>
         {
             new()
             {
                 Id = Guid.CreateVersion7(),
-                Date = insertTrainingSession.StartTime.Date.AddDays(3),
+                Date = baseStartTime.AddDays(3),
                 Reason = "TestoTimeOff",
-                TrainerId = insertTrainingSession.TrainerId
+                TrainerId = baseTrainerId
             }
         };
-        var trainingSessions = new List<TrainingSession>
+
+        // ========================================================================
+        // SCENARIO 1: Existing session completely inside new booking
+        // ========================================================================
+        var booking1 = new InsertTrainingSession
+        {
+            ClientId = Guid.CreateVersion7(),
+            TrainerId = baseTrainerId,
+            StartTime = baseStartTime,
+            EndTime = baseStartTime.AddMinutes(90)
+        };
+        var existingSession1 = new List<TrainingSession>
         {
             new()
             {
                 Id = Guid.CreateVersion7(),
-                StartTime = insertTrainingSession.StartTime.AddMinutes(20),
-                EndTime = insertTrainingSession.EndTime.AddMinutes(-10),
-                TrainerId = insertTrainingSession.TrainerId,
+                StartTime = baseStartTime.AddMinutes(20),
+                EndTime = baseStartTime.AddMinutes(70),
+                TrainerId = baseTrainerId,
                 ClientId = Guid.CreateVersion7(),
                 Status = (int)TrainingSessionStatus.Booked
             }
         };
-        
-        var validationResult = ValidationResult.Fail(ValidationMessages.BookingOverlapsExisting);
-        theoryData.Add(insertTrainingSession, true, timeOffs, trainingSessions, holidays, validationResult);
-        
-        trainingSessions
-            .FirstOrDefault().EndTime = insertTrainingSession.EndTime.AddMinutes(-30);
-        theoryData.Add(insertTrainingSession, true, timeOffs, trainingSessions, holidays, validationResult);
-        
-        trainingSessions
-            .FirstOrDefault().EndTime = insertTrainingSession.EndTime;
-        insertTrainingSession.StartTime = insertTrainingSession.StartTime.AddMinutes(30);
-        insertTrainingSession.EndTime = insertTrainingSession.EndTime.AddMinutes(-30);
-        theoryData.Add(insertTrainingSession, true, timeOffs, trainingSessions, holidays, validationResult);
+        theoryData.Add(
+            booking1,
+            true,
+            createTimeOffs(),
+            existingSession1,
+            createHolidays(),
+            ValidationResult.Fail(ValidationMessages.BookingOverlapsExisting));
 
-        insertTrainingSession.StartTime = insertTrainingSession.StartTime.AddMinutes(-30);
-        insertTrainingSession.EndTime = insertTrainingSession.EndTime.AddMinutes(30);
-        trainingSessions
-            .FirstOrDefault().StartTime = insertTrainingSession.StartTime.AddMinutes(-20);
-        trainingSessions
-            .FirstOrDefault().EndTime = insertTrainingSession.EndTime.AddMinutes(-20);
-        theoryData.Add(insertTrainingSession, true, timeOffs, trainingSessions, holidays, validationResult);
+        // ========================================================================
+        // SCENARIO 2: New booking overlaps at END of existing session
+        // ========================================================================
+        var booking2 = new InsertTrainingSession
+        {
+            ClientId = Guid.CreateVersion7(),
+            TrainerId = baseTrainerId,
+            StartTime = baseStartTime,
+            EndTime = baseStartTime.AddMinutes(90)
+        };
+        var existingSession2 = new List<TrainingSession>
+        {
+            new()
+            {
+                Id = Guid.CreateVersion7(),
+                StartTime = baseStartTime,
+                EndTime = baseStartTime.AddMinutes(60),
+                TrainerId = baseTrainerId,
+                ClientId = Guid.CreateVersion7(),
+                Status = (int)TrainingSessionStatus.Booked
+            }
+        };
+        theoryData.Add(
+            booking2,
+            true,
+            createTimeOffs(),
+            existingSession2,
+            createHolidays(),
+            ValidationResult.Fail(ValidationMessages.BookingOverlapsExisting));
+
+        // ========================================================================
+        // SCENARIO 3: New booking overlaps at START of existing session
+        // ========================================================================
+        var booking3 = new InsertTrainingSession
+        {
+            ClientId = Guid.CreateVersion7(),
+            TrainerId = baseTrainerId,
+            StartTime = baseStartTime,
+            EndTime = baseStartTime.AddMinutes(90)
+        };
+        var existingSession3 = new List<TrainingSession>
+        {
+            new()
+            {
+                Id = Guid.CreateVersion7(),
+                StartTime = baseStartTime.AddMinutes(30),
+                EndTime = baseStartTime.AddMinutes(90),
+                TrainerId = baseTrainerId,
+                ClientId = Guid.CreateVersion7(),
+                Status = (int)TrainingSessionStatus.Booked
+            }
+        };
+        theoryData.Add(
+            booking3,
+            true,
+            createTimeOffs(),
+            existingSession3,
+            createHolidays(),
+            ValidationResult.Fail(ValidationMessages.BookingOverlapsExisting));
+
+        // ========================================================================
+        // SCENARIO 4: New booking completely inside existing session
+        // ========================================================================
+        var booking4 = new InsertTrainingSession
+        {
+            ClientId = Guid.CreateVersion7(),
+            TrainerId = baseTrainerId,
+            StartTime = baseStartTime.AddMinutes(30),
+            EndTime = baseStartTime.AddMinutes(60)
+        };
+        var existingSession4 = new List<TrainingSession>
+        {
+            new()
+            {
+                Id = Guid.CreateVersion7(),
+                StartTime = baseStartTime,
+                EndTime = baseStartTime.AddMinutes(90),
+                TrainerId = baseTrainerId,
+                ClientId = Guid.CreateVersion7(),
+                Status = (int)TrainingSessionStatus.Booked
+            }
+        };
+        theoryData.Add(
+            booking4,
+            true,
+            createTimeOffs(),
+            existingSession4,
+            createHolidays(),
+            ValidationResult.Fail(ValidationMessages.BookingOverlapsExisting));
 
         return theoryData;
     }

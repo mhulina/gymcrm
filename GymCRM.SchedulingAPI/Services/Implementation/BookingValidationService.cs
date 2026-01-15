@@ -81,7 +81,7 @@ public class BookingValidationService : IBookingValidationService
 
         var result = trainerBookingsInMonth
             .Any(x => booking.StartTime < x.EndTime.AddMinutes(BufferBetweenTrainingSessions) 
-                && x.StartTime < booking.EndTime);
+                && x.StartTime < booking.EndTime.AddMinutes(BufferBetweenTrainingSessions));
 
         return result;
     }

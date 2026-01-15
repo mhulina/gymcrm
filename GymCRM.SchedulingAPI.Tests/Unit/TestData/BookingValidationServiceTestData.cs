@@ -757,49 +757,96 @@ public class BookingValidationServiceTestData
             List<Holiday>,
             ValidationResult>();
 
-        var insertTrainingSession = new InsertTrainingSession
-        {
-            ClientId = Guid.CreateVersion7(),
-            TrainerId = Guid.CreateVersion7(),
-            StartTime = DateTime.UtcNow.AddDays(1),
-            EndTime = DateTime.UtcNow.AddDays(1).AddMinutes(67)
-        };
-        var holidays = new List<Holiday>
+        var baseTrainerId = Guid.CreateVersion7();
+        var baseStartTime = DateTime.UtcNow.AddDays(1);
+        var validationResult = ValidationResult.Fail(ValidationMessages.BookingIntervals);
+        
+        // Factory functions to create fresh instances
+        var createHolidays = () => new List<Holiday>
         {
             new()
             {
                 Id = Guid.CreateVersion7(),
                 CountryCode = "HR",
-                Date = insertTrainingSession.StartTime.Date.AddDays(4),
+                Date = baseStartTime.Date.AddDays(4),
                 EnglishName = "TestoHoliday",
                 LocalName = "TestoHoliday",
                 RegionCode = string.Empty,
                 Type = "Public",
-                Year = insertTrainingSession.StartTime.AddDays(4).Year
+                Year = baseStartTime.AddDays(4).Year
             }
         };
-        var timeOffs = new List<TimeOff>
+
+        var createTimeOffs = () => new List<TimeOff>
         {
             new()
             {
                 Id = Guid.CreateVersion7(),
-                Date = insertTrainingSession.StartTime.Date.AddDays(3),
+                Date = baseStartTime.Date.AddDays(3),
                 Reason = "TestoTimeOff",
-                TrainerId = insertTrainingSession.TrainerId
+                TrainerId = baseTrainerId
             }
         };
-        
-        var validationResult = ValidationResult.Fail(ValidationMessages.BookingIntervals);
-        theoryData.Add(insertTrainingSession, true, timeOffs, null, holidays, validationResult);
-        
-        insertTrainingSession.EndTime = insertTrainingSession.EndTime.AddMinutes(22);
-        theoryData.Add(insertTrainingSession, true, timeOffs, null, holidays, validationResult);
-        
-        insertTrainingSession.EndTime = insertTrainingSession.EndTime.AddMinutes(-30);
-        theoryData.Add(insertTrainingSession, true, timeOffs, null, holidays, validationResult);
-        
-        insertTrainingSession.EndTime = insertTrainingSession.EndTime.AddMinutes(-28);
-        theoryData.Add(insertTrainingSession, true, timeOffs, null, holidays, validationResult);
+
+        // Test Case 1: 67-minute interval (invalid - not 30, 60, or 90)
+        theoryData.Add(
+            new InsertTrainingSession
+            {
+                ClientId = Guid.CreateVersion7(),
+                TrainerId = baseTrainerId,
+                StartTime = baseStartTime,
+                EndTime = baseStartTime.AddMinutes(67)
+            },
+            true,
+            createTimeOffs(),
+            null,
+            createHolidays(),
+            validationResult);
+
+        // Test Case 2: 89-minute interval (67 + 22 = 89, invalid)
+        theoryData.Add(
+            new InsertTrainingSession
+            {
+                ClientId = Guid.CreateVersion7(),
+                TrainerId = baseTrainerId,
+                StartTime = baseStartTime,
+                EndTime = baseStartTime.AddMinutes(89)
+            },
+            true,
+            createTimeOffs(),
+            null,
+            createHolidays(),
+            validationResult);
+
+        // Test Case 3: 59-minute interval (89 - 30 = 59, invalid)
+        theoryData.Add(
+            new InsertTrainingSession
+            {
+                ClientId = Guid.CreateVersion7(),
+                TrainerId = baseTrainerId,
+                StartTime = baseStartTime,
+                EndTime = baseStartTime.AddMinutes(59)
+            },
+            true,
+            createTimeOffs(),
+            null,
+            createHolidays(),
+            validationResult);
+
+        // Test Case 4: 31-minute interval (59 - 28 = 31, invalid)
+        theoryData.Add(
+            new InsertTrainingSession
+            {
+                ClientId = Guid.CreateVersion7(),
+                TrainerId = baseTrainerId,
+                StartTime = baseStartTime,
+                EndTime = baseStartTime.AddMinutes(31)
+            },
+            true,
+            createTimeOffs(),
+            null,
+            createHolidays(),
+            validationResult);
 
         return theoryData;
     }
@@ -820,43 +867,66 @@ public class BookingValidationServiceTestData
             List<Holiday>,
             ValidationResult>();
 
-        var insertTrainingSession = new InsertTrainingSession
-        {
-            ClientId = Guid.CreateVersion7(),
-            TrainerId = Guid.CreateVersion7(),
-            StartTime = DateTime.UtcNow.AddDays(1),
-            EndTime = DateTime.UtcNow.AddDays(1).AddMinutes(95)
-        };
-        var holidays = new List<Holiday>
+        var baseTrainerId = Guid.CreateVersion7();
+        var baseStartTime = DateTime.UtcNow.AddDays(1);
+        var validationResult = ValidationResult.Fail(ValidationMessages.BookingTooLong);
+        
+        // Factory functions to create fresh instances
+        var createHolidays = () => new List<Holiday>
         {
             new()
             {
                 Id = Guid.CreateVersion7(),
                 CountryCode = "HR",
-                Date = insertTrainingSession.StartTime.Date.AddDays(4),
+                Date = baseStartTime.Date.AddDays(4),
                 EnglishName = "TestoHoliday",
                 LocalName = "TestoHoliday",
                 RegionCode = string.Empty,
                 Type = "Public",
-                Year = insertTrainingSession.StartTime.AddDays(4).Year
+                Year = baseStartTime.AddDays(4).Year
             }
         };
-        var timeOffs = new List<TimeOff>
+
+        var createTimeOffs = () => new List<TimeOff>
         {
             new()
             {
                 Id = Guid.CreateVersion7(),
-                Date = insertTrainingSession.StartTime.Date.AddDays(3),
+                Date = baseStartTime.Date.AddDays(3),
                 Reason = "TestoTimeOff",
-                TrainerId = insertTrainingSession.TrainerId
+                TrainerId = baseTrainerId
             }
         };
-        
-        var validationResult = ValidationResult.Fail(ValidationMessages.BookingTooLong);
-        theoryData.Add(insertTrainingSession, true, timeOffs, null, holidays, validationResult);
-        
-        insertTrainingSession.EndTime = insertTrainingSession.EndTime.AddMinutes(-4);
-        theoryData.Add(insertTrainingSession, true, timeOffs, null, holidays, validationResult);
+
+        // Test Case 1: 95-minute booking (too long - max is 90)
+        theoryData.Add(
+            new InsertTrainingSession
+            {
+                ClientId = Guid.CreateVersion7(),
+                TrainerId = baseTrainerId,
+                StartTime = baseStartTime,
+                EndTime = baseStartTime.AddMinutes(95)
+            },
+            true,
+            createTimeOffs(),
+            null,
+            createHolidays(),
+            validationResult);
+
+        // Test Case 2: 91-minute booking (95 - 4 = 91, still too long)
+        theoryData.Add(
+            new InsertTrainingSession
+            {
+                ClientId = Guid.CreateVersion7(),
+                TrainerId = baseTrainerId,
+                StartTime = baseStartTime,
+                EndTime = baseStartTime.AddMinutes(91)
+            },
+            true,
+            createTimeOffs(),
+            null,
+            createHolidays(),
+            validationResult);
 
         return theoryData;
     }
@@ -877,43 +947,79 @@ public class BookingValidationServiceTestData
             List<Holiday>,
             ValidationResult>();
 
-        var insertTrainingSession = new InsertTrainingSession
-        {
-            ClientId = Guid.CreateVersion7(),
-            TrainerId = Guid.CreateVersion7(),
-            StartTime = DateTime.UtcNow.AddDays(1),
-            EndTime = DateTime.UtcNow.AddDays(1).AddMinutes(25)
-        };
-        var holidays = new List<Holiday>
+        var baseTrainerId = Guid.CreateVersion7();
+        var baseStartTime = DateTime.UtcNow.AddDays(1);
+        var validationResult = ValidationResult.Fail(ValidationMessages.BookingTooShort);
+        
+        // Factory functions to create fresh instances
+        var createHolidays = () => new List<Holiday>
         {
             new()
             {
                 Id = Guid.CreateVersion7(),
                 CountryCode = "HR",
-                Date = insertTrainingSession.StartTime.Date.AddDays(4),
+                Date = baseStartTime.Date.AddDays(4),
                 EnglishName = "TestoHoliday",
                 LocalName = "TestoHoliday",
                 RegionCode = string.Empty,
                 Type = "Public",
-                Year = insertTrainingSession.StartTime.AddDays(4).Year
+                Year = baseStartTime.AddDays(4).Year
             }
         };
-        var timeOffs = new List<TimeOff>
+
+        var createTimeOffs = () => new List<TimeOff>
         {
             new()
             {
                 Id = Guid.CreateVersion7(),
-                Date = insertTrainingSession.StartTime.Date.AddDays(3),
+                Date = baseStartTime.Date.AddDays(3),
                 Reason = "TestoTimeOff",
-                TrainerId = insertTrainingSession.TrainerId
+                TrainerId = baseTrainerId
             }
         };
-        
-        var validationResult = ValidationResult.Fail(ValidationMessages.BookingTooShort);
-        theoryData.Add(insertTrainingSession, true, timeOffs, null, holidays, validationResult);
-        
-        insertTrainingSession.EndTime = insertTrainingSession.EndTime.AddMinutes(4);
-        theoryData.Add(insertTrainingSession, true, timeOffs, null, holidays, validationResult);
+
+        var createTrainingSessions = () => new List<TrainingSession>
+        {
+            new()
+            {
+                Id = Guid.CreateVersion7(),
+                StartTime = baseStartTime.AddDays(1),
+                EndTime = baseStartTime.AddDays(1).AddMinutes(60),
+                TrainerId = baseTrainerId,
+                ClientId = Guid.CreateVersion7(),
+                Status = (int)TrainingSessionStatus.Booked
+            }
+        };
+
+        // Test Case 1: 25-minute booking (too short - min is 30)
+        theoryData.Add(
+            new InsertTrainingSession
+            {
+                ClientId = Guid.CreateVersion7(),
+                TrainerId = baseTrainerId,
+                StartTime = baseStartTime,
+                EndTime = baseStartTime.AddMinutes(25)
+            },
+            true,
+            createTimeOffs(),
+            createTrainingSessions(),
+            createHolidays(),
+            validationResult);
+
+        // Test Case 2: 29-minute booking (25 + 4 = 29, still too short)
+        theoryData.Add(
+            new InsertTrainingSession
+            {
+                ClientId = Guid.CreateVersion7(),
+                TrainerId = baseTrainerId,
+                StartTime = baseStartTime,
+                EndTime = baseStartTime.AddMinutes(29)
+            },
+            true,
+            createTimeOffs(),
+            createTrainingSessions(),
+            createHolidays(),
+            validationResult);
 
         return theoryData;
     }

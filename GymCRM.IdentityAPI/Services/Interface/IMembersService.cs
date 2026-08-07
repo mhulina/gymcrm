@@ -53,5 +53,36 @@ namespace GymCRM.IdentityAPI.Services.Interface
 		/// A task representing the asynchronous operation, containing true if the insertion was successful; otherwise, false.
 		/// </returns>
 		Task<bool> InsertMemberAsync(InsertMember insertMember, CancellationToken cancellationToken = default);
+		/// <summary>
+		/// Uploads/replaces a member's profile photo, validating size and content type.
+		/// </summary>
+		/// <param name="accountGuid">The account whose photo is being set.</param>
+		/// <param name="callerAccountGuid">The account making the request (from the JWT claim).</param>
+		/// <param name="photoBytes">The raw photo bytes.</param>
+		/// <param name="contentType">The photo's MIME type.</param>
+		/// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+		/// <exception cref="ArgumentException">Thrown when no photo data was provided.</exception>
+		/// <exception cref="PhotoTooLargeException">Thrown when the photo exceeds the allowed size.</exception>
+		/// <exception cref="InvalidPhotoContentTypeException">Thrown when the content type is not an allowed image type.</exception>
+		/// <exception cref="MemberNotFoundException">Thrown when the target member does not exist.</exception>
+		/// <exception cref="MemberPhotoAccessDeniedException">Thrown when the caller may not change this member's photo.</exception>
+		Task<bool> UploadMemberPhotoAsync(Guid accountGuid, Guid callerAccountGuid, byte[] photoBytes, string? contentType, CancellationToken cancellationToken = default);
+		/// <summary>
+		/// Retrieves a member's stored photo bytes and content type.
+		/// </summary>
+		/// <param name="accountGuid">The account whose photo is being fetched.</param>
+		/// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+		/// <returns>The photo bytes and content type, or null if the member has no photo set.</returns>
+		/// <exception cref="MemberNotFoundException">Thrown when the member does not exist.</exception>
+		Task<(byte[] Bytes, string ContentType)?> GetMemberPhotoAsync(Guid accountGuid, CancellationToken cancellationToken = default);
+		/// <summary>
+		/// Removes a member's stored profile photo.
+		/// </summary>
+		/// <param name="accountGuid">The account whose photo is being removed.</param>
+		/// <param name="callerAccountGuid">The account making the request (from the JWT claim).</param>
+		/// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+		/// <exception cref="MemberNotFoundException">Thrown when the target member does not exist.</exception>
+		/// <exception cref="MemberPhotoAccessDeniedException">Thrown when the caller may not change this member's photo.</exception>
+		Task<bool> DeleteMemberPhotoAsync(Guid accountGuid, Guid callerAccountGuid, CancellationToken cancellationToken = default);
 	}
 }

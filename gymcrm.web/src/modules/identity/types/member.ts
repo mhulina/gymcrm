@@ -14,4 +14,7 @@ export interface Member {
     workingExperienceInMonths?: number;
     gymSubscriptionType: number;
     timeZone: string;
+    dateOfBirth?: string;
+    hourlyPrice?: number;
+    hasPhoto: boolean;
 }

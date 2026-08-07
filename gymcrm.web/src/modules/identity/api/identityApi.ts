@@ -5,6 +5,7 @@ import {AccountType} from "../types/accountType";
 import {Gender} from "../types/gender";
 import {InsertAccount} from "../types/insertAccount";
 import {AuthenticationRequestBody} from "../types/authenticationRequestBody";
+import {extractErrorMessage} from "../../../shared/api/extractErrorMessage";
 
 export async function fetchUserInfoByGuid(): Promise<Member | null> {
     try {
@@ -46,13 +47,86 @@ export async function fetchAllMembers(): Promise<Member[]> {
     }
 }
 
-export async function updateMember(member: Member): Promise<boolean> {
+export async function updateMember(member: Member): Promise<{ success: boolean; error?: string }> {
     try {
         const response = await axios.put<boolean>(`UpdateMember`, member);
-        return response.data === true;
+        return response.data === true
+            ? { success: true }
+            : { success: false, error: "We couldn't save these changes." };
     } catch (error) {
         console.error("Error updating member: ", error);
-        return false;
+        return { success: false, error: extractErrorMessage(error, "We couldn't save these changes.") };
+    }
+}
+
+export async function uploadMemberPhoto(accountGuid: string, file: File): Promise<{ success: boolean; error?: string }> {
+    try {
+        const formData = new FormData();
+        formData.append("file", file);
+        await axios.post(`UploadPhoto/${accountGuid}`, formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Error uploading member photo: ", error);
+        return { success: false, error: extractErrorMessage(error, "We couldn't upload this photo.") };
+    }
+}
+
+export async function deleteMemberPhoto(accountGuid: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        await axios.delete(`DeletePhoto/${accountGuid}`);
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting member photo: ", error);
+        return { success: false, error: extractErrorMessage(error, "We couldn't remove this photo.") };
+    }
+}
+
+// Fetches a member's photo as an authenticated blob and returns a local object URL - a
+// plain <img src="...GetPhoto/..."> won't work here, since the auth cookies are
+// SameSite=Lax and an <img> tag is a cross-origin *subresource* request in dev (different
+// port), not a top-level navigation, so the cookie wouldn't reliably be sent. Going through
+// this axios instance (withCredentials: true) is the same pattern already used for every
+// other authenticated call in this app, just applied to an image instead of JSON.
+// Callers own the returned URL and must URL.revokeObjectURL it when done (see usePhotoUrl).
+export async function fetchMemberPhotoUrl(accountGuid: string): Promise<string | null> {
+    try {
+        const response = await axios.get(`GetPhoto/${accountGuid}`, { responseType: "blob" });
+        return URL.createObjectURL(response.data as Blob);
+    } catch (error) {
+        console.error("Error fetching member photo: ", error);
+        return null;
+    }
+}
+
+// Creates the first Admin account (first-run setup) - raw fetch to AuthenticationController,
+// matching registerAccount/handleLogin's pattern, since REACT_APP_ACCOUNTS_ENDPOINT is a
+// different host/base path than the axios instance's REACT_APP_MEMBERS_ENDPOINT.
+export async function setupAdminAccount(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const res = await fetch(
+            process.env.REACT_APP_ACCOUNTS_ENDPOINT + "SetupAdminAccount", {
+                headers: {"Content-Type": "application/json"},
+                method: "POST",
+                credentials: "include",
+                body: JSON.stringify({
+                    email: email.trim(),
+                    password,
+                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                }),
+            });
+
+        if (!res.ok) {
+            const error = await res.text();
+            console.error("Admin setup failed:", error);
+            return { success: false, error: error || "We couldn't create the admin account." };
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error("Error setting up admin account:", error);
+        return { success: false, error: "We couldn't create the admin account." };
     }
 }
 
@@ -184,5 +258,6 @@ export async function adminCreateMember(input: AdminCreateMemberInput): Promise<
         return false;
     }
 
-    return updateMember({ ...member, ...input.profile });
+    const result = await updateMember({ ...member, ...input.profile });
+    return result.success;
 }

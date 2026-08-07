@@ -18,5 +18,8 @@ namespace GymCRM.IdentityAPI.Models.DTOs
         public int? WorkingExperienceInMonths {  get; set; }
         public int GymSubscriptionType { get; set; }
         public string TimeZone { get; set; }
+        public DateOnly? DateOfBirth { get; set; }
+        public decimal? HourlyPrice { get; set; }
+        public bool HasPhoto { get; set; }
 	}
 }

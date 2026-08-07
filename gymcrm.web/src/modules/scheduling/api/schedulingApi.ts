@@ -5,6 +5,7 @@ import {InsertWorkingHours} from "../types/insertWorkingHours";
 import {TrainingSession} from "../types/trainingSession";
 import {InsertTrainingSession} from "../types/insertTrainingSession";
 import {TimeOff} from "../types/timeOff";
+import {extractErrorMessage} from "../../../shared/api/extractErrorMessage";
 
 export async function fetchAvailabilitiesForTrainer(trainerId: string): Promise<TrainerAvailability[]> {
     try {
@@ -83,16 +84,6 @@ export async function fetchTimeOffForTrainer(trainerId: string): Promise<TimeOff
     }
 }
 
-function extractBookingErrorMessage(error: unknown, fallback: string): string {
-    if (typeof error === "object" && error !== null && "response" in error) {
-        const data = (error as { response?: { data?: unknown } }).response?.data;
-        if (typeof data === "string" && data.length > 0) {
-            return data;
-        }
-    }
-    return fallback;
-}
-
 export async function addTrainingSession(
     insert: InsertTrainingSession
 ): Promise<{ success: boolean; error?: string }> {
@@ -101,6 +92,6 @@ export async function addTrainingSession(
         return { success: true };
     } catch (error) {
         console.error("Error booking training session: ", error);
-        return { success: false, error: extractBookingErrorMessage(error, "We couldn't book this session.") };
+        return { success: false, error: extractErrorMessage(error, "We couldn't book this session.") };
     }
 }

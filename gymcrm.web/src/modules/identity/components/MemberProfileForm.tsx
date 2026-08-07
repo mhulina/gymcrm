@@ -3,7 +3,6 @@ import {TextField} from "../../../shared/components/TextField";
 import {Button} from "../../../shared/components/Button";
 import {Banner} from "../../../shared/components/Banner";
 import {AvatarPicker} from "../../../shared/components/AvatarPicker";
-import {UnsavedFieldNote} from "../../../shared/components/UnsavedFieldNote";
 import {AccountTypeDropdown} from "./AccountTypeDropdown";
 import {GymSubscriptionTypeDropdown} from "./GymSubscriptionTypeDropdown";
 import {GenderDropdown} from "./GenderDropdown";
@@ -22,10 +21,12 @@ interface FormState {
     phoneNumber: string;
     mobileNumber: string;
     timeZone: string;
+    dateOfBirth: string;
     accountType: number;
     gymSubscriptionType: number;
     personalTrainerId: string;
     workingExperienceInMonths: string;
+    hourlyPrice: string;
 }
 
 // TimeZone is hardcoded to "UTC" for every account at registration time (pre-dating
@@ -48,10 +49,12 @@ function formFromMember(member: Member): FormState {
         phoneNumber: member.phoneNumber ?? "",
         mobileNumber: member.mobileNumber ?? "",
         timeZone: defaultTimeZone(member),
+        dateOfBirth: member.dateOfBirth ?? "",
         accountType: member.accountType,
         gymSubscriptionType: member.gymSubscriptionType,
         personalTrainerId: member.personalTrainerId ?? "",
         workingExperienceInMonths: member.workingExperienceInMonths?.toString() ?? "",
+        hourlyPrice: member.hourlyPrice?.toString() ?? "",
     };
 }
 
@@ -66,9 +69,10 @@ interface Props {
 
 export function MemberProfileForm({ targetMember, viewerRole, isSelf, onSaved }: Props) {
     const [form, setForm] = useState<FormState>(() => formFromMember(targetMember));
-    const [dateOfBirth, setDateOfBirth] = useState("");
-    const [hourlyPrice, setHourlyPrice] = useState("");
-    const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+    // AvatarPicker uploads/removes independently of this form's Save button - this local
+    // override tracks the result so the picker reflects a first-ever upload immediately,
+    // without needing EditMemberProfilePage to refetch targetMember just for that.
+    const [hasPhotoOverride, setHasPhotoOverride] = useState<boolean | null>(null);
     const [trainers, setTrainers] = useState<Member[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -90,6 +94,7 @@ export function MemberProfileForm({ targetMember, viewerRole, isSelf, onSaved }:
 
     useEffect(() => {
         setForm(formFromMember(targetMember));
+        setHasPhotoOverride(null);
     }, [targetMember]);
 
     useEffect(() => {
@@ -123,6 +128,7 @@ export function MemberProfileForm({ targetMember, viewerRole, isSelf, onSaved }:
             mobileNumber: form.mobileNumber || undefined,
             gender: form.gender,
             timeZone: form.timeZone,
+            dateOfBirth: form.dateOfBirth || undefined,
             ...(isAdmin
                 ? {
                       accountType: form.accountType,
@@ -138,17 +144,18 @@ export function MemberProfileForm({ targetMember, viewerRole, isSelf, onSaved }:
                       workingExperienceInMonths: form.workingExperienceInMonths
                           ? Number(form.workingExperienceInMonths)
                           : undefined,
+                      hourlyPrice: form.hourlyPrice ? Number(form.hourlyPrice) : undefined,
                   }
                 : {}),
         };
 
-        const saved = await updateMember(payload);
+        const result = await updateMember(payload);
 
-        if (saved) {
+        if (result.success) {
             setSuccess(true);
             onSaved();
         } else {
-            setError("We couldn't save these changes.");
+            setError(result.error ?? "We couldn't save these changes.");
         }
 
         setSubmitting(false);
@@ -162,9 +169,10 @@ export function MemberProfileForm({ targetMember, viewerRole, isSelf, onSaved }:
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <AvatarPicker
+                        accountGuid={targetMember.accountGuid ?? ""}
                         initials={initials(targetMember)}
-                        previewUrl={photoPreviewUrl}
-                        onFileSelected={(_file, previewUrl) => setPhotoPreviewUrl(previewUrl)}
+                        hasPhoto={hasPhotoOverride ?? targetMember.hasPhoto}
+                        onPhotoChanged={setHasPhotoOverride}
                     />
 
                     <div>
@@ -189,16 +197,13 @@ export function MemberProfileForm({ targetMember, viewerRole, isSelf, onSaved }:
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <GenderDropdown id="gender" label="Gender" value={form.gender} onChange={(value) => update("gender", value)} />
-                        <div>
-                            <TextField
-                                id="dateOfBirth"
-                                label="Date of birth"
-                                type="date"
-                                value={dateOfBirth}
-                                onChange={(e) => setDateOfBirth(e.target.value)}
-                            />
-                            <UnsavedFieldNote />
-                        </div>
+                        <TextField
+                            id="dateOfBirth"
+                            label="Date of birth"
+                            type="date"
+                            value={form.dateOfBirth}
+                            onChange={(e) => update("dateOfBirth", e.target.value)}
+                        />
                     </div>
 
                     <SelectField
@@ -245,18 +250,15 @@ export function MemberProfileForm({ targetMember, viewerRole, isSelf, onSaved }:
                                 value={form.workingExperienceInMonths}
                                 onChange={(e) => update("workingExperienceInMonths", e.target.value)}
                             />
-                            <div>
-                                <TextField
-                                    id="hourlyPrice"
-                                    label="Hourly price"
-                                    type="number"
-                                    min={0}
-                                    step="0.01"
-                                    value={hourlyPrice}
-                                    onChange={(e) => setHourlyPrice(e.target.value)}
-                                />
-                                <UnsavedFieldNote />
-                            </div>
+                            <TextField
+                                id="hourlyPrice"
+                                label="Hourly price"
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                value={form.hourlyPrice}
+                                onChange={(e) => update("hourlyPrice", e.target.value)}
+                            />
                         </div>
                     )}
 

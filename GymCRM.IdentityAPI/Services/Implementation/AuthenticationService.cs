@@ -102,6 +102,42 @@ public class AuthenticationService : IAuthenticationService
 		}
 	}
 
+	public Task<bool> HasAdminAccountAsync(CancellationToken cancellationToken = default) =>
+		_membersRepository.AnyByAccountTypeAsync((int)AccountType.Admin, cancellationToken);
+
+	public async Task<Guid> SetupAdminAccountAsync(
+		SetupAdminAccount request,
+		CancellationToken cancellationToken = default)
+	{
+		if (string.IsNullOrWhiteSpace(request.Email)
+			|| string.IsNullOrWhiteSpace(request.Password))
+		{
+			throw new ArgumentException("Email and/or password is required");
+		}
+
+		var adminExists = await _membersRepository.AnyByAccountTypeAsync((int)AccountType.Admin, cancellationToken);
+
+		if (adminExists)
+		{
+			var ex = new AdminAccountAlreadyExistsException();
+			_logger.Warning(ex, "Blocked admin setup attempt for {Email} - an admin account already exists", request.Email);
+
+			throw ex;
+		}
+
+		// Reuses RegisterAccount rather than duplicating account/member creation - this is
+		// purely additive, RegisterAccount/POST Register are untouched by this feature.
+		return await RegisterAccount(new InsertAccount
+		{
+			Email = request.Email,
+			Password = request.Password,
+			AccountType = (int)AccountType.Admin,
+			GymSubscriptionType = 0,
+			Gender = 0,
+			TimeZone = request.TimeZone,
+		}, cancellationToken);
+	}
+
 	public async Task<(string accessToken, string refreshToken)> LoginAccount(
 		AuthenticationRequestBody accountDto, 
 		CancellationToken cancellationToken = default)

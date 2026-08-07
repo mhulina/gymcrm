@@ -1,5 +1,6 @@
 using System.Security.Authentication;
 using Asp.Versioning;
+using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.DTOs;
 using GymCRM.IdentityAPI.Services.Interface;
 using Microsoft.AspNetCore.Authentication;
@@ -58,6 +59,56 @@ public class AuthenticationController : ControllerBase
 		catch (Exception)
 		{
 			return new BadRequestResult();
+		}
+	}
+
+	/// <summary>
+	/// Checks whether any Admin account already exists - used by the frontend to gate the
+	/// first-run admin setup screen. Public - must be callable before anyone has logged in.
+	/// </summary>
+	/// <response code="200">Returns true if an admin account exists, false otherwise.</response>
+	/// <response code="500">Indicates an unexpected error occurred.</response>
+	[HttpGet]
+	public async Task<ActionResult<bool>> HasAdminAccount()
+	{
+		try
+		{
+			return new OkObjectResult(await _authenticationService.HasAdminAccountAsync());
+		}
+		catch (Exception ex)
+		{
+			return new ObjectResult(ex.Message) { StatusCode = StatusCodes.Status500InternalServerError };
+		}
+	}
+
+	/// <summary>
+	/// Creates the first Admin account. Can only ever succeed once - the service re-checks
+	/// server-side that no admin exists yet immediately before creating one.
+	/// </summary>
+	/// <param name="request">The email/password (and optional detected timezone) for the new admin.</param>
+	/// <response code="201">Returns the GUID of the newly created admin account.</response>
+	/// <response code="400">Indicates the request was invalid.</response>
+	/// <response code="409">Indicates an admin account already exists.</response>
+	/// <response code="500">Indicates an unexpected error occurred.</response>
+	[HttpPost]
+	[EnableRateLimiting("register")]
+	public async Task<ActionResult<Guid>> SetupAdminAccount([FromBody] SetupAdminAccount request)
+	{
+		try
+		{
+			return new CreatedResult(string.Empty, await _authenticationService.SetupAdminAccountAsync(request));
+		}
+		catch (AdminAccountAlreadyExistsException ex)
+		{
+			return new ConflictObjectResult(ex.Message);
+		}
+		catch (ArgumentException ex)
+		{
+			return new BadRequestObjectResult(ex.Message);
+		}
+		catch (Exception ex)
+		{
+			return new ObjectResult(ex.Message) { StatusCode = StatusCodes.Status500InternalServerError };
 		}
 	}
 

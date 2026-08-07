@@ -36,6 +36,16 @@ namespace GymCRM.IdentityAPI.Models.Implementation
 			return result;
 		}
 
+		// Cheap existence check - avoids materializing full Member rows (including the Photo
+		// bytea column) just to answer a boolean question. Used on every unauthenticated page
+		// load for the admin-setup gate, so this matters more than FetchByCondition's cost does.
+		public Task<bool> AnyByAccountTypeAsync(int accountType, CancellationToken cancellationToken)
+		{
+			return _context.Members
+				.AsNoTracking()
+				.AnyAsync(x => x.AccountType == accountType, cancellationToken);
+		}
+
 		public void Insert(Member entity)
 		{
 			_context.Members.Add(entity);

@@ -9,6 +9,7 @@ import {fullName, initials} from "../utils/memberDisplay";
 import {Badge} from "../../../shared/components/Badge";
 import {enumLabel} from "../../../shared/utils/mapper";
 import {MemberSessionCalendar} from "../../scheduling/components/MemberSessionCalendar";
+import {AvatarUploadButton} from "./AvatarUploadButton";
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
     return (
@@ -18,7 +19,7 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
     );
 }
 
-export function MemberInfoDashboard({ userData }: { userData: Member }) {
+export function MemberInfoDashboard({ userData, onUserDataChanged }: { userData: Member; onUserDataChanged: () => void }) {
     const [trainerName, setTrainerName] = useState<string | null>(null);
 
     useEffect(() => {
@@ -34,9 +35,12 @@ export function MemberInfoDashboard({ userData }: { userData: Member }) {
     return (
         <div className="space-y-6">
             <Card className="flex flex-wrap items-center gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-lg font-bold text-white">
-                    {initials(userData)}
-                </div>
+                <AvatarUploadButton
+                    accountGuid={userData.accountGuid ?? ""}
+                    initials={initials(userData)}
+                    hasPhoto={userData.hasPhoto}
+                    onPhotoChanged={onUserDataChanged}
+                />
                 <div className="min-w-0 flex-1">
                     <h1 className="text-lg font-bold text-slate-900 dark:text-white truncate">{fullName(userData)}</h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{userData.email}</p>

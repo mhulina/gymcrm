@@ -149,7 +149,8 @@ export async function handleMemberRegistration(
         password: password,
         accountType: AccountType.Member,
         gymSubscriptionType: GymSubscriptionType.Monthly,
-        gender: Gender.Male
+        gender: Gender.Male,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     });
 
     if (!success) {

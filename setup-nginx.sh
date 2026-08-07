@@ -52,12 +52,8 @@ http {
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
 
     # Upstream servers (internal Docker network)
-    upstream identityapi {
-        server identityapi:8080;
-    }
-
-    upstream schedulingapi {
-        server schedulingapi:8080;
+    upstream api {
+        server api:8080;
     }
 
     upstream webapp {
@@ -76,10 +72,12 @@ http {
         }
     }
 
-    # Identity API - identity.gymcrm.local
+    # API (Identity + Scheduling modules, one process)
+    # Both hostnames are kept as aliases so existing /etc/hosts entries for either
+    # still work now that they route to the same backend.
     server {
         listen 80;
-        server_name identity.gymcrm.local;
+        server_name identity.gymcrm.local scheduling.gymcrm.local;
 
         location / {
             # Handle preflight OPTIONS requests
@@ -100,63 +98,22 @@ http {
             add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
             add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, X-Requested-With' always;
 
-            proxy_pass http://identityapi;
+            proxy_pass http://api;
             proxy_http_version 1.1;
-            
+
             # Headers
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
             proxy_set_header X-Forwarded-Host $host;
-            
+
             # Timeouts
             proxy_connect_timeout 60s;
             proxy_send_timeout 60s;
             proxy_read_timeout 60s;
-            
+
             # Buffer settings
-            proxy_buffering off;
-            proxy_request_buffering off;
-        }
-    }
-
-    # Scheduling API - scheduling.gymcrm.local
-    server {
-        listen 80;
-        server_name scheduling.gymcrm.local;
-
-        location / {
-            # Handle preflight OPTIONS requests
-            if ($request_method = 'OPTIONS') {
-                add_header 'Access-Control-Allow-Origin' 'http://gymcrm.local' always;
-                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
-                add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, X-Requested-With' always;
-                add_header 'Access-Control-Allow-Credentials' 'true' always;
-                add_header 'Access-Control-Max-Age' 1728000;
-                add_header 'Content-Type' 'text/plain; charset=utf-8';
-                add_header 'Content-Length' 0;
-                return 204;
-            }
-
-            # CORS headers for actual requests
-            add_header 'Access-Control-Allow-Origin' 'http://gymcrm.local' always;
-            add_header 'Access-Control-Allow-Credentials' 'true' always;
-            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
-            add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, X-Requested-With' always;
-
-            proxy_pass http://schedulingapi;
-            proxy_http_version 1.1;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-            proxy_set_header X-Forwarded-Host $host;
-            
-            proxy_connect_timeout 60s;
-            proxy_send_timeout 60s;
-            proxy_read_timeout 60s;
-            
             proxy_buffering off;
             proxy_request_buffering off;
         }
@@ -216,7 +173,9 @@ echo ""
 echo -e "${YELLOW}📋 Next steps:${NC}"
 echo ""
 echo "1. Add these lines to your hosts file:"
-echo "   ${BLUE}(Linux/Mac: /etc/hosts | Windows: C:\\Windows\\System32\\drivers\\etc\\hosts)${NC}"
+echo -en "   ${BLUE}"
+echo -n '(Linux/Mac: /etc/hosts | Windows: C:\Windows\System32\drivers\etc\hosts)'
+echo -e "${NC}"
 echo ""
 echo "   127.0.0.1    gymcrm.local"
 echo "   127.0.0.1    www.gymcrm.local"
@@ -224,10 +183,9 @@ echo "   127.0.0.1    identity.gymcrm.local"
 echo "   127.0.0.1    scheduling.gymcrm.local"
 echo ""
 echo "2. Deploy with nginx:"
-echo "   ${GREEN}./deploy.sh -e development -f docker-compose.dev-nginx.yml${NC}"
+echo -e "   ${GREEN}./deploy.sh -e development -f docker-compose.dev-nginx.yml${NC}"
 echo ""
 echo "3. Access your services:"
-echo "   Web App:         ${GREEN}http://gymcrm.local${NC}"
-echo "   Identity API:    ${GREEN}http://identity.gymcrm.local/swagger${NC}"
-echo "   Scheduling API:  ${GREEN}http://scheduling.gymcrm.local/swagger${NC}"
+echo -e "   Web App:  ${GREEN}http://gymcrm.local${NC}"
+echo -e "   API:      ${GREEN}http://identity.gymcrm.local/swagger${NC} (identity.gymcrm.local and scheduling.gymcrm.local both route to the same API)"
 echo ""

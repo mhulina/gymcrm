@@ -22,6 +22,8 @@ detect_compose_file() {
         else
             echo "docker-compose.yaml"
         fi
+    elif docker ps --format '{{.Names}}' | grep -q "\.Dev$"; then
+        echo "docker-compose.dev.yml"
     else
         echo "docker-compose.yaml"
     fi
@@ -84,7 +86,7 @@ if [ "$REMOVE_VOLUMES" = true ]; then
     echo
     if [[ $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
         echo -e "${YELLOW}Stopping services and removing volumes...${NC}"
-        docker-compose -f "$COMPOSE_FILE" down -v
+        docker compose -f "$COMPOSE_FILE" down -v
         echo -e "${GREEN}✅ Services stopped and volumes removed${NC}"
     else
         echo -e "${BLUE}Cancelled${NC}"
@@ -92,7 +94,7 @@ if [ "$REMOVE_VOLUMES" = true ]; then
     fi
 else
     echo -e "${YELLOW}Stopping services (keeping volumes)...${NC}"
-    docker-compose -f "$COMPOSE_FILE" down
+    docker compose -f "$COMPOSE_FILE" down
     echo -e "${GREEN}✅ Services stopped${NC}"
     echo -e "${BLUE}💡 Use -v flag to remove volumes and data${NC}"
 fi

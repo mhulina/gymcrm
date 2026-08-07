@@ -25,7 +25,13 @@ detect_compose_file() {
             return
         fi
     fi
-    
+
+    # Check for dev (container names end in .Dev)
+    if docker ps --format '{{.Names}}' | grep -q "\.Dev$"; then
+        echo "docker-compose.dev.yml"
+        return
+    fi
+
     # Default
     echo "docker-compose.yaml"
 }
@@ -37,8 +43,9 @@ detect_environment() {
         return
     fi
     
-    if docker ps --format '{{.Names}}' | grep -q "GymCRM.IdentityAPI"; then
-        local env_var=$(docker exec GymCRM.IdentityAPI printenv ASPNETCORE_ENVIRONMENT 2>/dev/null || echo "")
+    if docker ps --format '{{.Names}}' | grep -q "GymCRM.Api"; then
+        local container=$(docker ps --format '{{.Names}}' | grep "GymCRM.Api" | head -1)
+        local env_var=$(docker exec "$container" printenv ASPNETCORE_ENVIRONMENT 2>/dev/null || echo "")
         if [ -n "$env_var" ]; then
             echo "$env_var" | tr '[:upper:]' '[:lower:]'
             return
@@ -71,7 +78,7 @@ echo ""
 if [ $# -eq 0 ]; then
     echo -e "${YELLOW}Following logs for all services (Ctrl+C to stop)${NC}"
     echo ""
-    docker-compose -f "$COMPOSE_FILE" logs -f
+    docker compose -f "$COMPOSE_FILE" logs -f
 else
     # Show logs for specific service
     SERVICE=$1

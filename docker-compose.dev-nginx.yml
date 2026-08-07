@@ -1,4 +1,3 @@
-version: '3.8'
 
 name: gymcrmapp-nginx
 
@@ -16,9 +15,7 @@ services:
     networks:
       - GymCRMApp
     depends_on:
-      identityapi:
-        condition: service_started
-      schedulingapi:
+      api:
         condition: service_started
       webapp:
         condition: service_started
@@ -52,11 +49,11 @@ services:
       timeout: 2s
       retries: 5
 
-  identityapi:
-    container_name: GymCRM.IdentityAPI
+  api:
+    container_name: GymCRM.Api
     build:
       context: .
-      dockerfile: GymCRM.IdentityAPI/Dockerfile
+      dockerfile: GymCRM.Api/Dockerfile
     # NO port mapping - only accessible via nginx
     expose:
       - "8080"
@@ -65,7 +62,8 @@ services:
       - GymCRMApp
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${IDENTITY_DB_NAME:-identitydb};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__Identity=Host=postgres;Port=5432;Database=${IDENTITY_DB_NAME:-identity_db};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__Scheduling=Host=postgres;Port=5432;Database=${SCHEDULING_DB_NAME:-scheduling_db};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}
       - Authentication__SecretForKey=${JWT_SECRET_KEY}
       - Authentication__Issuer=${JWT_ISSUER:-GymCRM.IdentityAPI}
       - Authentication__Audience=${JWT_AUDIENCE:-GymCRM}
@@ -84,36 +82,6 @@ services:
       retries: 3
       timeout: 2s
 
-  schedulingapi:
-    container_name: GymCRM.SchedulingAPI
-    build:
-      context: .
-      dockerfile: GymCRM.SchedulingAPI/Dockerfile
-    # NO port mapping - only accessible via nginx
-    expose:
-      - "8080"
-      - "8081"
-    networks:
-      - GymCRMApp
-    environment:
-      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${SCHEDULING_DB_NAME:-schedulingdb};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}
-      - Authentication__SecretForKey=${JWT_SECRET_KEY}
-      - Authentication__Issuer=${JWT_ISSUER:-GymCRM.IdentityAPI}
-      - Authentication__Audience=${JWT_AUDIENCE:-GymCRM}
-      - IdentityApiUrl=${IDENTITY_API_URL:-http://identityapi:8080}
-      - Security__MaxFailedLoginAttempts=${Security__MaxFailedLoginAttempts:-10}
-      - Security__LockoutDurationMinutes=${Security__LockoutDurationMinutes:-5}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8080/health"]
-      interval: 5s
-      retries: 3
-      timeout: 2s
-
   webapp:
     container_name: GymCRMWebApp
     build:
@@ -122,7 +90,7 @@ services:
       args:
         - REACT_APP_API_URL=${REACT_APP_API_URL:-http://identity.gymcrm.local}
         - REACT_APP_IDENTITY_API_URL=${REACT_APP_IDENTITY_API_URL:-http://identity.gymcrm.local}
-        - REACT_APP_SCHEDULING_API_URL=${REACT_APP_SCHEDULING_API_URL:-http://scheduling.gymcrm.local}
+        - REACT_APP_SCHEDULING_API_URL=${REACT_APP_SCHEDULING_API_URL:-http://identity.gymcrm.local}
         - REACT_APP_ACCOUNTS_ENDPOINT=${REACT_APP_ACCOUNTS_ENDPOINT:-http://identity.gymcrm.local/api/v1/Authentication/}
         - REACT_APP_MEMBERS_ENDPOINT=${REACT_APP_MEMBERS_ENDPOINT:-http://identity.gymcrm.local/api/v1/Members/}
     # NO port mapping - only accessible via nginx
@@ -131,7 +99,7 @@ services:
     networks:
       - GymCRMApp
     depends_on:
-      - identityapi
+      - api
     restart: unless-stopped
 
 networks:

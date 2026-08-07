@@ -1,9 +1,64 @@
-﻿using GymCRM.SchedulingAPI.Models.Entities;
+﻿using System.Linq.Expressions;
+using AutoMapper;
+using GymCRM.SchedulingAPI.Infrastructure.Interface;
+using GymCRM.SchedulingAPI.Models.Entities;
+using GymCRM.SchedulingAPI.Services.Implementation;
+using Moq;
+using Serilog;
 
 namespace GymCRM.SchedulingAPI.Tests.Unit;
 
 public class TestTrainerAvailabilitiesService
 {
+    [Fact]
+    public async Task GivenService_WhenGettingAvailabilities_ThenExpectedResultIsReturned()
+    {
+        // Given
+        var trainerAvailabilitiesSeedData = new List<TrainerAvailability>
+        {
+            new()
+            {
+                Id = Guid.CreateVersion7(),
+                TrainerId = Guid.CreateVersion7(),
+                WorkingWeekends = false,
+                DateCreatedUtc = DateTime.UtcNow,
+                DateModifiedUtc = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = Guid.CreateVersion7(),
+                TrainerId = Guid.CreateVersion7(),
+                WorkingWeekends = true,
+                DateCreatedUtc = DateTime.UtcNow,
+                DateModifiedUtc = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = Guid.CreateVersion7(),
+                TrainerId = Guid.CreateVersion7(),
+                WorkingWeekends = false,
+                DateCreatedUtc = DateTime.UtcNow,
+                DateModifiedUtc = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = Guid.CreateVersion7(),
+                TrainerId = Guid.CreateVersion7(),
+                WorkingWeekends = false,
+                DateCreatedUtc = DateTime.UtcNow,
+                DateModifiedUtc = DateTime.UtcNow
+            }
+        };
+        
+        var trainerAvailabilitiesRepositoryMock = new Mock<ITrainerAvailabilitiesRepository>();
+        trainerAvailabilitiesRepositoryMock
+            .Setup(x => x.FetchAllAsync(
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(trainerAvailabilitiesSeedData);
+        var service = CreateTrainerAvailabilitiesService();
+        
+    }
+    
     private List<TrainerAvailability> CreateTrainerAvailability()
     {
         var trainerAvailability = new List<TrainerAvailability>
@@ -76,5 +131,24 @@ public class TestTrainerAvailabilitiesService
         }
         
         return trainersWorkingHours;
+    }
+
+    private TrainerAvailabilitiesService CreateTrainerAvailabilitiesService(
+        ITrainerWorkingHoursRepository trainerWorkingHoursRepository = null,
+        ITrainerAvailabilitiesRepository trainerAvailabilitiesRepository = null,
+        ITrainerDailyAvailabilitiesRepository trainerDailyAvailabilitiesRepository = null,
+        IUnitOfWork unitOfWork = null,
+        IMapper mapper = null,
+        ILogger logger = null)
+    {
+        var service = new TrainerAvailabilitiesService(
+            trainerWorkingHoursRepository,
+            trainerAvailabilitiesRepository,
+            trainerDailyAvailabilitiesRepository,
+            unitOfWork,
+            mapper,
+            logger);
+
+        return service;
     }
 }

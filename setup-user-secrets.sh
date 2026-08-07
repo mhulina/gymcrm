@@ -59,22 +59,29 @@ if [ -z "$POSTGRES_PASSWORD" ] || [ -z "$JWT_SECRET_KEY" ]; then
 fi
 
 # ===============================
-# IdentityAPI User Secrets
+# GymCRM.Api User Secrets
 # ===============================
-echo -e "${GREEN}🔐 Setting up IdentityAPI User Secrets...${NC}"
+# GymCRM.Api is the only runnable entry point now (Identity + Scheduling are modules it
+# hosts in-process) - only its UserSecretsId gets loaded at runtime, so everything lives
+# here instead of being split across the two module projects.
+echo -e "${GREEN}🔐 Setting up GymCRM.Api User Secrets...${NC}"
 
-cd GymCRM.IdentityAPI
+cd GymCRM.Api
 
 # Initialize if not already done
-if ! grep -q "UserSecretsId" GymCRM.IdentityAPI.csproj; then
+if ! grep -q "UserSecretsId" GymCRM.Api.csproj; then
     echo "  Initializing User Secrets..."
     dotnet user-secrets init > /dev/null
 fi
 
-# Database Connection
-CONNECTION_STRING="Host=localhost;Port=5432;Database=${IDENTITY_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "$CONNECTION_STRING" > /dev/null
-echo -e "  ${GREEN}✓${NC} ConnectionStrings:DefaultConnection"
+# Database Connections (Identity and Scheduling keep separate databases/keys)
+IDENTITY_CONNECTION_STRING="Host=localhost;Port=5432;Database=${IDENTITY_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+dotnet user-secrets set "ConnectionStrings:Identity" "$IDENTITY_CONNECTION_STRING" > /dev/null
+echo -e "  ${GREEN}✓${NC} ConnectionStrings:Identity"
+
+SCHEDULING_CONNECTION_STRING="Host=localhost;Port=5432;Database=${SCHEDULING_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+dotnet user-secrets set "ConnectionStrings:Scheduling" "$SCHEDULING_CONNECTION_STRING" > /dev/null
+echo -e "  ${GREEN}✓${NC} ConnectionStrings:Scheduling"
 
 # Authentication
 dotnet user-secrets set "Authentication:SecretForKey" "$JWT_SECRET_KEY" > /dev/null
@@ -115,74 +122,25 @@ fi
 cd ..
 
 echo ""
-
-# ===============================
-# SchedulingAPI User Secrets
-# ===============================
-echo -e "${GREEN}🔐 Setting up SchedulingAPI User Secrets...${NC}"
-
-cd GymCRM.SchedulingAPI
-
-# Initialize if not already done
-if ! grep -q "UserSecretsId" GymCRM.SchedulingAPI.csproj; then
-    echo "  Initializing User Secrets..."
-    dotnet user-secrets init > /dev/null
-fi
-
-# Database Connection
-CONNECTION_STRING="Host=localhost;Port=5432;Database=${SCHEDULING_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "$CONNECTION_STRING" > /dev/null
-echo -e "  ${GREEN}✓${NC} ConnectionStrings:DefaultConnection"
-
-# Authentication
-dotnet user-secrets set "Authentication:SecretForKey" "$JWT_SECRET_KEY" > /dev/null
-echo -e "  ${GREEN}✓${NC} Authentication:SecretForKey"
-
-dotnet user-secrets set "Authentication:Issuer" "$JWT_ISSUER" > /dev/null
-echo -e "  ${GREEN}✓${NC} Authentication:Issuer"
-
-dotnet user-secrets set "Authentication:Audience" "$JWT_AUDIENCE" > /dev/null
-echo -e "  ${GREEN}✓${NC} Authentication:Audience"
-
-# IdentityApiUrl - points to local debug instance
-dotnet user-secrets set "IdentityApiUrl" "http://localhost:55080" > /dev/null
-echo -e "  ${GREEN}✓${NC} IdentityApiUrl"
-
-# Security Settings
-if [ -n "$MAX_FAILED_ATTEMPTS" ]; then
-    dotnet user-secrets set "Security:MaxFailedLoginAttempts" "$MAX_FAILED_ATTEMPTS" > /dev/null
-    echo -e "  ${GREEN}✓${NC} Security:MaxFailedLoginAttempts"
-fi
-
-if [ -n "$LOCKOUT_DURATION" ]; then
-    dotnet user-secrets set "Security:LockoutDurationMinutes" "$LOCKOUT_DURATION" > /dev/null
-    echo -e "  ${GREEN}✓${NC} Security:LockoutDurationMinutes"
-fi
-
-cd ..
-
-echo ""
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║${NC}  ${GREEN}✅ User Secrets Setup Complete!${NC}                             ${BLUE}║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${YELLOW}📋 Next Steps:${NC}"
 echo ""
-echo "1. Start Docker database:"
-echo -e "   ${GREEN}docker-compose -f docker-compose.debug.yml up -d postgres${NC}"
+echo "1. Start Docker database (--env-file is required here - docker compose only"
+echo "   auto-loads a file literally named .env, not .env.development):"
+echo -e "   ${GREEN}docker compose -f docker-compose.dev.yml --env-file .env.development up -d postgres${NC}"
 echo ""
 echo "2. Configure Rider run configuration with:"
 echo -e "   ${CYAN}ASPNETCORE_ENVIRONMENT=Development${NC}"
-echo -e "   ${CYAN}ASPNETCORE_URLS=http://localhost:55080${NC} (for IdentityAPI)"
-echo -e "   ${CYAN}ASPNETCORE_URLS=http://localhost:55085${NC} (for SchedulingAPI)"
+echo -e "   ${CYAN}ASPNETCORE_URLS=http://localhost:55080${NC} (for GymCRM.Api)"
 echo ""
 echo "3. Press F5 in Rider to debug!"
 echo ""
 echo -e "${BLUE}💡 To view your secrets:${NC}"
-echo "   cd GymCRM.IdentityAPI && dotnet user-secrets list"
-echo "   cd GymCRM.SchedulingAPI && dotnet user-secrets list"
+echo "   cd GymCRM.Api && dotnet user-secrets list"
 echo ""
 echo -e "${BLUE}💡 To clear secrets (if needed):${NC}"
-echo "   cd GymCRM.IdentityAPI && dotnet user-secrets clear"
-echo "   cd GymCRM.SchedulingAPI && dotnet user-secrets clear"
+echo "   cd GymCRM.Api && dotnet user-secrets clear"
 echo ""

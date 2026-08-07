@@ -14,12 +14,14 @@ public class AuthenticationServiceTests : TestBase
     private IAuthenticationService _authenticationService;
     private IMembersRepository _membersRepository;
     private IAccountsRepository _accountsRepository;
+    private IUnitOfWork _unitOfWork;
 
     public AuthenticationServiceTests()
     {
         _authenticationService = ServiceProvider.GetRequiredService<IAuthenticationService>();
         _membersRepository = ServiceProvider.GetRequiredService<IMembersRepository>();
         _accountsRepository = ServiceProvider.GetRequiredService<IAccountsRepository>();
+        _unitOfWork = ServiceProvider.GetRequiredService<IUnitOfWork>();
 
         // Clear Accounts and Members tables for test isolation
         try
@@ -87,12 +89,12 @@ public class AuthenticationServiceTests : TestBase
         };
         var accountGuid = await _authenticationService.RegisterAccount(insertAccount, CancellationToken.None);
         accountGuid.Should().NotBe(Guid.Empty);
-
         var newPassword = "newPassword02";
         
         // When
         var passwordChanged = await _authenticationService.ChangePassword(email, oldPassword, newPassword, CancellationToken.None);
         passwordChanged.Should().BeTrue();
+        _unitOfWork.DetachAll();
         
         // Then
         var authenticationRequestBody = new AuthenticationRequestBody

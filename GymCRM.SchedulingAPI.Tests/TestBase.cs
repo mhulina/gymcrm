@@ -1,4 +1,5 @@
-﻿using GymCRM.SchedulingAPI.Infrastructure;
+﻿using GymCRM.SchedulingAPI;
+using GymCRM.SchedulingAPI.Infrastructure;
 using GymCRM.SchedulingAPI.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -41,8 +42,8 @@ public class TestBase : IDisposable
             options.UseNpgsql(_testDbConnectionString));
 
         // Register Scheduling Repositories & Services
-        services.AddProjectServices();
-        services.AutoMapper();
+        services.AddSchedulingServices();
+        services.AddAutoMapper(SchedulingModule.ConfigureSchedulingMappings);
 
         // Logging
         var serilogLogger = new LoggerConfiguration()

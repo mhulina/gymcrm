@@ -1,4 +1,3 @@
-version: '3.8'
 
 name: gymcrm-dev
 
@@ -26,20 +25,21 @@ services:
       timeout: 2s
       retries: 5
 
-  # IdentityAPI - runs in Docker (when debugging SchedulingAPI)
-  # Comment this out when debugging IdentityAPI locally
-  identityapi:
-    container_name: GymCRM.IdentityAPI.Dev
+  # GymCRM.Api - the consolidated host (Identity + Scheduling modules in one process).
+  # Comment this out when debugging GymCRM.Api locally.
+  api:
+    container_name: GymCRM.Api.Dev
     build:
       context: .
-      dockerfile: GymCRM.IdentityAPI/Dockerfile
+      dockerfile: GymCRM.Api/Dockerfile
     ports:
       - "55080:8080"  # Exposed for local access
     networks:
       - GymCRMApp
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${IDENTITY_DB_NAME:-identitydb};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__Identity=Host=postgres;Port=5432;Database=${IDENTITY_DB_NAME:-identity_db};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__Scheduling=Host=postgres;Port=5432;Database=${SCHEDULING_DB_NAME:-scheduling_db};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}
       - Authentication__SecretForKey=${JWT_SECRET_KEY}
       - Authentication__Issuer=${JWT_ISSUER:-GymCRM.IdentityAPI}
       - Authentication__Audience=${JWT_AUDIENCE:-GymCRM}
@@ -53,33 +53,6 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # SchedulingAPI - runs in Docker (when debugging IdentityAPI)
-  # Comment this out when debugging SchedulingAPI locally
-  schedulingapi:
-    container_name: GymCRM.SchedulingAPI.Dev
-    build:
-      context: .
-      dockerfile: GymCRM.SchedulingAPI/Dockerfile
-    ports:
-      - "55085:8080"  # Exposed for local access
-    networks:
-      - GymCRMApp
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${SCHEDULING_DB_NAME:-schedulingdb};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}
-      - Authentication__SecretForKey=${JWT_SECRET_KEY}
-      - Authentication__Issuer=${JWT_ISSUER:-GymCRM.IdentityAPI}
-      - Authentication__Audience=${JWT_AUDIENCE:-GymCRM}
-      - IdentityApiUrl=http://identityapi:8080  # Points to Docker service
-      - Security__MaxFailedLoginAttempts=${Security__MaxFailedLoginAttempts:-10}
-      - Security__LockoutDurationMinutes=${Security__LockoutDurationMinutes:-5}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      identityapi:
-        condition: service_started
-    restart: unless-stopped
-
   # Optional: Web App for testing
   webapp:
     container_name: GymCRMWebApp.Dev
@@ -89,7 +62,7 @@ services:
       args:
         - REACT_APP_API_URL=http://localhost:55080
         - REACT_APP_IDENTITY_API_URL=http://localhost:55080/api/v1/
-        - REACT_APP_SCHEDULING_API_URL=http://localhost:55085/api/v1/
+        - REACT_APP_SCHEDULING_API_URL=http://localhost:55080/api/v1/
         - REACT_APP_ACCOUNTS_ENDPOINT=http://localhost:55080/api/v1/Authentication/
         - REACT_APP_MEMBERS_ENDPOINT=http://localhost:55080/api/v1/Members/
     ports:
@@ -97,7 +70,7 @@ services:
     networks:
       - GymCRMApp
     depends_on:
-      - identityapi
+      - api
     restart: unless-stopped
 
 networks:

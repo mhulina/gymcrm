@@ -1,25 +1,17 @@
+using AutoMapper;
+using GymCRM.Api;
 using GymCRM.IdentityAPI;
-using GymCRM.IdentityAPI.Infrastructure;
-using Microsoft.AspNetCore.Connections;
-using Microsoft.EntityFrameworkCore;
+using GymCRM.SchedulingAPI;
 using Serilog;
 
 using var log = new LoggerConfiguration()
 	.MinimumLevel.Debug()
 	.WriteTo.Console()
-	.WriteTo.File("./logs/IdentityAPI/logs.txt", rollingInterval: RollingInterval.Day)
+	.WriteTo.File("./logs/GymCRM.Api/logs.txt", rollingInterval: RollingInterval.Day)
 	.CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Configuration.SetupConfiguration();
-
 builder.Host.UseSerilog(logger: log);
-
-// Add services to the container.
-builder
-	.SetupContext().Services
-	.SetupCors()
-	.SetupAutoMapper();
 
 var secretForKey = builder.Configuration["Authentication:SecretForKey"];
 
@@ -28,13 +20,27 @@ if (string.IsNullOrEmpty(secretForKey))
 	throw new InvalidOperationException("Secret is missing from configuration");
 }
 
+// Add services to the container. Each module owns its own DbContext/repositories/services;
+// this host owns everything that can only be configured once per process.
 builder.Services
-	.SetupAuthentication(builder, secretForKey)
+	.AddIdentityModule(builder.Configuration)
+	.AddSchedulingModule(builder.Configuration)
+	.AddAutoMapper(cfg =>
+	{
+		IdentityModule.ConfigureIdentityMappings(cfg);
+		SchedulingModule.ConfigureSchedulingMappings(cfg);
+	})
+	.SetupCors()
+	.SetupAuthentication(builder.Configuration, secretForKey)
 	.SetupRateLimiting()
-	.SetupDependencyInjection()
 	.SetupApiVersioning();
 
-builder.Services.AddControllers();
+builder.Services
+	.AddControllers()
+	.AddIdentityControllers()
+	.AddSchedulingControllers()
+	.AddJsonTimeOnlyAndDateOnlyConverters();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services
 	.AddEndpointsApiExplorer()
@@ -42,6 +48,7 @@ builder.Services
 	.AddHealthChecks();
 
 var app = builder.Build();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -56,25 +63,10 @@ app
 	.UseAuthorization();
 
 app.MapHealthChecks("/health");
-
 app.MapControllers();
-ApplyMigration();
+
+await app.ApplyIdentityMigrationsAsync();
+await app.ApplySchedulingMigrationsAsync();
+await app.SeedSchedulingHolidaysAsync();
+
 app.Run();
-
-
-void ApplyMigration()
-{
-	using (var scope = app.Services.CreateScope())
-	{
-		var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-
-		if (!db.Database.CanConnect())
-		{
-			throw new ConnectionAbortedException("Database connection could not be established");
-		}
-		if (db.Database.GetPendingMigrations().Any())
-		{
-			db.Database.Migrate();
-		}
-	}
-}

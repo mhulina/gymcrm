@@ -116,11 +116,8 @@ get_deployed_hostname() {
     
     # Fall back to environment variables
     case $service in
-        identityapi)
-            echo "${IDENTITY_API_EXTERNAL_HOST:-localhost}"
-            ;;
-        schedulingapi)
-            echo "${SCHEDULING_API_EXTERNAL_HOST:-localhost}"
+        api)
+            echo "${API_EXTERNAL_HOST:-localhost}"
             ;;
         webapp)
             echo "${WEBAPP_EXTERNAL_HOST:-localhost}"
@@ -182,12 +179,12 @@ echo ""
 
 # Stop existing containers
 echo -e "${YELLOW}🛑 Stopping existing containers...${NC}"
-docker-compose -f "$COMPOSE_FILE" down -v 2>/dev/null || true
+docker compose -f "$COMPOSE_FILE" down -v 2>/dev/null || true
 echo ""
 
 # Build and start services
 echo -e "${YELLOW}🔨 Building and starting services...${NC}"
-docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up --build $DETACHED
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up --build $DETACHED
 
 # If running detached, show service info
 if [ -n "$DETACHED" ]; then
@@ -205,44 +202,25 @@ if [ -n "$DETACHED" ]; then
     echo ""
     
     # Get actual deployed configuration
-    IDENTITY_HOST=$(get_deployed_hostname "identityapi" "GymCRM.IdentityAPI" "${IDENTITY_API_HTTP_PORT}")
-    SCHEDULING_HOST=$(get_deployed_hostname "schedulingapi" "GymCRM.SchedulingAPI" "${SCHEDULING_API_HTTP_PORT}")
+    API_HOST=$(get_deployed_hostname "api" "GymCRM.Api" "${API_HTTP_PORT}")
     WEBAPP_HOST=$(get_deployed_hostname "webapp" "GymCRMWebApp" "${WEBAPP_PORT}")
     DB_HOST=$(get_deployed_hostname "postgres" "GymCRM.Database" "${POSTGRES_PORT}")
-    
-    # Identity API
-    if docker ps --format '{{.Names}}' | grep -q "GymCRM.IdentityAPI"; then
-        echo -e "${GREEN}  🔐 Identity API${NC}"
+
+    # API (Identity + Scheduling modules, one process)
+    if docker ps --format '{{.Names}}' | grep -q "GymCRM.Api"; then
+        echo -e "${GREEN}  🚀 API (Identity + Scheduling)${NC}"
         echo -e "     ${CYAN}External:${NC}"
-        if [ -n "${IDENTITY_API_HTTP_PORT}" ]; then
-            echo -e "       HTTP:     http://${IDENTITY_HOST}:${IDENTITY_API_HTTP_PORT}"
+        if [ -n "${API_HTTP_PORT}" ]; then
+            echo -e "       HTTP:     http://${API_HOST}:${API_HTTP_PORT}"
         fi
-        if [ -n "${IDENTITY_API_HTTPS_PORT}" ]; then
-            echo -e "       HTTPS:    https://${IDENTITY_HOST}:${IDENTITY_API_HTTPS_PORT}"
+        if [ -n "${API_HTTPS_PORT}" ]; then
+            echo -e "       HTTPS:    https://${API_HOST}:${API_HTTPS_PORT}"
         fi
-        if [ -n "${IDENTITY_API_HTTP_PORT}" ]; then
-            echo -e "       Swagger:  http://${IDENTITY_HOST}:${IDENTITY_API_HTTP_PORT}/swagger"
+        if [ -n "${API_HTTP_PORT}" ]; then
+            echo -e "       Swagger:  http://${API_HOST}:${API_HTTP_PORT}/swagger"
         fi
         echo -e "     ${CYAN}Internal:${NC}"
-        echo -e "       HTTP:     http://${IDENTITY_API_INTERNAL_HOST:-identityapi}:8080"
-        echo ""
-    fi
-    
-    # Scheduling API
-    if docker ps --format '{{.Names}}' | grep -q "GymCRM.SchedulingAPI"; then
-        echo -e "${GREEN}  📅 Scheduling API${NC}"
-        echo -e "     ${CYAN}External:${NC}"
-        if [ -n "${SCHEDULING_API_HTTP_PORT}" ]; then
-            echo -e "       HTTP:     http://${SCHEDULING_HOST}:${SCHEDULING_API_HTTP_PORT}"
-        fi
-        if [ -n "${SCHEDULING_API_HTTPS_PORT}" ]; then
-            echo -e "       HTTPS:    https://${SCHEDULING_HOST}:${SCHEDULING_API_HTTPS_PORT}"
-        fi
-        if [ -n "${SCHEDULING_API_HTTP_PORT}" ]; then
-            echo -e "       Swagger:  http://${SCHEDULING_HOST}:${SCHEDULING_API_HTTP_PORT}/swagger"
-        fi
-        echo -e "     ${CYAN}Internal:${NC}"
-        echo -e "       HTTP:     http://${SCHEDULING_API_INTERNAL_HOST:-schedulingapi}:8080"
+        echo -e "       HTTP:     http://${API_INTERNAL_HOST:-api}:8080"
         echo ""
     fi
     
@@ -293,8 +271,8 @@ if [ -n "$DETACHED" ]; then
     echo -e "  ${YELLOW}Service status:${NC}    ./status.sh"
     
     # Dynamic health check command
-    if [ -n "${IDENTITY_API_HTTP_PORT}" ]; then
-        echo -e "  ${YELLOW}Health check:${NC}      curl http://${IDENTITY_HOST}:${IDENTITY_API_HTTP_PORT}/health"
+    if [ -n "${API_HTTP_PORT}" ]; then
+        echo -e "  ${YELLOW}Health check:${NC}      curl http://${API_HOST}:${API_HTTP_PORT}/health"
     fi
     echo ""
 else

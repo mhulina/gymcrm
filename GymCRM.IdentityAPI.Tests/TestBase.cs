@@ -38,11 +38,7 @@ public class TestBase : IDisposable
         services.AddDbContext<IdentityDbContext>(options => 
             options.UseNpgsql(_testDbConnectionString));
 
-        services.AddScoped<IMembersRepository, MembersRepository>();
-        services.AddScoped<IMembersService, MembersService>();
-        services.AddScoped<IAccountsRepository, AccountsRepository>();
-        services.AddScoped<IAuthenticationService, AuthenticationService>();
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddIdentityServices();
         
         services.Configure<AuthenticationOptions>(_configuration.GetSection("Authentication"));
         

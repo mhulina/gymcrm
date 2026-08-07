@@ -163,8 +163,10 @@ namespace GymCRM.IdentityAPI.Services.Implementation
 		{
 			var updatedMember = new Models.Entities.Member
 			{
+				Id = existingMemberData.Id,
 				AccountGuid = newMemberData.AccountGuid,
-				Email = string.IsNullOrWhiteSpace(newMemberData.Email) 
+				TimeZone = existingMemberData.TimeZone,
+				Email = string.IsNullOrWhiteSpace(newMemberData.Email)
 					? existingMemberData.Email 
 					: newMemberData.Email,
 				FirstName = string.IsNullOrWhiteSpace(newMemberData.FirstName) 

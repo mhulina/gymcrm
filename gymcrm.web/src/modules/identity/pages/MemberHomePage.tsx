@@ -2,19 +2,18 @@ import { useEffect, useState } from "react";
 import { fetchUserInfoByGuid } from "../api/identityApi";
 import AppLayout from "../../../app/AppLayout";
 import {MemberInfoDashboard} from "../components/MemberInfoDashboard";
-import {MemberData} from "../types/member";
+import {Member} from "../types/member";
 
 export default function MemberHomePage() {
-    // Define a state to store the user data
-    const [userData, setUserData] = useState<MemberData | null>(null);
-    const [loading, setLoading] = useState(true); // State for loading state
-    const [error, setError] = useState<string | null>(null); // Error handling state
+    const [userData, setUserData] = useState<Member | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         fetchUserInfoByGuid()
             .then((data) => {
                 if (data) {
-                    setUserData(data); // Set the user data in the state
+                    setUserData(data);
                 } else {
                     setError("No user data");
                 }
@@ -24,33 +23,28 @@ export default function MemberHomePage() {
                 console.error("Error:", err);
             })
             .finally(() => {
-                setLoading(false); // Set loading to false once fetching is done
+                setLoading(false);
             });
     }, []);
 
     if (loading) {
         return (
-            <AppLayout>
-                <div>Loading...</div>
-            </AppLayout>); // Display loading state until data is fetched
+            <AppLayout showLogout>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Loading your dashboard...</p>
+            </AppLayout>
+        );
     }
 
-    if (error) {
+    if (error || !userData) {
         return (
-            <AppLayout>
-                <div>{error}</div>
-            </AppLayout>); // Display error message if there's an issue
-    }
-
-    if (!userData) {
-        return (
-            <AppLayout>
-                <div>No user data found.</div>
-            </AppLayout>); // Fallback for no data
+            <AppLayout showLogout>
+                <p className="text-sm text-red-600 dark:text-red-400">{error ?? "No user data found."}</p>
+            </AppLayout>
+        );
     }
 
     return (
-        <AppLayout showLogout={true}>
+        <AppLayout showLogout>
             <MemberInfoDashboard userData={userData} />
         </AppLayout>
     );

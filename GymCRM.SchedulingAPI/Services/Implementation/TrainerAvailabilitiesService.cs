@@ -36,21 +36,66 @@ public class TrainerAvailabilitiesService : ITrainerAvailabilitiesService
     public async Task<IEnumerable<TrainerAvailability>> GetAvailabilitiesAsync(CancellationToken cancellationToken = default)
     {
         var result = await _trainerAvailabilitiesRepository.FetchAllAsync(cancellationToken: cancellationToken);
-        var mappedResult = _mapper.Map<IEnumerable<TrainerAvailability>>(result);
-        
-        return mappedResult;
+        var mappedResult = _mapper.Map<List<TrainerAvailability>>(result);
+
+        return await PopulateDailyAvailabilities(mappedResult, cancellationToken);
     }
 
     public async Task<IEnumerable<TrainerAvailability>> GetAvailabilitiesForTrainerIdAsync(
-        Guid id, 
+        Guid id,
         CancellationToken cancellationToken = default)
     {
         var result = await _trainerAvailabilitiesRepository.FetchByConditionAsync(
             x => x.TrainerId == id,
             cancellationToken: cancellationToken);
-        var mappedResult = _mapper.Map<IEnumerable<TrainerAvailability>>(result);
-        
-        return mappedResult;
+        var mappedResult = _mapper.Map<List<TrainerAvailability>>(result);
+
+        return await PopulateDailyAvailabilities(mappedResult, cancellationToken);
+    }
+
+    /// <summary>
+    /// Fills in <see cref="TrainerAvailability.DailyAvailabilities"/> (and each day's
+    /// <see cref="Models.DTOs.TrainerDailyAvailability.WorkingHours"/>) for the given
+    /// availabilities. The entity <see cref="Models.Entities.TrainerAvailability"/> has no
+    /// navigation property for its days, so AutoMapper's direct entity-to-DTO mapping
+    /// always leaves these nested collections null - this backfills them with two batched
+    /// queries (no N+1) instead.
+    /// </summary>
+    private async Task<List<TrainerAvailability>> PopulateDailyAvailabilities(
+        List<TrainerAvailability> availabilities,
+        CancellationToken cancellationToken)
+    {
+        if (availabilities.Count == 0)
+        {
+            return availabilities;
+        }
+
+        var availabilityIds = availabilities.Select(a => a.Id).ToList();
+
+        var dailyAvailabilityEntities = (await _trainerDailyAvailabilitiesRepository
+            .FetchByConditionAsync(x => availabilityIds.Contains(x.AvailabilityId), cancellationToken))
+            .ToList();
+        var dailyAvailabilityIds = dailyAvailabilityEntities.Select(d => d.Id).ToList();
+
+        var workingHourEntities = (await _trainerWorkingHoursRepository
+            .FetchByConditionAsync(x => dailyAvailabilityIds.Contains(x.DailyAvailabilityId), cancellationToken))
+            .ToList();
+
+        foreach (var availability in availabilities)
+        {
+            availability.DailyAvailabilities = dailyAvailabilityEntities
+                .Where(d => d.AvailabilityId == availability.Id)
+                .Select(dailyEntity =>
+                {
+                    var mappedDaily = _mapper.Map<Models.DTOs.TrainerDailyAvailability>(dailyEntity);
+                    mappedDaily.WorkingHours = _mapper.Map<List<Models.DTOs.TrainerWorkingHours>>(
+                        workingHourEntities.Where(w => w.DailyAvailabilityId == dailyEntity.Id).ToList());
+                    return mappedDaily;
+                })
+                .ToList();
+        }
+
+        return availabilities;
     }
 
     public async Task<bool> IsTrainerWorkingOnDateAsync(

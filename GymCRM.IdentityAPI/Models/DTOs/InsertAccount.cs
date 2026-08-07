@@ -11,4 +11,5 @@ public class InsertAccount
     public int? AccountType { get; set; }
     public int? GymSubscriptionType { get; set; }
     public int? Gender { get; set; }
+    public string? TimeZone { get; set; }
 }

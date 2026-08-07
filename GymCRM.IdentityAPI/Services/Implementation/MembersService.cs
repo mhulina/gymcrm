@@ -165,7 +165,9 @@ namespace GymCRM.IdentityAPI.Services.Implementation
 			{
 				Id = existingMemberData.Id,
 				AccountGuid = newMemberData.AccountGuid,
-				TimeZone = existingMemberData.TimeZone,
+				TimeZone = string.IsNullOrWhiteSpace(newMemberData.TimeZone)
+					? existingMemberData.TimeZone
+					: newMemberData.TimeZone,
 				Email = string.IsNullOrWhiteSpace(newMemberData.Email)
 					? existingMemberData.Email 
 					: newMemberData.Email,

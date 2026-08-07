@@ -3,9 +3,9 @@ import {JSX} from "react";
 import {useAuth} from "./AuthContext";
 
 const PublicRoute = ({ children }: { children: JSX.Element }) =>{
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, hasAdminAccount } = useAuth();
 
-    if (isAuthenticated === null) {
+    if (isAuthenticated === null || hasAdminAccount === null) {
         return (
             <div style={{
                 display: "flex",
@@ -16,6 +16,11 @@ const PublicRoute = ({ children }: { children: JSX.Element }) =>{
                 Loading...
             </div>
         );
+    }
+
+    // Setup must be unavoidable until an admin exists - even login/register bounce to it.
+    if (!hasAdminAccount) {
+        return <Navigate to="/setup" replace />;
     }
 
     return !isAuthenticated ? children : <Navigate to="/member/home" replace />;

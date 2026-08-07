@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.DTOs;
+using GymCRM.IdentityAPI.Models.Enums;
 using GymCRM.IdentityAPI.Models.Interface;
 using GymCRM.IdentityAPI.Services.Interface;
 using ILogger = Serilog.ILogger;
@@ -9,6 +10,10 @@ namespace GymCRM.IdentityAPI.Services.Implementation
 {
 	public class MembersService : IMembersService
 	{
+		private const long MaxPhotoSizeBytes = 5 * 1024 * 1024;
+		private static readonly HashSet<string> AllowedPhotoContentTypes =
+			new(StringComparer.OrdinalIgnoreCase) { "image/jpeg", "image/png", "image/webp" };
+
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly IMembersRepository _repository;
 		private readonly ILogger _logger;
@@ -148,6 +153,157 @@ namespace GymCRM.IdentityAPI.Services.Implementation
 			}
 		}
 
+		public async Task<bool> UploadMemberPhotoAsync(
+			Guid accountGuid,
+			Guid callerAccountGuid,
+			byte[] photoBytes,
+			string? contentType,
+			CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				if (photoBytes is null || photoBytes.Length == 0)
+				{
+					throw new ArgumentException("No photo data was provided");
+				}
+
+				if (photoBytes.Length > MaxPhotoSizeBytes)
+				{
+					var ex = new PhotoTooLargeException(
+						$"Photo exceeds the maximum allowed size of {MaxPhotoSizeBytes / (1024 * 1024)}MB");
+					_logger.Warning(ex, "Rejected photo upload for {AccountGuid} - {SizeBytes} bytes exceeds the limit", accountGuid, photoBytes.Length);
+					throw ex;
+				}
+
+				if (string.IsNullOrWhiteSpace(contentType) || !AllowedPhotoContentTypes.Contains(contentType))
+				{
+					var ex = new InvalidPhotoContentTypeException(
+						$"Photo content type '{contentType}' is not supported. Allowed types: image/jpeg, image/png, image/webp");
+					_logger.Warning(ex, "Rejected photo upload for {AccountGuid} - unsupported content type {ContentType}", accountGuid, contentType);
+					throw ex;
+				}
+
+				var existingMember = await GetMemberForPhotoActionAsync(accountGuid, callerAccountGuid, cancellationToken);
+
+				existingMember.Photo = photoBytes;
+				existingMember.PhotoContentType = contentType;
+				existingMember.DateModified = DateTime.UtcNow;
+
+				_repository.Update(existingMember);
+				var result = await _unitOfWork.SaveAsync(cancellationToken);
+
+				_logger.Information("Photo uploaded for member {AccountGuid} by {CallerAccountGuid}", accountGuid, callerAccountGuid);
+
+				return result;
+			}
+			catch (Exception ex) when (ex is not (PhotoTooLargeException or InvalidPhotoContentTypeException))
+			{
+				_logger.Error(ex, ex.Message);
+
+				throw;
+			}
+		}
+
+		public async Task<(byte[] Bytes, string ContentType)?> GetMemberPhotoAsync(
+			Guid accountGuid,
+			CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				var member = (await _repository
+					.FetchByCondition(x => x.AccountGuid == accountGuid, cancellationToken))
+					.FirstOrDefault();
+
+				if (member is null)
+				{
+					var ex = new MemberNotFoundException("Member not found in DB");
+					_logger.Error(ex, ex.Message);
+
+					throw ex;
+				}
+
+				if (member.Photo is null || member.Photo.Length == 0 || string.IsNullOrWhiteSpace(member.PhotoContentType))
+				{
+					return null;
+				}
+
+				return (member.Photo, member.PhotoContentType);
+			}
+			catch (Exception ex)
+			{
+				_logger.Error(ex, ex.Message);
+
+				throw;
+			}
+		}
+
+		public async Task<bool> DeleteMemberPhotoAsync(
+			Guid accountGuid,
+			Guid callerAccountGuid,
+			CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				var existingMember = await GetMemberForPhotoActionAsync(accountGuid, callerAccountGuid, cancellationToken);
+
+				existingMember.Photo = null;
+				existingMember.PhotoContentType = null;
+				existingMember.DateModified = DateTime.UtcNow;
+
+				_repository.Update(existingMember);
+				var result = await _unitOfWork.SaveAsync(cancellationToken);
+
+				_logger.Information("Photo deleted for member {AccountGuid} by {CallerAccountGuid}", accountGuid, callerAccountGuid);
+
+				return result;
+			}
+			catch (Exception ex)
+			{
+				_logger.Error(ex, ex.Message);
+
+				throw;
+			}
+		}
+
+		/// <summary>
+		/// Fetches the target member for a photo upload/delete action, enforcing that the caller is
+		/// either acting on their own account or is an Admin. Throws <see cref="MemberNotFoundException"/>
+		/// or <see cref="MemberPhotoAccessDeniedException"/> as appropriate.
+		/// </summary>
+		private async Task<Models.Entities.Member> GetMemberForPhotoActionAsync(
+			Guid accountGuid,
+			Guid callerAccountGuid,
+			CancellationToken cancellationToken)
+		{
+			var existingMember = (await _repository
+				.FetchByCondition(x => x.AccountGuid == accountGuid, cancellationToken))
+				.FirstOrDefault();
+
+			if (existingMember is null)
+			{
+				var ex = new MemberNotFoundException("Member not found in DB");
+				_logger.Error(ex, ex.Message);
+
+				throw ex;
+			}
+
+			if (accountGuid != callerAccountGuid)
+			{
+				var caller = (await _repository
+					.FetchByCondition(x => x.AccountGuid == callerAccountGuid, cancellationToken))
+					.FirstOrDefault();
+
+				if (caller is null || caller.AccountType != (int)AccountType.Admin)
+				{
+					var ex = new MemberPhotoAccessDeniedException();
+					_logger.Warning(ex, "Blocked photo action on {AccountGuid} by non-owning, non-admin caller {CallerAccountGuid}", accountGuid, callerAccountGuid);
+					throw ex;
+				}
+			}
+
+			return existingMember;
+		}
+
 		/// <summary>
 		/// Merges non-null and non-empty fields from the provided new member data into an existing member entity,
 		/// returning a new <see cref="Models.Entities.Member"/> instance with updated data.
@@ -197,6 +353,14 @@ namespace GymCRM.IdentityAPI.Services.Implementation
 				GymSubscriptionType = newMemberData.GymSubscriptionType,
 				PersonalTrainerId = newMemberData.PersonalTrainerId,
 				Gender = newMemberData.Gender,
+				DateOfBirth = newMemberData.DateOfBirth ?? existingMemberData.DateOfBirth,
+				HourlyPrice = newMemberData.HourlyPrice ?? existingMemberData.HourlyPrice,
+				// Photo/PhotoContentType are never part of the update DTO - they're only ever
+				// touched by the dedicated UploadPhoto/DeletePhoto endpoints. Without this explicit
+				// carry-over, every profile save would silently wipe the member's photo, since the
+				// mapped newMemberData always has Photo = null (see ConfigureIdentityMappings).
+				Photo = existingMemberData.Photo,
+				PhotoContentType = existingMemberData.PhotoContentType,
 				DateModified = DateTime.UtcNow
 			};
 			

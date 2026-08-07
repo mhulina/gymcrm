@@ -23,6 +23,13 @@ namespace GymCRM.IdentityAPI.Models.Interface
 		/// </returns>
 		Task<IEnumerable<Member>> FetchByCondition(Expression<Func<Member, bool>> expression, CancellationToken cancellationToken);
 		/// <summary>
+		/// Cheaply checks whether any <see cref="Member"/> with the given AccountType exists,
+		/// without materializing full rows (e.g. the Photo bytea column).
+		/// </summary>
+		/// <param name="accountType">The AccountType to check for.</param>
+		/// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+		Task<bool> AnyByAccountTypeAsync(int accountType, CancellationToken cancellationToken);
+		/// <summary>
 		/// Inserts a new <see cref="Member"/> entity into the database context.
 		/// </summary>
 		/// <param name="entity">The <see cref="Member"/> entity to insert.</param>

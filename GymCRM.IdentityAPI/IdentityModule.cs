@@ -49,8 +49,15 @@ public static class IdentityModule
 
     public static void ConfigureIdentityMappings(IMapperConfigurationExpression config)
     {
-        config.CreateMap<Member, GymCRM.IdentityAPI.Models.Entities.Member>();
-        config.CreateMap<GymCRM.IdentityAPI.Models.Entities.Member, Member>();
+        // Photo/PhotoContentType never travel through the DTO (see Models.DTOs.Member) - ignoring
+        // them here is a self-documenting second layer of defense on top of the explicit
+        // existingMemberData.Photo assignment in MembersService.MergeExistingMemberDataWithUpdateData,
+        // which is what actually prevents a profile save from wiping a member's photo.
+        config.CreateMap<Member, GymCRM.IdentityAPI.Models.Entities.Member>()
+            .ForMember(d => d.Photo, opt => opt.Ignore())
+            .ForMember(d => d.PhotoContentType, opt => opt.Ignore());
+        config.CreateMap<GymCRM.IdentityAPI.Models.Entities.Member, Member>()
+            .ForMember(d => d.HasPhoto, opt => opt.MapFrom(s => s.Photo != null && s.Photo.Length > 0));
     }
 
     public static IMvcBuilder AddIdentityControllers(this IMvcBuilder builder) =>

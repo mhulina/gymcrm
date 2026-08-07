@@ -9,7 +9,7 @@ export default function MemberHomePage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
+    function loadUser() {
         fetchUserInfoByGuid()
             .then((data) => {
                 if (data) {
@@ -25,7 +25,10 @@ export default function MemberHomePage() {
             .finally(() => {
                 setLoading(false);
             });
-    }, []);
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(loadUser, []);
 
     if (loading) {
         return (
@@ -45,7 +48,7 @@ export default function MemberHomePage() {
 
     return (
         <AppLayout showLogout>
-            <MemberInfoDashboard userData={userData} />
+            <MemberInfoDashboard userData={userData} onUserDataChanged={loadUser} />
         </AppLayout>
     );
 }

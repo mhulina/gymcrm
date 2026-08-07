@@ -7,6 +7,8 @@ import AdminAddMemberPage from "../modules/identity/pages/AdminAddMemberPage";
 import AdminMembersListPage from "../modules/identity/pages/AdminMembersListPage";
 import EditMemberProfilePage from "../modules/identity/pages/EditMemberProfilePage";
 import AdminRoute from "../modules/identity/components/AdminRoute";
+import SetupRoute from "../modules/identity/components/SetupRoute";
+import AdminSetupPage from "../modules/identity/pages/AdminSetupPage";
 import PublicRoute from "../shared/auth/PublicRoute";
 import PrivateRoute from "../shared/auth/PrivateRoute";
 
@@ -14,6 +16,11 @@ export default function AppRoutes() {
     return (
         <Routes>
             <Route path="/" element={<RootRedirect />} />
+            <Route path="/setup" element={
+                <SetupRoute>
+                    <AdminSetupPage />
+                </SetupRoute>
+            } />
             <Route path="/login" element={
                 <PublicRoute>
                     <LoginPage />

@@ -76,4 +76,21 @@ public interface IAuthenticationService
 	/// <returns>A JWT token as a string.</returns>
 	/// <exception cref="Exception">Thrown when the signing secret is missing in the configuration.</exception>
 	string GenerateJwtToken(Models.Entities.Account account);
+	/// <summary>
+	/// Checks whether any Admin account already exists - used to gate the first-run admin setup screen.
+	/// </summary>
+	/// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+	Task<bool> HasAdminAccountAsync(CancellationToken cancellationToken = default);
+	/// <summary>
+	/// Creates the first Admin account. Re-checks server-side that no admin exists yet immediately
+	/// before creating one, so this can only ever succeed once.
+	/// </summary>
+	/// <param name="request">The email/password (and optional detected timezone) for the new admin.</param>
+	/// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+	/// <returns>
+	/// A task representing the asynchronous operation, containing the <see cref="Guid"/> of the newly created account.
+	/// </returns>
+	/// <exception cref="ArgumentException">Thrown when the email or password is null or whitespace.</exception>
+	/// <exception cref="AdminAccountAlreadyExistsException">Thrown when an admin account already exists.</exception>
+	Task<Guid> SetupAdminAccountAsync(SetupAdminAccount request, CancellationToken cancellationToken = default);
 }

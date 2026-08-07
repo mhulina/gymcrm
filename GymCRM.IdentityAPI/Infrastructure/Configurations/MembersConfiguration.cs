@@ -25,7 +25,10 @@ namespace GymCRM.IdentityAPI.Models.Configurations
 			modelBuilder.Property(x => x.GymSubscriptionType).IsRequired();
 			modelBuilder.Property(x => x.DateModified).IsRequired();
 			modelBuilder.Property(x => x.TimeZone).IsRequired();
-			
+			modelBuilder.Property(x => x.HourlyPrice).HasPrecision(10, 2);
+			modelBuilder.Property(x => x.PhotoContentType).HasMaxLength(100);
+			modelBuilder.Property(x => x.Photo).HasColumnType("bytea");
+
 			modelBuilder
 				.HasOne(x => x.Account)
 				.WithOne(x => x.Member)

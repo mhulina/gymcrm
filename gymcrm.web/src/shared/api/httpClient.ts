@@ -1,46 +1,54 @@
-import Axios from "axios";
+import Axios, {AxiosInstance} from "axios";
 
-const API_BASE_URL = process.env.REACT_APP_MEMBERS_ENDPOINT;
+// Builds an axios instance authenticated the same way as the rest of the app:
+// httpOnly session cookies, with a 401 -> refresh-token -> retry-once interceptor.
+// Every GymCRM.Api module (Identity, Scheduling, ...) sits behind the same host
+// and shares the same cookies, so every module's client is built from this.
+export function createHttpClient(baseURL: string | undefined): AxiosInstance {
+    const instance = Axios.create({
+        baseURL,
+        headers: {
+            "Content-Type": "application/json",
+        },
+        withCredentials: true
+    });
 
-export const axios = Axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-        "Content-Type": "application/json",
-    },
-    withCredentials: true
-});
+    instance.interceptors.response.use(
+        (response) => response, // Pass through successful responses
+        async (error) => {
+            const originalRequest = error.config;
 
-axios.interceptors.response.use(
-    (response) => response, // Pass through successful responses
-    async (error) => {
-        const originalRequest = error.config;
+            // If we get 401 and haven't retried yet
+            if (error.response?.status === 401 && !originalRequest._retry) {
+                originalRequest._retry = true;
 
-        // If we get 401 and haven't retried yet
-        if (error.response?.status === 401 && !originalRequest._retry) {
-            originalRequest._retry = true;
+                try {
+                    // Try to refresh the token (via the raw axios lib, not our instance,
+                    // so this call bypasses baseURL/interceptors and can't recurse)
+                    await Axios.post(
+                        `${process.env.REACT_APP_ACCOUNTS_ENDPOINT}RefreshToken`,
+                        {},
+                        { withCredentials: true }
+                    );
 
-            try {
-                // Try to refresh the token (via the raw axios lib, not our instance,
-                // so this call bypasses baseURL/interceptors and can't recurse)
-                await Axios.post(
-                    `${process.env.REACT_APP_ACCOUNTS_ENDPOINT}RefreshToken`,
-                    {},
-                    { withCredentials: true }
-                );
-
-                // Retry the original request with new token (in cookie)
-                return axios(originalRequest);
-            } catch (refreshError) {
-                // Refresh failed - redirect to login
-                console.error("Token refresh failed:", refreshError);
-                window.location.href = "/login";
-                return Promise.reject(refreshError);
+                    // Retry the original request with new token (in cookie)
+                    return instance(originalRequest);
+                } catch (refreshError) {
+                    // Refresh failed - redirect to login
+                    console.error("Token refresh failed:", refreshError);
+                    window.location.href = "/login";
+                    return Promise.reject(refreshError);
+                }
             }
-        }
 
-        return Promise.reject(error);
-    }
-);
+            return Promise.reject(error);
+        }
+    );
+
+    return instance;
+}
+
+export const axios = createHttpClient(process.env.REACT_APP_MEMBERS_ENDPOINT);
 
 const sendRequest = async (method: string, url: string, data = null, params = {}) => {
     try{

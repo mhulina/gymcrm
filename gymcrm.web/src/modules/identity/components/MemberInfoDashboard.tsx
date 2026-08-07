@@ -5,29 +5,10 @@ import {AccountType} from "../types/accountType";
 import {GymSubscriptionType} from "../types/gymSubscriptionType";
 import {Gender} from "../types/gender";
 import {fetchMemberByGuid} from "../api/identityApi";
-
-function initials(member: Member) {
-    const first = member.firstName?.[0] ?? member.email[0];
-    const last = member.lastName?.[0] ?? "";
-    return (first + last).toUpperCase();
-}
-
-function fullName(member: Member) {
-    const parts = [member.firstName, member.lastName].filter(Boolean);
-    return parts.length > 0 ? parts.join(" ") : member.email;
-}
-
-function Badge({ children, tone = "emerald" }: { children: React.ReactNode; tone?: "emerald" | "slate" }) {
-    const tones = {
-        emerald: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
-        slate: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
-    };
-    return (
-        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${tones[tone]}`}>
-            {children}
-        </span>
-    );
-}
+import {fullName, initials} from "../utils/memberDisplay";
+import {Badge} from "../../../shared/components/Badge";
+import {enumLabel} from "../../../shared/utils/mapper";
+import {MemberSessionCalendar} from "../../scheduling/components/MemberSessionCalendar";
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
     return (
@@ -60,18 +41,26 @@ export function MemberInfoDashboard({ userData }: { userData: Member }) {
                     <h1 className="text-lg font-bold text-slate-900 dark:text-white truncate">{fullName(userData)}</h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{userData.email}</p>
                     <div className="mt-2 flex gap-2">
-                        <Badge>{AccountType[userData.accountType]}</Badge>
-                        <Badge tone="slate">{GymSubscriptionType[userData.gymSubscriptionType]} plan</Badge>
+                        <Badge>{enumLabel(AccountType[userData.accountType])}</Badge>
+                        <Badge tone="slate">{enumLabel(GymSubscriptionType[userData.gymSubscriptionType])} plan</Badge>
                     </div>
                 </div>
-                {userData.accountType === AccountType.Admin && (
+                <div className="flex gap-2">
                     <Link
-                        to="/admin/members/new"
-                        className="inline-flex items-center justify-center rounded-lg border border-emerald-600 px-4 py-2.5 text-sm font-semibold text-emerald-600 hover:bg-emerald-50 dark:border-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-950/40 transition-colors"
+                        to="/member/edit"
+                        className="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                     >
-                        + Add member
+                        Edit profile
                     </Link>
-                )}
+                    {userData.accountType === AccountType.Admin && (
+                        <Link
+                            to="/admin/members"
+                            className="inline-flex items-center justify-center rounded-lg border border-emerald-600 px-4 py-2.5 text-sm font-semibold text-emerald-600 hover:bg-emerald-50 dark:border-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-950/40 transition-colors"
+                        >
+                            Manage members
+                        </Link>
+                    )}
+                </div>
             </Card>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -88,7 +77,7 @@ export function MemberInfoDashboard({ userData }: { userData: Member }) {
                         </div>
                         <div className="flex justify-between gap-4">
                             <dt className="text-slate-500 dark:text-slate-400">Gender</dt>
-                            <dd className="text-slate-900 dark:text-slate-100">{Gender[userData.gender]}</dd>
+                            <dd className="text-slate-900 dark:text-slate-100">{enumLabel(Gender[userData.gender])}</dd>
                         </div>
                     </dl>
                 </Card>
@@ -112,6 +101,8 @@ export function MemberInfoDashboard({ userData }: { userData: Member }) {
                     </p>
                 </Card>
             </div>
+
+            {userData.accountType === AccountType.Member && <MemberSessionCalendar member={userData} />}
         </div>
     );
 }

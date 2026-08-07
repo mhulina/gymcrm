@@ -84,7 +84,9 @@ public class AuthenticationService : IAuthenticationService
 				GymSubscriptionType = insertAccount.GymSubscriptionType ?? 0,
 				Gender = insertAccount.Gender ?? 0,
 				DateModified = entity.DateCreated,
-				TimeZone = TimeZoneInfo.Utc.Id,
+				TimeZone = string.IsNullOrWhiteSpace(insertAccount.TimeZone)
+					? TimeZoneInfo.Utc.Id
+					: insertAccount.TimeZone,
 			};
 
 			_membersRepository.Insert(member);

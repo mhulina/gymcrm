@@ -1,19 +1,28 @@
 import {gymSubscriptionTypeOptions} from "../../../shared/utils/mapper";
-import {useState} from "react";
+import {SelectField} from "../../../shared/components/SelectField";
 
-export function GymSubscriptionTypeDropdown({ userSubscriptionType }: { userSubscriptionType: number }) {
-    const [selectedType, setSelectedType] = useState<number>(userSubscriptionType);
+interface Props {
+    id?: string;
+    label: string;
+    value: number;
+    onChange: (value: number) => void;
+    disabled?: boolean;
+}
 
+export function GymSubscriptionTypeDropdown({ id, label, value, onChange, disabled }: Props) {
     return (
-        <select
-            value={selectedType}
-            onChange={(e) => setSelectedType(Number(e.target.value))}
+        <SelectField
+            id={id}
+            label={label}
+            value={value}
+            disabled={disabled}
+            onChange={(e) => onChange(Number(e.target.value))}
         >
             {gymSubscriptionTypeOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                     {opt.label}
                 </option>
             ))}
-        </select>
+        </SelectField>
     );
 }

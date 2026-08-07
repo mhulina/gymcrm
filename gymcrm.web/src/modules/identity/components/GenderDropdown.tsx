@@ -1,4 +1,4 @@
-import {accountTypeOptions} from "../../../shared/utils/mapper";
+import {genderOptions} from "../../../shared/utils/mapper";
 import {SelectField} from "../../../shared/components/SelectField";
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
     disabled?: boolean;
 }
 
-export function AccountTypeDropdown({ id, label, value, onChange, disabled }: Props) {
+export function GenderDropdown({ id, label, value, onChange, disabled }: Props) {
     return (
         <SelectField
             id={id}
@@ -18,7 +18,7 @@ export function AccountTypeDropdown({ id, label, value, onChange, disabled }: Pr
             disabled={disabled}
             onChange={(e) => onChange(Number(e.target.value))}
         >
-            {accountTypeOptions.map((opt) => (
+            {genderOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                     {opt.label}
                 </option>

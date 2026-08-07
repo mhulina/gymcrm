@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { handleLogout } from "../../modules/identity/api/identityApi";
-import Button from "react-bootstrap/Button";
 import {useAuth} from "../auth/AuthContext";
+import {Button} from "./Button";
 
 export function LogoutButton() {
     const navigate = useNavigate();
@@ -12,7 +12,7 @@ export function LogoutButton() {
     };
 
     return (
-        <Button variant="outline-danger" onClick={onLogout}>
+        <Button variant="secondary" onClick={onLogout}>
             Logout
         </Button>
     );

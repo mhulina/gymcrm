@@ -5,6 +5,7 @@ import {InsertWorkingHours} from "../types/insertWorkingHours";
 import {TrainingSession} from "../types/trainingSession";
 import {InsertTrainingSession} from "../types/insertTrainingSession";
 import {RescheduleTrainingSession} from "../types/rescheduleTrainingSession";
+import {AvailableSlot} from "../types/availableSlot";
 import {TimeOff} from "../types/timeOff";
 import {extractErrorMessage} from "../../../shared/api/extractErrorMessage";
 
@@ -164,6 +165,18 @@ export async function declineTrainingSession(id: string): Promise<boolean> {
     } catch (error) {
         console.error("Error declining training session: ", error);
         return false;
+    }
+}
+
+export async function fetchAvailableSlotsForTrainer(trainerId: string, date: string): Promise<AvailableSlot[]> {
+    try {
+        const response = await axios.get<AvailableSlot[]>(`GetAvailableSlotsForTrainer/${trainerId}`, {
+            params: {date},
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching available slots: ", error);
+        return [];
     }
 }
 

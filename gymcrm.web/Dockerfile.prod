@@ -1,0 +1,40 @@
+# Build Stage
+FROM node:16 AS build
+
+WORKDIR /app
+
+# Accept build arguments
+ARG REACT_APP_API_URL
+ARG REACT_APP_IDENTITY_API_URL
+ARG REACT_APP_SCHEDULING_API_URL
+ARG REACT_APP_ACCOUNTS_ENDPOINT
+ARG REACT_APP_MEMBERS_ENDPOINT
+
+# Set them as environment variables for the build process
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
+ENV REACT_APP_IDENTITY_API_URL=$REACT_APP_IDENTITY_API_URL
+ENV REACT_APP_SCHEDULING_API_URL=$REACT_APP_SCHEDULING_API_URL
+ENV REACT_APP_ACCOUNTS_ENDPOINT=$REACT_APP_ACCOUNTS_ENDPOINT
+ENV REACT_APP_MEMBERS_ENDPOINT=$REACT_APP_MEMBERS_ENDPOINT
+
+# Copy package.json and package-lock.json first to install dependencies
+COPY package*.json ./
+RUN npm install
+
+# Copy the rest of the app code
+COPY . .
+
+# Build the React app
+RUN npm run build
+
+# Production Stage - a real nginx static-file server instead of the `serve` npm package used
+# for dev. Deliberately has no reverse-proxy/proxy_pass to the API - this image is used both as
+# the "webapp" service behind an outer reverse-proxy nginx (docker-compose.prod.yml) and as a
+# fully standalone container on platforms with no compose/private-networking support (SnapDeploy),
+# where the app talks to the API's own separate URL directly instead.
+FROM nginx:alpine AS final
+
+COPY --from=build /app/build /usr/share/nginx/html
+COPY nginx.prod.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80

@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 using GymCRM.SchedulingAPI.Infrastructure.Implementation;
 using GymCRM.SchedulingAPI.Infrastructure.Interface;
+using GymCRM.SchedulingAPI.Models.Entities;
 using GymCRM.SchedulingAPI.Services;
 
 namespace GymCRM.SchedulingAPI.Tests.Integration.Repositories;
@@ -8,11 +9,13 @@ namespace GymCRM.SchedulingAPI.Tests.Integration.Repositories;
 public class TestHolidayRepository : TestBase
 {
     private readonly IHolidayRepository _holidayRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
     public TestHolidayRepository()
     {
         _holidayRepository = new HolidayRepository(_context);
-        
+        _unitOfWork = new UnitOfWork(_context);
+
         var seeder = new HolidaySeeder(new HttpClient(), _context);
         seeder.SeedAsync("HR", DateTime.UtcNow.Year).Wait();
     }
@@ -65,5 +68,90 @@ public class TestHolidayRepository : TestBase
         
         // Then
         result.Count.Should().Be(expectedCountOfHolidays);
+    }
+
+    [Fact]
+    public async Task GivenHolidaysSeeded_WhenGettingAll_ThenAllHolidaysAreReturned()
+    {
+        // When
+        var result = await _holidayRepository.GetAllAsync(CancellationToken.None);
+
+        // Then
+        result.Should().HaveCount(14);
+    }
+
+    [Fact]
+    public async Task GivenValidId_WhenGettingById_ThenTheMatchingHolidayIsReturned()
+    {
+        // Given
+        var existing = (await _holidayRepository.GetAllAsync(CancellationToken.None)).First();
+
+        // When
+        var result = await _holidayRepository.GetByIdAsync(existing.Id, CancellationToken.None);
+
+        // Then
+        result.Should().NotBeNull();
+        result.EnglishName.Should().Be(existing.EnglishName);
+    }
+
+    [Fact]
+    public async Task GivenNewHoliday_WhenAdding_ThenHolidayIsPersisted()
+    {
+        // Given
+        var holiday = new Holiday
+        {
+            Id = Guid.CreateVersion7(),
+            EnglishName = "Test Holiday",
+            LocalName = "Test Holiday",
+            CountryCode = "HR",
+            Date = DateTime.SpecifyKind(new DateTime(DateTime.UtcNow.Year, 1, 15), DateTimeKind.Utc),
+            Type = "Public",
+            RegionCode = "",
+            Year = DateTime.UtcNow.Year,
+            Created = DateTime.UtcNow
+        };
+
+        // When
+        _holidayRepository.Add(holiday);
+        var result = await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+
+        // Then
+        result.Should().BeTrue();
+        var fetched = await _holidayRepository.GetByIdAsync(holiday.Id, CancellationToken.None);
+        fetched.Should().NotBeNull();
+        fetched.EnglishName.Should().Be("Test Holiday");
+    }
+
+    [Fact]
+    public async Task GivenExistingHoliday_WhenUpdating_ThenChangesArePersisted()
+    {
+        // Given
+        var existing = (await _holidayRepository.GetAllAsync(CancellationToken.None)).First();
+
+        // When
+        existing.LocalName = "Updated Local Name";
+        _holidayRepository.Update(existing);
+        var result = await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+
+        // Then
+        result.Should().BeTrue();
+        var updated = await _holidayRepository.GetByIdAsync(existing.Id, CancellationToken.None);
+        updated.LocalName.Should().Be("Updated Local Name");
+    }
+
+    [Fact]
+    public async Task GivenExistingHoliday_WhenDeleting_ThenHolidayIsRemoved()
+    {
+        // Given
+        var existing = (await _holidayRepository.GetAllAsync(CancellationToken.None)).First();
+
+        // When
+        _holidayRepository.Delete(existing);
+        var result = await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+
+        // Then
+        result.Should().BeTrue();
+        var afterDelete = await _holidayRepository.GetByIdAsync(existing.Id, CancellationToken.None);
+        afterDelete.Should().BeNull();
     }
 }

@@ -2,6 +2,7 @@ using GymCRM.IdentityAPI.Models.DTOs;
 using GymCRM.IdentityAPI.Models.Interface;
 using FluentAssertions;
 using GymCRM.IdentityAPI.Infrastructure.Interface;
+using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.Enums;
 using GymCRM.IdentityAPI.Services.Interface;
 using Microsoft.EntityFrameworkCore;
@@ -103,8 +104,59 @@ public class AuthenticationServiceTests : TestBase
             Username = email
         };
         var result = await _authenticationService.LoginAccount(authenticationRequestBody, CancellationToken.None);
-        
+
         result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task GivenNoAdminAccountExists_WhenSettingUpAdminAccount_ThenAdminAccountIsCreated()
+    {
+        // Given
+        var email = $"admin{Guid.NewGuid():N}@test.com";
+        var request = new SetupAdminAccount
+        {
+            Email = email,
+            Password = "SecurePassword123!",
+            TimeZone = "Europe/Zagreb"
+        };
+
+        // When
+        var accountGuid = await _authenticationService.SetupAdminAccountAsync(request, CancellationToken.None);
+
+        // Then
+        accountGuid.Should().NotBe(Guid.Empty);
+        var members = await _membersRepository.FetchByCondition(m => m.AccountGuid == accountGuid, CancellationToken.None);
+        members.Should().ContainSingle(m => m.Email == email.ToLower() && m.AccountType == (int)AccountType.Admin);
+        var hasAdmin = await _authenticationService.HasAdminAccountAsync(CancellationToken.None);
+        hasAdmin.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GivenAdminAccountAlreadyExists_WhenSettingUpAnotherAdminAccount_ThenAdminAccountAlreadyExistsExceptionIsThrown()
+    {
+        // Given - the server-side race/bypass guard: SetupAdminAccountAsync re-checks right
+        // before creating the account, so this can only ever succeed once.
+        var firstRequest = new SetupAdminAccount
+        {
+            Email = $"admin{Guid.NewGuid():N}@test.com",
+            Password = "SecurePassword123!"
+        };
+        await _authenticationService.SetupAdminAccountAsync(firstRequest, CancellationToken.None);
+        _unitOfWork.DetachAll();
+
+        var secondRequest = new SetupAdminAccount
+        {
+            Email = $"admin{Guid.NewGuid():N}@test.com",
+            Password = "AnotherPassword123!"
+        };
+
+        // When
+        Func<Task> act = () => _authenticationService.SetupAdminAccountAsync(secondRequest, CancellationToken.None);
+
+        // Then
+        await act.Should().ThrowAsync<AdminAccountAlreadyExistsException>();
+        var members = await _membersRepository.FetchByCondition(m => m.Email == secondRequest.Email.ToLower(), CancellationToken.None);
+        members.Should().BeEmpty();
     }
 }
 

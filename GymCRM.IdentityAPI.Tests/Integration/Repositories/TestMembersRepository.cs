@@ -146,6 +146,146 @@ public class TestMembersRepository : TestBase
         members.Should().ContainSingle(m => m.Email == account.Email.ToLower());
     }
 
+    [Fact]
+    public async Task GivenMembersWithAccountType_WhenCheckingAnyByAccountType_ThenTrueIsReturnedForExistingTypeAndFalseOtherwise()
+    {
+        // When
+        var memberTypeExists = await _membersRepository.AnyByAccountTypeAsync((int)AccountType.Member, CancellationToken.None);
+        var adminTypeExists = await _membersRepository.AnyByAccountTypeAsync((int)AccountType.Admin, CancellationToken.None);
+
+        // Then
+        memberTypeExists.Should().BeTrue();
+        adminTypeExists.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GivenExistingMember_WhenDeletingMember_ThenMemberIsRemoved()
+    {
+        // Given
+        var account = new Account
+        {
+            Id = Guid.CreateVersion7(),
+            Email = $"test.account{Guid.NewGuid()}@example.com",
+            HashedPassword = "hashedpassword",
+            HashSalt = "salty",
+            DateCreated = DateTime.UtcNow
+        };
+        _accountsRepository.Insert(account);
+        await _unitOfWork.SaveAsync(CancellationToken.None);
+
+        var member = new Member
+        {
+            Id = Guid.CreateVersion7(),
+            AccountGuid = account.Id,
+            Email = account.Email.ToLower(),
+            AccountType = 1,
+            GymSubscriptionType = 0,
+            Gender = 0,
+            DateModified = account.DateCreated,
+            TimeZone = TimeZoneInfo.Local.Id
+        };
+        _membersRepository.Insert(member);
+        await _unitOfWork.SaveAsync(CancellationToken.None);
+
+        // When
+        _membersRepository.Delete(member);
+        await _unitOfWork.SaveAsync(CancellationToken.None);
+
+        // Then
+        var members = await _membersRepository.FetchByCondition(m => m.AccountGuid == account.Id, CancellationToken.None);
+        members.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GivenMultipleMembers_WhenBulkInsertingMembers_ThenAllMembersAreInserted()
+    {
+        // Given
+        var accounts = new List<Account>();
+        var members = new List<Member>();
+        for (var i = 0; i < 3; i++)
+        {
+            var account = new Account
+            {
+                Id = Guid.CreateVersion7(),
+                Email = $"bulk.insert{Guid.NewGuid()}@example.com",
+                HashedPassword = "hashedpassword",
+                HashSalt = "salty",
+                DateCreated = DateTime.UtcNow
+            };
+            accounts.Add(account);
+            _accountsRepository.Insert(account);
+            members.Add(new Member
+            {
+                Id = Guid.CreateVersion7(),
+                AccountGuid = account.Id,
+                Email = account.Email.ToLower(),
+                AccountType = 1,
+                GymSubscriptionType = 0,
+                Gender = 0,
+                DateModified = account.DateCreated,
+                TimeZone = TimeZoneInfo.Local.Id
+            });
+        }
+        await _unitOfWork.SaveAsync(CancellationToken.None);
+
+        // When
+        _membersRepository.BulkInsert(members);
+        await _unitOfWork.SaveAsync(CancellationToken.None);
+
+        // Then
+        foreach (var account in accounts)
+        {
+            var found = await _membersRepository.FetchByCondition(m => m.AccountGuid == account.Id, CancellationToken.None);
+            found.Should().ContainSingle();
+        }
+    }
+
+    [Fact]
+    public async Task GivenMultipleMembers_WhenBulkDeletingMembers_ThenAllMembersAreRemoved()
+    {
+        // Given
+        var accounts = new List<Account>();
+        var members = new List<Member>();
+        for (var i = 0; i < 3; i++)
+        {
+            var account = new Account
+            {
+                Id = Guid.CreateVersion7(),
+                Email = $"bulk.delete{Guid.NewGuid()}@example.com",
+                HashedPassword = "hashedpassword",
+                HashSalt = "salty",
+                DateCreated = DateTime.UtcNow
+            };
+            accounts.Add(account);
+            _accountsRepository.Insert(account);
+            var member = new Member
+            {
+                Id = Guid.CreateVersion7(),
+                AccountGuid = account.Id,
+                Email = account.Email.ToLower(),
+                AccountType = 1,
+                GymSubscriptionType = 0,
+                Gender = 0,
+                DateModified = account.DateCreated,
+                TimeZone = TimeZoneInfo.Local.Id
+            };
+            members.Add(member);
+            _membersRepository.Insert(member);
+        }
+        await _unitOfWork.SaveAsync(CancellationToken.None);
+
+        // When
+        _membersRepository.BulkDelete(members);
+        await _unitOfWork.SaveAsync(CancellationToken.None);
+
+        // Then
+        foreach (var account in accounts)
+        {
+            var found = await _membersRepository.FetchByCondition(m => m.AccountGuid == account.Id, CancellationToken.None);
+            found.Should().BeEmpty();
+        }
+    }
+
     private (List<Account> testAccounts, List<Member> testMembers) GenerateTestingAccounts()
     {
         var accountsForTests = new List<Account>();

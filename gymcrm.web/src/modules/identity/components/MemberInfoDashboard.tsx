@@ -9,6 +9,9 @@ import {fullName, initials} from "../utils/memberDisplay";
 import {Badge} from "../../../shared/components/Badge";
 import {enumLabel} from "../../../shared/utils/mapper";
 import {MemberSessionCalendar} from "../../scheduling/components/MemberSessionCalendar";
+import {TrainerSessionRequests} from "../../scheduling/components/TrainerSessionRequests";
+import {TrainerSessionCalendar} from "../../scheduling/components/TrainerSessionCalendar";
+import {TrainerWorkingHoursSummary} from "../../scheduling/components/TrainerWorkingHoursSummary";
 import {AvatarUploadButton} from "./AvatarUploadButton";
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -106,7 +109,19 @@ export function MemberInfoDashboard({ userData, onUserDataChanged }: { userData:
                 </Card>
             </div>
 
-            {userData.accountType === AccountType.Member && <MemberSessionCalendar member={userData} />}
+            {(userData.accountType === AccountType.Member || userData.accountType === AccountType.Admin) && (
+                <MemberSessionCalendar member={userData} />
+            )}
+
+            {userData.accountType === AccountType.PersonalTrainer && userData.accountGuid && (
+                <>
+                    <TrainerSessionRequests trainerId={userData.accountGuid} />
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <TrainerSessionCalendar trainerId={userData.accountGuid} />
+                        <TrainerWorkingHoursSummary trainerId={userData.accountGuid} />
+                    </div>
+                </>
+            )}
         </div>
     );
 }

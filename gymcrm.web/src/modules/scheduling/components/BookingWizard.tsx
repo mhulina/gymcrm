@@ -1,23 +1,24 @@
 import {useEffect, useMemo, useState} from "react";
 import {Member} from "../../identity/types/member";
 import {fullName, initials} from "../../identity/utils/memberDisplay";
-import {TrainerAvailability} from "../types/trainerAvailability";
+import {AvailableSlot} from "../types/availableSlot";
 import {InsertTrainingSession} from "../types/insertTrainingSession";
-import {addTrainingSession, fetchAvailabilitiesForTrainer} from "../api/schedulingApi";
+import {addTrainingSession, fetchAvailableSlotsForTrainer} from "../api/schedulingApi";
 import {
     addMinutesToTime,
     buildLocalDateTime,
     convertWallClock,
-    dayOfWeekName,
     isPastDate,
+    parseLocalDateTime,
     toDateInputValue,
+    toTimeInputValue,
 } from "../utils/calendarDate";
 import {Button} from "../../../shared/components/Button";
 import {Banner} from "../../../shared/components/Banner";
 import {TextField} from "../../../shared/components/TextField";
+import {SelectField} from "../../../shared/components/SelectField";
 
-const STEP_LABELS = ["Select Trainer", "Choose Date & Time", "Confirm Booking"] as const;
-const DURATIONS = [30, 60, 90] as const;
+const STEP_LABELS = ["Select Trainer", "Choose Date & Time", "Send Request"] as const;
 
 interface Props {
     member: Member;
@@ -28,6 +29,11 @@ interface Props {
     onBooked: () => void;
 }
 
+interface MemberLocalSlot {
+    time: string;
+    durations: number[];
+}
+
 function parseDateInputValue(value: string): Date {
     const [year, month, day] = value.split("-").map(Number);
     return new Date(year, month - 1, day);
@@ -35,61 +41,93 @@ function parseDateInputValue(value: string): Date {
 
 export function BookingWizard({member, trainers, trainersLoading, initialDate, onClose, onBooked}: Props) {
     const [step, setStep] = useState<1 | 2 | 3>(1);
-    const [selectedTrainerId, setSelectedTrainerId] = useState(member.personalTrainerId ?? "");
-    const [trainerAvailability, setTrainerAvailability] = useState<TrainerAvailability | null>(null);
+    // Only pre-select the member's assigned trainer if they're actually in the (already
+    // bookable-hours-filtered) trainers list - otherwise steps 2-3 would resolve
+    // selectedTrainer to undefined and silently break.
+    const [selectedTrainerId, setSelectedTrainerId] = useState(
+        trainers.some((t) => t.accountGuid === member.personalTrainerId) ? member.personalTrainerId ?? "" : ""
+    );
     const [date, setDate] = useState(toDateInputValue(initialDate));
-    const [duration, setDuration] = useState<30 | 60 | 90>(60);
-    const [startTime, setStartTime] = useState("09:00");
+    const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
+    const [slotsLoading, setSlotsLoading] = useState(false);
+    const [startTime, setStartTime] = useState("");
+    const [duration, setDuration] = useState<30 | 60 | 90 | null>(null);
     const [description, setDescription] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (!selectedTrainerId) {
-            setTrainerAvailability(null);
-            return;
-        }
-        fetchAvailabilitiesForTrainer(selectedTrainerId).then((list) => setTrainerAvailability(list[0] ?? null));
-    }, [selectedTrainerId]);
 
     const memberZone = member.timeZone;
     const selectedTrainer = trainers.find((t) => t.accountGuid === selectedTrainerId);
     const trainerZone = selectedTrainer?.timeZone;
     const selectedDate = useMemo(() => parseDateInputValue(date), [date]);
-    const endTime = addMinutesToTime(startTime, duration);
 
-    // Trainer's working hours/day-off are naive values in the TRAINER's own timezone
-    // (see insertTrainingSession.ts) - the member picks date/time in their own zone, so
-    // everything read from trainerAvailability has to be translated through the
-    // trainer's local date/time first, then bounds shown back to the member get
-    // translated back. Falls back to no conversion until a trainer/zone is known.
-    const trainerLocalDate = trainerZone ? convertWallClock(date, startTime, memberZone, trainerZone).date : date;
-    const dailyForSelectedDate = (trainerAvailability?.dailyAvailabilities ?? []).find(
-        (daily) => daily.dayOfWeek === dayOfWeekName(parseDateInputValue(trainerLocalDate))
-    );
-    const isDayOff = dailyForSelectedDate?.isDayOff ?? false;
-    const workingHours = dailyForSelectedDate?.workingHours ?? [];
-    const minTimeTrainerLocal = workingHours.length > 0 ? workingHours.map((wh) => wh.startTime).sort()[0] : undefined;
-    const maxTimeTrainerLocal =
-        workingHours.length > 0 ? workingHours.map((wh) => wh.endTime).sort().slice(-1)[0] : undefined;
-    // These bounds are a soft UX hint (the server has final say) - not worth handling the
-    // rare case where converting a near-midnight bound would actually land on a different
-    // member-local calendar date than the one currently selected.
-    const minTime =
-        trainerZone && minTimeTrainerLocal
-            ? convertWallClock(trainerLocalDate, minTimeTrainerLocal, trainerZone, memberZone).time
-            : minTimeTrainerLocal;
-    const maxTime =
-        trainerZone && maxTimeTrainerLocal
-            ? convertWallClock(trainerLocalDate, maxTimeTrainerLocal, trainerZone, memberZone).time
-            : maxTimeTrainerLocal;
+    // Available start times/durations depend on the trainer's own schedule for that specific
+    // calendar day (working hours, existing sessions, time off, holidays) - re-fetched whenever
+    // the trainer or date changes. Noon is used as the reference instant for converting the
+    // member's selected date into the trainer's local calendar date (a stable middle-of-day
+    // choice, avoiding the near-midnight edge case this file already treats elsewhere as an
+    // accepted soft trade-off).
+    useEffect(() => {
+        if (!selectedTrainerId || !trainerZone) {
+            setAvailableSlots([]);
+            return;
+        }
+        setSlotsLoading(true);
+        const trainerLocalDate = convertWallClock(date, "12:00", memberZone, trainerZone).date;
+        fetchAvailableSlotsForTrainer(selectedTrainerId, trainerLocalDate)
+            .then(setAvailableSlots)
+            .finally(() => setSlotsLoading(false));
+    }, [selectedTrainerId, date, trainerZone, memberZone]);
+
+    // Converts each raw trainer-local slot into the member's own zone (same per-slot conversion
+    // pattern MemberSessionCalendar.tsx already uses for sessions), then keeps only the ones that
+    // still land on the member's currently-selected calendar date - guards the rare cross-midnight
+    // case, same accepted trade-off as the rest of this file.
+    const slotsInMemberZone = useMemo<MemberLocalSlot[]>(() => {
+        if (!trainerZone) return [];
+        return availableSlots
+            .map((slot) => {
+                const raw = parseLocalDateTime(slot.startTime);
+                const local = convertWallClock(toDateInputValue(raw), toTimeInputValue(raw), trainerZone, memberZone);
+                return {date: local.date, time: local.time, durations: slot.availableDurationsMinutes};
+            })
+            .filter((s) => s.date === date)
+            .sort((a, b) => a.time.localeCompare(b.time))
+            .map(({time, durations}) => ({time, durations}));
+    }, [availableSlots, trainerZone, memberZone, date]);
+
+    // Keeps startTime/duration pointing at a currently-offered slot whenever the slot list
+    // changes underneath them (new trainer, new date, or a slot that got taken) - falls back to
+    // the first available slot, or clears out entirely once nothing is available.
+    useEffect(() => {
+        if (slotsInMemberZone.length === 0) {
+            setStartTime("");
+            setDuration(null);
+            return;
+        }
+
+        const stillValid = slotsInMemberZone.find((s) => s.time === startTime);
+        if (stillValid) {
+            if (!duration || !stillValid.durations.includes(duration)) {
+                setDuration(stillValid.durations[0] as 30 | 60 | 90);
+            }
+            return;
+        }
+
+        setStartTime(slotsInMemberZone[0].time);
+        setDuration(slotsInMemberZone[0].durations[0] as 30 | 60 | 90);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [slotsInMemberZone]);
+
+    const selectedSlot = slotsInMemberZone.find((s) => s.time === startTime);
+    const endTime = startTime && duration ? addMinutesToTime(startTime, duration) : "";
 
     function handleClose() {
         onClose();
     }
 
     async function handleConfirm() {
-        if (!member.accountGuid || !selectedTrainerId || !trainerZone) return;
+        if (!member.accountGuid || !selectedTrainerId || !trainerZone || !startTime || !duration) return;
         setSubmitting(true);
         setError(null);
 
@@ -179,12 +217,6 @@ export function BookingWizard({member, trainers, trainersLoading, initialDate, o
 
             {step === 2 && (
                 <div className="space-y-4">
-                    {isDayOff && (
-                        <Banner variant="info">
-                            {selectedTrainer ? fullName(selectedTrainer) : "This trainer"} usually has this day off. You can still request it.
-                        </Banner>
-                    )}
-
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <TextField
                             id="bookingDate"
@@ -194,40 +226,52 @@ export function BookingWizard({member, trainers, trainersLoading, initialDate, o
                             value={date}
                             onChange={(e) => setDate(e.target.value)}
                         />
-                        <TextField
+                        <SelectField
                             id="bookingStartTime"
                             label="Start time"
-                            type="time"
-                            min={minTime}
-                            max={maxTime}
                             value={startTime}
+                            disabled={slotsLoading || slotsInMemberZone.length === 0}
                             onChange={(e) => setStartTime(e.target.value)}
-                        />
+                        >
+                            {slotsInMemberZone.length === 0 ? (
+                                <option value="">No available times</option>
+                            ) : (
+                                slotsInMemberZone.map((slot) => (
+                                    <option key={slot.time} value={slot.time}>{slot.time}</option>
+                                ))
+                            )}
+                        </SelectField>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Duration</label>
-                        <div className="flex gap-2">
-                            {DURATIONS.map((minutes) => (
-                                <button
-                                    key={minutes}
-                                    type="button"
-                                    onClick={() => setDuration(minutes)}
-                                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
-                                        duration === minutes
-                                            ? "border-emerald-500 bg-emerald-600 text-white"
-                                            : "border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-                                    }`}
-                                >
-                                    {minutes} min
-                                </button>
-                            ))}
+                    {slotsLoading ? (
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Checking availability...</p>
+                    ) : slotsInMemberZone.length === 0 ? (
+                        <Banner variant="info">No available times on this date.</Banner>
+                    ) : (
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Duration</label>
+                            <div className="flex gap-2">
+                                {(selectedSlot?.durations ?? []).map((minutes) => (
+                                    <button
+                                        key={minutes}
+                                        type="button"
+                                        onClick={() => setDuration(minutes as 30 | 60 | 90)}
+                                        className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+                                            duration === minutes
+                                                ? "border-emerald-500 bg-emerald-600 text-white"
+                                                : "border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                        }`}
+                                    >
+                                        {minutes} min
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     <div className="flex justify-end gap-2">
                         <Button type="button" variant="ghost" onClick={() => setStep(1)}>Back</Button>
-                        <Button type="button" disabled={isPastDate(selectedDate) || !startTime} onClick={() => setStep(3)}>
+                        <Button type="button" disabled={isPastDate(selectedDate) || !startTime || !duration} onClick={() => setStep(3)}>
                             Next
                         </Button>
                     </div>
@@ -274,7 +318,7 @@ export function BookingWizard({member, trainers, trainersLoading, initialDate, o
                     <div className="flex justify-end gap-2">
                         <Button type="button" variant="ghost" onClick={() => setStep(2)} disabled={submitting}>Back</Button>
                         <Button type="button" disabled={submitting} onClick={handleConfirm}>
-                            {submitting ? "Booking..." : "Confirm booking"}
+                            {submitting ? "Requesting..." : "Send request"}
                         </Button>
                     </div>
                 </div>

@@ -1,12 +1,29 @@
 # Runs on the private runner "fluffy-PC" (tag: gymcrm, Docker executor).
-# No deploy stage - there's no environment to deploy to yet. This just proves the
-# solution builds, the test suites pass against a real Postgres, and the GymCRM.Api
-# Docker image still builds.
+# The docker-build stage builds both prod images (api, webapp) and pushes them to
+# DigitalOcean Container Registry (DOCR) - the VPS deploy target only ever pulls
+# pre-built images, it never builds anything itself (too little RAM for a fresh
+# dotnet+npm build). See VPS_DEPLOY.md.
+#
+# Both images share ONE DOCR repository ("gymcrm"), distinguished by tag prefix
+# (api-... / webapp-...) rather than being two separate repositories - DOCR's free
+# Starter tier only includes 1 repository, and this fits both images into it.
+# Needs two GitLab CI/CD variables: DO_REGISTRY_NAME (your DOCR registry's name) and
+# DO_REGISTRY_EMAIL + DO_REGISTRY_TOKEN (a DigitalOcean account email + API token with
+# registry read/write scope, from the DO dashboard's API section).
+#
+# docker-build and deploy only ever run automatically on a merge into master - on merge
+# request pipelines they're visible but manual (so you CAN trigger one from an MR if you
+# want to test something, but it never happens by itself). deploy additionally needs
+# DEPLOY_SSH_PRIVATE_KEY (a dedicated deploy keypair's private key, its public half added
+# to the droplet's ~/.ssh/authorized_keys) to SSH in and pull+restart - set it up as a
+# File-type variable, not a plain one (GitLab can't mask a multi-line SSH key). See
+# VPS_DEPLOY.md.
 
 stages:
   - build
   - test
   - docker
+  - deploy
 
 default:
   tags:
@@ -50,5 +67,58 @@ docker-build:
   # No docker:dind service and no DOCKER_TLS_CERTDIR needed here: the runner mounts
   # /var/run/docker.sock straight into the job container (see its config.toml), so
   # this talks directly to the host's Docker daemon instead of a nested one.
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+      allow_failure: true
+    - if: $CI_COMMIT_BRANCH == "master"
+      when: on_success
+    - when: never
+  variables:
+    DOCR_REPO: registry.digitalocean.com/${DO_REGISTRY_NAME}/gymcrm
   script:
-    - docker build -f GymCRM.Api/Dockerfile -t gymcrm-api:${CI_COMMIT_SHORT_SHA} .
+    - docker login -u $DO_REGISTRY_EMAIL -p $DO_REGISTRY_TOKEN registry.digitalocean.com
+    - docker build -f GymCRM.Api/Dockerfile
+        -t ${DOCR_REPO}:api-${CI_COMMIT_SHORT_SHA}
+        -t ${DOCR_REPO}:api-latest
+        .
+    - docker push ${DOCR_REPO}:api-${CI_COMMIT_SHORT_SHA}
+    - docker push ${DOCR_REPO}:api-latest
+    - docker build -f gymcrm.web/Dockerfile.prod
+        --build-arg REACT_APP_API_URL=http://$DEPLOY_IP
+        --build-arg REACT_APP_IDENTITY_API_URL=http://$DEPLOY_IP/api/v1/
+        --build-arg REACT_APP_SCHEDULING_API_URL=http://$DEPLOY_IP/api/v1/
+        --build-arg REACT_APP_ACCOUNTS_ENDPOINT=http://$DEPLOY_IP/api/v1/Authentication/
+        --build-arg REACT_APP_MEMBERS_ENDPOINT=http://$DEPLOY_IP/api/v1/Members/
+        -t ${DOCR_REPO}:webapp-${CI_COMMIT_SHORT_SHA}
+        -t ${DOCR_REPO}:webapp-latest
+        gymcrm.web
+    - docker push ${DOCR_REPO}:webapp-${CI_COMMIT_SHORT_SHA}
+    - docker push ${DOCR_REPO}:webapp-latest
+
+deploy:
+  stage: deploy
+  image: alpine:latest
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+      allow_failure: true
+    - if: $CI_COMMIT_BRANCH == "master"
+      when: on_success
+    - when: never
+  script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    # DEPLOY_SSH_PRIVATE_KEY is a File-type CI/CD variable, not a plain one - GitLab can't
+    # mask a multi-line value, so the value is written to disk instead and this holds that
+    # file's path, not the key content itself.
+    - chmod 600 "$DEPLOY_SSH_PRIVATE_KEY"
+    - ssh-add "$DEPLOY_SSH_PRIVATE_KEY"
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - ssh-keyscan -H $DEPLOY_IP >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    - >-
+      ssh root@$DEPLOY_IP
+      "cd ~/gymcrm &&
+      docker compose -f docker-compose.prod.yml --env-file .env.production pull &&
+      docker compose -f docker-compose.prod.yml --env-file .env.production up -d"

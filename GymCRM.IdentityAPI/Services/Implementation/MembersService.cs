@@ -96,7 +96,7 @@ namespace GymCRM.IdentityAPI.Services.Implementation
 			}
 		}
 
-		public async Task<bool> UpdateMemberAsync(Member insertMember, CancellationToken cancellationToken = default)
+		public async Task<bool> UpdateMemberAsync(Member insertMember, Guid callerAccountGuid, CancellationToken cancellationToken = default)
 		{
 			if (insertMember == null
 			    || insertMember.AccountGuid == Guid.Empty)
@@ -114,22 +114,24 @@ namespace GymCRM.IdentityAPI.Services.Implementation
 				{
 					var ex = new MemberNotFoundException("Member not found in DB");
 					_logger.Error(ex, ex.Message);
-					
+
 					throw ex;
 				}
 
+				await EnsureSelfOrAdminAsync(existingMember.AccountGuid, callerAccountGuid, cancellationToken);
+
 				var newMember = _mapper.Map<Models.Entities.Member>(insertMember);
 				var updatedMember = MergeExistingMemberDataWithUpdateData(newMember, existingMember);
-				
+
 				_repository.Update(updatedMember);
 				var result = await _unitOfWork.SaveAsync(cancellationToken);
-				
+
 				return result;
 			}
-			catch (Exception ex)
+			catch (Exception ex) when (ex is not (MemberNotFoundException or MemberAccessDeniedException))
 			{
 				_logger.Error(ex, ex.Message);
-				
+
 				return false;
 			}
 		}
@@ -302,6 +304,29 @@ namespace GymCRM.IdentityAPI.Services.Implementation
 			}
 
 			return existingMember;
+		}
+
+		/// <summary>
+		/// Throws <see cref="MemberAccessDeniedException"/> unless the caller is either updating
+		/// their own record or is an Admin.
+		/// </summary>
+		private async Task EnsureSelfOrAdminAsync(Guid targetAccountGuid, Guid callerAccountGuid, CancellationToken cancellationToken)
+		{
+			if (targetAccountGuid == callerAccountGuid)
+			{
+				return;
+			}
+
+			var caller = (await _repository
+				.FetchByCondition(x => x.AccountGuid == callerAccountGuid, cancellationToken))
+				.FirstOrDefault();
+
+			if (caller is null || caller.AccountType != (int)AccountType.Admin)
+			{
+				var ex = new MemberAccessDeniedException();
+				_logger.Warning(ex, "Blocked profile update on {AccountGuid} by non-owning, non-admin caller {CallerAccountGuid}", targetAccountGuid, callerAccountGuid);
+				throw ex;
+			}
 		}
 
 		/// <summary>

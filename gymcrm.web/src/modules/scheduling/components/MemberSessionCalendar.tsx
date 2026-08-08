@@ -6,7 +6,12 @@ import {TrainingSession} from "../types/trainingSession";
 import {TrainingSessionStatus} from "../types/trainingSessionStatus";
 import {TimeOff} from "../types/timeOff";
 import {TrainerAvailability} from "../types/trainerAvailability";
-import {fetchAvailabilitiesForTrainer, fetchTimeOffForTrainer, fetchTrainingSessionsForClient} from "../api/schedulingApi";
+import {
+    fetchAvailabilitiesForTrainer,
+    fetchTimeOffForTrainer,
+    fetchTrainerIdsWithWorkingHours,
+    fetchTrainingSessionsForClient,
+} from "../api/schedulingApi";
 import {
     buildLocalDateTime,
     convertWallClock,
@@ -65,8 +70,13 @@ export function MemberSessionCalendar({member}: { member: Member }) {
     useEffect(reloadSessions, [member.accountGuid]);
 
     useEffect(() => {
-        fetchAllMembers().then((members) => {
-            setTrainers(members.filter((m) => m.accountType === AccountType.PersonalTrainer));
+        Promise.all([fetchAllMembers(), fetchTrainerIdsWithWorkingHours()]).then(([members, trainerIdsWithHours]) => {
+            const bookableTrainerIds = new Set(trainerIdsWithHours);
+            setTrainers(
+                members.filter(
+                    (m) => m.accountType === AccountType.PersonalTrainer && m.accountGuid && bookableTrainerIds.has(m.accountGuid)
+                )
+            );
             setTrainersLoading(false);
         });
     }, []);

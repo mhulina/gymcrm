@@ -1,5 +1,6 @@
 ﻿using GymCRM.SchedulingAPI.Constants;
 using GymCRM.SchedulingAPI.Models.DTOs;
+using GymCRM.SchedulingAPI.Models.Enums;
 using GymCRM.SchedulingAPI.Services.Interface;
 
 namespace GymCRM.SchedulingAPI.Services.Implementation;
@@ -26,8 +27,9 @@ public class BookingValidationService : IBookingValidationService
     }
     
     public async Task<ValidationResult> ValidateBookingAsync(
-        InsertTrainingSession booking, 
-        CancellationToken cancellationToken = default)
+        InsertTrainingSession booking,
+        CancellationToken cancellationToken = default,
+        Guid? excludeSessionId = null)
     {
         if (booking is null)
         {
@@ -60,7 +62,7 @@ public class BookingValidationService : IBookingValidationService
             return ValidationResult.Fail(ValidationMessages.BookingOutsideAvailability);
         }
 
-        if (await ValidateIfTrainerSessionsOverlapBooking(booking, cancellationToken))
+        if (await ValidateIfTrainerSessionsOverlapBooking(booking, excludeSessionId, cancellationToken))
         {
             return ValidationResult.Fail(ValidationMessages.BookingOverlapsExisting);
         }
@@ -68,8 +70,19 @@ public class BookingValidationService : IBookingValidationService
         return ValidationResult.Success();
     }
 
+    // A session only occupies the trainer's time while it's actually active - Requested (not
+    // yet declined) or Booked (accepted). Cancelled/Completed/NoShow/Reschedule sessions must
+    // NOT block a new booking in that slot, otherwise e.g. declining a request would leave the
+    // slot permanently stuck instead of freeing it back up.
+    private static readonly int[] ActiveTrainingSessionStatuses =
+    {
+        (int)TrainingSessionStatus.Requested,
+        (int)TrainingSessionStatus.Booked
+    };
+
     private async Task<bool> ValidateIfTrainerSessionsOverlapBooking(
         InsertTrainingSession booking,
+        Guid? excludeSessionId,
         CancellationToken cancellationToken)
     {
         var trainerBookingsInMonth = (await _trainingSessionsService
@@ -77,10 +90,12 @@ public class BookingValidationService : IBookingValidationService
                 booking.TrainerId,
                 booking.StartTime.Month,
                 cancellationToken: cancellationToken))
+            .Where(x => ActiveTrainingSessionStatuses.Contains(x.Status))
+            .Where(x => excludeSessionId is null || x.Id != excludeSessionId)
             .ToList();
 
         var result = trainerBookingsInMonth
-            .Any(x => booking.StartTime < x.EndTime.AddMinutes(BufferBetweenTrainingSessions) 
+            .Any(x => booking.StartTime < x.EndTime.AddMinutes(BufferBetweenTrainingSessions)
                 && x.StartTime < booking.EndTime.AddMinutes(BufferBetweenTrainingSessions));
 
         return result;

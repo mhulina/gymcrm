@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using AutoMapper;
 using FluentAssertions;
 using GymCRM.SchedulingAPI.Infrastructure.Interface;
+using GymCRM.SchedulingAPI.Models;
 using GymCRM.SchedulingAPI.Models.Entities;
 using GymCRM.SchedulingAPI.Models.Enums;
 using GymCRM.SchedulingAPI.Services.Implementation;
@@ -135,7 +136,7 @@ public class TestTrainingSessionsService
     }
 
     [Fact]
-    public async Task GivenValidInsertTrainingSession_WhenInsertingTrainingSession_ThenSessionIsAddedAsBooked()
+    public async Task GivenValidInsertTrainingSession_WhenInsertingTrainingSession_ThenSessionIsAddedAsRequested()
     {
         // Given
         var repositoryMock = new Mock<ITrainingSessionsRepository>();
@@ -157,7 +158,7 @@ public class TestTrainingSessionsService
         repositoryMock.Verify(x => x.Add(It.Is<TrainingSession>(t =>
             t.TrainerId == insert.TrainerId
             && t.ClientId == insert.ClientId
-            && t.Status == (int)TrainingSessionStatus.Booked)), Times.Once);
+            && t.Status == (int)TrainingSessionStatus.Requested)), Times.Once);
     }
 
     [Fact]
@@ -227,6 +228,289 @@ public class TestTrainingSessionsService
         // Then
         result.Should().BeTrue();
         repositoryMock.Verify(x => x.Update(It.Is<TrainingSession>(t => t.Id == dto.Id && t.Status == (int)TrainingSessionStatus.Reschedule)), Times.Once);
+    }
+
+    [Fact]
+    public async Task GivenNonExistentId_WhenGettingTrainingSessionById_ThenNullIsReturned()
+    {
+        // Given
+        var service = CreateTrainingSessionsService(repository: CreateRepositoryMock().Object);
+
+        // When
+        var result = await service.GetTrainingSessionByIdAsync(Guid.NewGuid());
+
+        // Then
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GivenExistingId_WhenGettingTrainingSessionById_ThenMatchingSessionIsReturned()
+    {
+        // Given
+        var session = CreateTrainingSession();
+        var service = CreateTrainingSessionsService(repository: CreateRepositoryMock(session).Object);
+
+        // When
+        var result = await service.GetTrainingSessionByIdAsync(session.Id);
+
+        // Then
+        result.Should().NotBeNull();
+        result!.Id.Should().Be(session.Id);
+    }
+
+    [Fact]
+    public async Task GivenNonExistentId_WhenAcceptingTrainingSession_ThenFalseIsReturned()
+    {
+        // Given
+        var service = CreateTrainingSessionsService(repository: CreateRepositoryMock().Object);
+
+        // When
+        var result = await service.AcceptTrainingSessionAsync(Guid.NewGuid(), Guid.NewGuid(), callerIsAdmin: false);
+
+        // Then
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GivenNonOwningNonAdminCaller_WhenAcceptingTrainingSession_ThenAccessDeniedExceptionIsThrown()
+    {
+        // Given
+        var session = CreateTrainingSession(status: TrainingSessionStatus.Requested);
+        var service = CreateTrainingSessionsService(repository: CreateRepositoryMock(session).Object);
+
+        // When
+        Func<Task> act = () => service.AcceptTrainingSessionAsync(session.Id, Guid.NewGuid(), callerIsAdmin: false);
+
+        // Then
+        await act.Should().ThrowAsync<TrainingSessionAccessDeniedException>();
+    }
+
+    [Fact]
+    public async Task GivenSessionNotInRequestedStatus_WhenAcceptingTrainingSession_ThenFalseIsReturned()
+    {
+        // Given
+        var session = CreateTrainingSession(status: TrainingSessionStatus.Booked);
+        var service = CreateTrainingSessionsService(repository: CreateRepositoryMock(session).Object);
+
+        // When
+        var result = await service.AcceptTrainingSessionAsync(session.Id, session.TrainerId, callerIsAdmin: false);
+
+        // Then
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GivenOwningTrainerCaller_WhenAcceptingTrainingSession_ThenSessionIsBooked()
+    {
+        // Given
+        var session = CreateTrainingSession(status: TrainingSessionStatus.Requested);
+        var repositoryMock = CreateRepositoryMock(session);
+        var service = CreateTrainingSessionsService(
+            repository: repositoryMock.Object,
+            unitOfWork: CreateUnitOfWorkMock(true).Object);
+
+        // When
+        var result = await service.AcceptTrainingSessionAsync(session.Id, session.TrainerId, callerIsAdmin: false);
+
+        // Then
+        result.Should().BeTrue();
+        repositoryMock.Verify(x => x.Update(It.Is<TrainingSession>(t =>
+            t.Id == session.Id && t.Status == (int)TrainingSessionStatus.Booked)), Times.Once);
+    }
+
+    [Fact]
+    public async Task GivenAdminCaller_WhenAcceptingAnotherTrainersSession_ThenSessionIsBooked()
+    {
+        // Given
+        var session = CreateTrainingSession(status: TrainingSessionStatus.Requested);
+        var repositoryMock = CreateRepositoryMock(session);
+        var service = CreateTrainingSessionsService(
+            repository: repositoryMock.Object,
+            unitOfWork: CreateUnitOfWorkMock(true).Object);
+
+        // When
+        var result = await service.AcceptTrainingSessionAsync(session.Id, Guid.NewGuid(), callerIsAdmin: true);
+
+        // Then
+        result.Should().BeTrue();
+        repositoryMock.Verify(x => x.Update(It.Is<TrainingSession>(t =>
+            t.Id == session.Id && t.Status == (int)TrainingSessionStatus.Booked)), Times.Once);
+    }
+
+    [Fact]
+    public async Task GivenNonExistentId_WhenDecliningTrainingSession_ThenFalseIsReturned()
+    {
+        // Given
+        var service = CreateTrainingSessionsService(repository: CreateRepositoryMock().Object);
+
+        // When
+        var result = await service.DeclineTrainingSessionAsync(Guid.NewGuid(), Guid.NewGuid(), callerIsAdmin: false);
+
+        // Then
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GivenNonOwningNonAdminCaller_WhenDecliningTrainingSession_ThenAccessDeniedExceptionIsThrown()
+    {
+        // Given
+        var session = CreateTrainingSession(status: TrainingSessionStatus.Requested);
+        var service = CreateTrainingSessionsService(repository: CreateRepositoryMock(session).Object);
+
+        // When
+        Func<Task> act = () => service.DeclineTrainingSessionAsync(session.Id, Guid.NewGuid(), callerIsAdmin: false);
+
+        // Then
+        await act.Should().ThrowAsync<TrainingSessionAccessDeniedException>();
+    }
+
+    [Fact]
+    public async Task GivenSessionNotInRequestedStatus_WhenDecliningTrainingSession_ThenFalseIsReturned()
+    {
+        // Given
+        var session = CreateTrainingSession(status: TrainingSessionStatus.Booked);
+        var service = CreateTrainingSessionsService(repository: CreateRepositoryMock(session).Object);
+
+        // When
+        var result = await service.DeclineTrainingSessionAsync(session.Id, session.TrainerId, callerIsAdmin: false);
+
+        // Then
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GivenOwningTrainerCaller_WhenDecliningTrainingSession_ThenSessionIsCancelled()
+    {
+        // Given
+        var session = CreateTrainingSession(status: TrainingSessionStatus.Requested);
+        var repositoryMock = CreateRepositoryMock(session);
+        var service = CreateTrainingSessionsService(
+            repository: repositoryMock.Object,
+            unitOfWork: CreateUnitOfWorkMock(true).Object);
+
+        // When
+        var result = await service.DeclineTrainingSessionAsync(session.Id, session.TrainerId, callerIsAdmin: false);
+
+        // Then
+        result.Should().BeTrue();
+        repositoryMock.Verify(x => x.Update(It.Is<TrainingSession>(t =>
+            t.Id == session.Id && t.Status == (int)TrainingSessionStatus.Cancelled)), Times.Once);
+    }
+
+    [Fact]
+    public async Task GivenAdminCaller_WhenDecliningAnotherTrainersSession_ThenSessionIsCancelled()
+    {
+        // Given
+        var session = CreateTrainingSession(status: TrainingSessionStatus.Requested);
+        var repositoryMock = CreateRepositoryMock(session);
+        var service = CreateTrainingSessionsService(
+            repository: repositoryMock.Object,
+            unitOfWork: CreateUnitOfWorkMock(true).Object);
+
+        // When
+        var result = await service.DeclineTrainingSessionAsync(session.Id, Guid.NewGuid(), callerIsAdmin: true);
+
+        // Then
+        result.Should().BeTrue();
+        repositoryMock.Verify(x => x.Update(It.Is<TrainingSession>(t =>
+            t.Id == session.Id && t.Status == (int)TrainingSessionStatus.Cancelled)), Times.Once);
+    }
+
+    [Fact]
+    public async Task GivenNonExistentId_WhenReschedulingTrainingSession_ThenFalseIsReturned()
+    {
+        // Given
+        var service = CreateTrainingSessionsService(repository: CreateRepositoryMock().Object);
+        var newStart = DateTime.UtcNow.AddDays(1);
+
+        // When
+        var result = await service.RescheduleTrainingSessionAsync(
+            Guid.NewGuid(), newStart, newStart.AddHours(1), Guid.NewGuid(), callerIsAdmin: false);
+
+        // Then
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GivenNonOwningNonAdminCaller_WhenReschedulingTrainingSession_ThenAccessDeniedExceptionIsThrown()
+    {
+        // Given
+        var session = CreateTrainingSession(status: TrainingSessionStatus.Requested);
+        var service = CreateTrainingSessionsService(repository: CreateRepositoryMock(session).Object);
+        var newStart = DateTime.UtcNow.AddDays(1);
+
+        // When
+        Func<Task> act = () => service.RescheduleTrainingSessionAsync(
+            session.Id, newStart, newStart.AddHours(1), Guid.NewGuid(), callerIsAdmin: false);
+
+        // Then
+        await act.Should().ThrowAsync<TrainingSessionAccessDeniedException>();
+    }
+
+    [Fact]
+    public async Task GivenSessionNotInRequestedStatus_WhenReschedulingTrainingSession_ThenFalseIsReturned()
+    {
+        // Given
+        var session = CreateTrainingSession(status: TrainingSessionStatus.Booked);
+        var service = CreateTrainingSessionsService(repository: CreateRepositoryMock(session).Object);
+        var newStart = DateTime.UtcNow.AddDays(1);
+
+        // When
+        var result = await service.RescheduleTrainingSessionAsync(
+            session.Id, newStart, newStart.AddHours(1), session.TrainerId, callerIsAdmin: false);
+
+        // Then
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GivenOwningTrainerCaller_WhenReschedulingTrainingSession_ThenSessionIsUpdatedAndBooked()
+    {
+        // Given
+        var session = CreateTrainingSession(status: TrainingSessionStatus.Requested);
+        var repositoryMock = CreateRepositoryMock(session);
+        var service = CreateTrainingSessionsService(
+            repository: repositoryMock.Object,
+            unitOfWork: CreateUnitOfWorkMock(true).Object);
+        var newStart = DateTime.UtcNow.AddDays(1);
+        var newEnd = newStart.AddHours(1);
+
+        // When
+        var result = await service.RescheduleTrainingSessionAsync(
+            session.Id, newStart, newEnd, session.TrainerId, callerIsAdmin: false);
+
+        // Then
+        result.Should().BeTrue();
+        repositoryMock.Verify(x => x.Update(It.Is<TrainingSession>(t =>
+            t.Id == session.Id
+            && t.StartTime == newStart
+            && t.EndTime == newEnd
+            && t.Status == (int)TrainingSessionStatus.Booked)), Times.Once);
+    }
+
+    [Fact]
+    public async Task GivenAdminCaller_WhenReschedulingAnotherTrainersSession_ThenSessionIsUpdatedAndBooked()
+    {
+        // Given
+        var session = CreateTrainingSession(status: TrainingSessionStatus.Requested);
+        var repositoryMock = CreateRepositoryMock(session);
+        var service = CreateTrainingSessionsService(
+            repository: repositoryMock.Object,
+            unitOfWork: CreateUnitOfWorkMock(true).Object);
+        var newStart = DateTime.UtcNow.AddDays(1);
+        var newEnd = newStart.AddHours(1);
+
+        // When
+        var result = await service.RescheduleTrainingSessionAsync(
+            session.Id, newStart, newEnd, Guid.NewGuid(), callerIsAdmin: true);
+
+        // Then
+        result.Should().BeTrue();
+        repositoryMock.Verify(x => x.Update(It.Is<TrainingSession>(t =>
+            t.Id == session.Id
+            && t.StartTime == newStart
+            && t.EndTime == newEnd
+            && t.Status == (int)TrainingSessionStatus.Booked)), Times.Once);
     }
 
     private static TrainingSession CreateTrainingSession(

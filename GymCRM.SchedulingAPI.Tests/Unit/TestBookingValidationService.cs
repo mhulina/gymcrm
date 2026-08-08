@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 using GymCRM.SchedulingAPI.Constants;
 using GymCRM.SchedulingAPI.Models.DTOs;
+using GymCRM.SchedulingAPI.Models.Enums;
 using GymCRM.SchedulingAPI.Services.Implementation;
 using GymCRM.SchedulingAPI.Services.Interface;
 using GymCRM.SchedulingAPI.Tests.Unit.TestData;
@@ -136,6 +137,137 @@ public class TestBookingValidationService
         result.Errors.Should().BeEquivalentTo(expectedResult.Errors);
     }
 
+    [Fact]
+    public async Task GivenOverlappingSessionMatchesExcludeSessionId_WhenValidatingBooking_ThenValidationSucceeds()
+    {
+        // Given
+        var trainerId = Guid.CreateVersion7();
+        var baseStartTime = DateTime.UtcNow.AddDays(1).Date.AddHours(10);
+        var booking = new InsertTrainingSession
+        {
+            ClientId = Guid.CreateVersion7(),
+            TrainerId = trainerId,
+            StartTime = baseStartTime,
+            EndTime = baseStartTime.AddMinutes(60)
+        };
+        var overlappingSession = new TrainingSession
+        {
+            Id = Guid.CreateVersion7(),
+            StartTime = baseStartTime,
+            EndTime = baseStartTime.AddMinutes(60),
+            TrainerId = trainerId,
+            ClientId = Guid.CreateVersion7(),
+            Status = (int)TrainingSessionStatus.Booked
+        };
+        var service = CreateBookingValidationServiceForOverlapScenario(new List<TrainingSession> { overlappingSession });
+
+        // When
+        var result = await service.ValidateBookingAsync(booking, excludeSessionId: overlappingSession.Id);
+
+        // Then
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GivenOverlappingSessionWithDifferentId_WhenValidatingBookingWithExcludeSessionId_ThenValidationStillFails()
+    {
+        // Given
+        var trainerId = Guid.CreateVersion7();
+        var baseStartTime = DateTime.UtcNow.AddDays(1).Date.AddHours(10);
+        var booking = new InsertTrainingSession
+        {
+            ClientId = Guid.CreateVersion7(),
+            TrainerId = trainerId,
+            StartTime = baseStartTime,
+            EndTime = baseStartTime.AddMinutes(60)
+        };
+        var overlappingSession = new TrainingSession
+        {
+            Id = Guid.CreateVersion7(),
+            StartTime = baseStartTime,
+            EndTime = baseStartTime.AddMinutes(60),
+            TrainerId = trainerId,
+            ClientId = Guid.CreateVersion7(),
+            Status = (int)TrainingSessionStatus.Booked
+        };
+        var service = CreateBookingValidationServiceForOverlapScenario(new List<TrainingSession> { overlappingSession });
+
+        // When
+        var result = await service.ValidateBookingAsync(booking, excludeSessionId: Guid.CreateVersion7());
+
+        // Then
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(ValidationMessages.BookingOverlapsExisting);
+    }
+
+    [Theory]
+    [InlineData(TrainingSessionStatus.Cancelled)]
+    [InlineData(TrainingSessionStatus.Completed)]
+    [InlineData(TrainingSessionStatus.NoShow)]
+    [InlineData(TrainingSessionStatus.Reschedule)]
+    public async Task GivenOverlappingSessionWithInactiveStatus_WhenValidatingBooking_ThenValidationSucceeds(
+        TrainingSessionStatus inactiveStatus)
+    {
+        // Given
+        var trainerId = Guid.CreateVersion7();
+        var baseStartTime = DateTime.UtcNow.AddDays(1).Date.AddHours(10);
+        var booking = new InsertTrainingSession
+        {
+            ClientId = Guid.CreateVersion7(),
+            TrainerId = trainerId,
+            StartTime = baseStartTime,
+            EndTime = baseStartTime.AddMinutes(60)
+        };
+        var overlappingSession = new TrainingSession
+        {
+            Id = Guid.CreateVersion7(),
+            StartTime = baseStartTime,
+            EndTime = baseStartTime.AddMinutes(60),
+            TrainerId = trainerId,
+            ClientId = Guid.CreateVersion7(),
+            Status = (int)inactiveStatus
+        };
+        var service = CreateBookingValidationServiceForOverlapScenario(new List<TrainingSession> { overlappingSession });
+
+        // When
+        var result = await service.ValidateBookingAsync(booking);
+
+        // Then
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GivenOverlappingRequestedSession_WhenValidatingBooking_ThenValidationFails()
+    {
+        // Given
+        var trainerId = Guid.CreateVersion7();
+        var baseStartTime = DateTime.UtcNow.AddDays(1).Date.AddHours(10);
+        var booking = new InsertTrainingSession
+        {
+            ClientId = Guid.CreateVersion7(),
+            TrainerId = trainerId,
+            StartTime = baseStartTime,
+            EndTime = baseStartTime.AddMinutes(60)
+        };
+        var overlappingSession = new TrainingSession
+        {
+            Id = Guid.CreateVersion7(),
+            StartTime = baseStartTime,
+            EndTime = baseStartTime.AddMinutes(60),
+            TrainerId = trainerId,
+            ClientId = Guid.CreateVersion7(),
+            Status = (int)TrainingSessionStatus.Requested
+        };
+        var service = CreateBookingValidationServiceForOverlapScenario(new List<TrainingSession> { overlappingSession });
+
+        // When
+        var result = await service.ValidateBookingAsync(booking);
+
+        // Then
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(ValidationMessages.BookingOverlapsExisting);
+    }
+
     private BookingValidationService CreateBookingValidationService(
         ITrainerAvailabilitiesService trainerAvailabilitiesService = null,
         ITrainingSessionsService trainingSessionsService = null,
@@ -143,11 +275,54 @@ public class TestBookingValidationService
         IHolidayService holidayService = null)
     {
         var service = new BookingValidationService(
-            trainerAvailabilitiesService, 
-            trainingSessionsService, 
-            timeOffService, 
+            trainerAvailabilitiesService,
+            trainingSessionsService,
+            timeOffService,
             holidayService);
 
         return service;
+    }
+
+    // Builds a service where the trainer is working, has no time off/holidays, and the only
+    // thing that can fail validation is the overlap check against the given sessions - isolates
+    // the excludeSessionId/active-status filtering behaviour from the rest of the pipeline.
+    private BookingValidationService CreateBookingValidationServiceForOverlapScenario(
+        List<TrainingSession> trainerSessionsInMonth)
+    {
+        var trainerAvailabilitiesServiceMock = new Mock<ITrainerAvailabilitiesService>();
+        trainerAvailabilitiesServiceMock
+            .Setup(x => x.IsTrainerWorkingOnDateAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var timeOffServiceMock = new Mock<ITimeOffService>();
+        timeOffServiceMock
+            .Setup(x => x.GetAllForTrainerIdInMonthAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<TimeOff>());
+        var trainingSessionsServiceMock = new Mock<ITrainingSessionsService>();
+        trainingSessionsServiceMock
+            .Setup(x => x.GetTrainingSessionsForTrainerIdInMonthAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(trainerSessionsInMonth);
+        var holidayServiceMock = new Mock<IHolidayService>();
+        holidayServiceMock
+            .Setup(x => x.FetchHolidaysForMonth(
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Holiday>());
+
+        return CreateBookingValidationService(
+            trainerAvailabilitiesService: trainerAvailabilitiesServiceMock.Object,
+            trainingSessionsService: trainingSessionsServiceMock.Object,
+            timeOffService: timeOffServiceMock.Object,
+            holidayService: holidayServiceMock.Object);
     }
 }

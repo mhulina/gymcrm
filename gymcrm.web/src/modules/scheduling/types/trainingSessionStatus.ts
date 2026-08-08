@@ -6,4 +6,5 @@ export enum TrainingSessionStatus {
     Completed,
     NoShow,
     Reschedule,
+    Requested,
 }

@@ -53,6 +53,81 @@ public class TestTrainerAvailabilitiesRepository : TestBase
         result.Should().HaveCount(5);
     }
     
+    [Fact]
+    public async Task GivenTrainerId_WhenFetchingByCondition_ThenOnlyMatchingAvailabilitiesAreReturned()
+    {
+        // Given
+        await InsertDummyDataIntoRepository();
+        var targetTrainerId = Guid.CreateVersion7();
+        var targetAvailability = new TrainerAvailability
+        {
+            Id = Guid.CreateVersion7(),
+            TrainerId = targetTrainerId,
+            WorkingWeekends = true,
+            DateCreatedUtc = DateTime.UtcNow,
+            DateModifiedUtc = DateTime.UtcNow
+        };
+        _repository.Add(targetAvailability);
+        await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+
+        // When
+        var result = (await _repository.FetchByConditionAsync(x => x.TrainerId == targetTrainerId, CancellationToken.None)).ToList();
+
+        // Then
+        result.Should().ContainSingle(x => x.Id == targetAvailability.Id);
+    }
+
+    [Fact]
+    public async Task GivenExistingAvailability_WhenRemoving_ThenAvailabilityIsDeleted()
+    {
+        // Given
+        var trainerAvailability = new TrainerAvailability
+        {
+            Id = Guid.CreateVersion7(),
+            TrainerId = Guid.CreateVersion7(),
+            WorkingWeekends = false,
+            DateCreatedUtc = DateTime.UtcNow,
+            DateModifiedUtc = DateTime.UtcNow
+        };
+        _repository.Add(trainerAvailability);
+        await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+
+        // When
+        _repository.Remove(trainerAvailability);
+        var result = await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+
+        // Then
+        result.Should().BeTrue();
+        var remaining = await _repository.FetchByConditionAsync(x => x.Id == trainerAvailability.Id, CancellationToken.None);
+        remaining.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GivenExistingAvailability_WhenUpdating_ThenChangesArePersisted()
+    {
+        // Given
+        var trainerAvailability = new TrainerAvailability
+        {
+            Id = Guid.CreateVersion7(),
+            TrainerId = Guid.CreateVersion7(),
+            WorkingWeekends = false,
+            DateCreatedUtc = DateTime.UtcNow,
+            DateModifiedUtc = DateTime.UtcNow
+        };
+        _repository.Add(trainerAvailability);
+        await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+
+        // When
+        trainerAvailability.WorkingWeekends = true;
+        _repository.Update(trainerAvailability);
+        var result = await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+
+        // Then
+        result.Should().BeTrue();
+        var updated = (await _repository.FetchByConditionAsync(x => x.Id == trainerAvailability.Id, CancellationToken.None)).First();
+        updated.WorkingWeekends.Should().BeTrue();
+    }
+
     private async Task<bool> InsertDummyDataIntoRepository()
     {
         var trainerAvailabilities = new List<TrainerAvailability>();

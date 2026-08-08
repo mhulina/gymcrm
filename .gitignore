@@ -361,3 +361,17 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+.idea/
+
+.env
+.env.development
+.env.production
+.env.test
+appsettings.json
+
+GymCRM_Development_Priorities_Complete.md
+# Nginx logs
+nginx/logs/*.log
+!nginx/logs/.gitkeep
+nginx

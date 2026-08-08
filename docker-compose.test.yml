@@ -1,0 +1,32 @@
+﻿name: gymcrmapp-test
+
+services:
+  postgres-test:
+    container_name: GymCRM.Database.Test
+    image: postgres:${POSTGRES_VERSION:-17}
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-test_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-test_password}
+      - POSTGRES_DB=${POSTGRES_DB:-postgres}
+      - LANG=en_US.utf8
+      - PGDATA=/var/lib/postgresql/data
+    volumes:
+      - ./init-dbs.sql:/docker-entrypoint-initdb.d/init-dbs.sql
+      - postgres_test_data:/var/lib/postgresql/data
+    ports:
+      - ${POSTGRES_PORT:-5433}:5432
+    networks:
+      - GymCRMTest
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-test_user} -d ${POSTGRES_DB:-postgres}"]
+      interval: 3s
+      timeout: 2s
+      retries: 5
+
+networks:
+  GymCRMTest:
+    driver: bridge
+
+volumes:
+  postgres_test_data:

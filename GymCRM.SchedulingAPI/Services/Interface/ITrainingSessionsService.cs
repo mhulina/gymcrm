@@ -82,4 +82,48 @@ public interface ITrainingSessionsService
     /// Thrown when the <paramref name="updatedTrainingSession"/> parameter is <c>null</c>.
     /// </exception>
     Task<bool> UpdateTrainingSessionAsync(TrainingSession updatedTrainingSession, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Retrieves a single training session by its unique identifier.
+    /// </summary>
+    /// <param name="id">The unique identifier of the training session.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>The matching training session, or <c>null</c> if not found.</returns>
+    Task<TrainingSession?> GetTrainingSessionByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Accepts a requested training session, promoting it to Booked.
+    /// </summary>
+    /// <param name="id">The unique identifier of the training session.</param>
+    /// <param name="callerAccountGuid">The account GUID of the caller, from the JWT.</param>
+    /// <param name="callerIsAdmin">Whether the caller is an Admin, from the JWT.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns><c>true</c> if accepted; <c>false</c> if not found or not currently Requested.</returns>
+    /// <exception cref="TrainingSessionAccessDeniedException">Thrown when the caller may not modify this session.</exception>
+    Task<bool> AcceptTrainingSessionAsync(
+        Guid id, Guid callerAccountGuid, bool callerIsAdmin, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Declines a requested training session, setting it to Cancelled.
+    /// </summary>
+    /// <param name="id">The unique identifier of the training session.</param>
+    /// <param name="callerAccountGuid">The account GUID of the caller, from the JWT.</param>
+    /// <param name="callerIsAdmin">Whether the caller is an Admin, from the JWT.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns><c>true</c> if declined; <c>false</c> if not found or not currently Requested.</returns>
+    /// <exception cref="TrainingSessionAccessDeniedException">Thrown when the caller may not modify this session.</exception>
+    Task<bool> DeclineTrainingSessionAsync(
+        Guid id, Guid callerAccountGuid, bool callerIsAdmin, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Reschedules a requested training session to a new time, promoting it to Booked. Assumes
+    /// the caller has already validated the new time (e.g. via <c>IBookingValidationService</c>).
+    /// </summary>
+    /// <param name="id">The unique identifier of the training session.</param>
+    /// <param name="newStartTime">The new start time.</param>
+    /// <param name="newEndTime">The new end time.</param>
+    /// <param name="callerAccountGuid">The account GUID of the caller, from the JWT.</param>
+    /// <param name="callerIsAdmin">Whether the caller is an Admin, from the JWT.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns><c>true</c> if rescheduled; <c>false</c> if not found or not currently Requested.</returns>
+    /// <exception cref="TrainingSessionAccessDeniedException">Thrown when the caller may not modify this session.</exception>
+    Task<bool> RescheduleTrainingSessionAsync(
+        Guid id, DateTime newStartTime, DateTime newEndTime,
+        Guid callerAccountGuid, bool callerIsAdmin, CancellationToken cancellationToken = default);
 }

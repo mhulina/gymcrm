@@ -4,6 +4,7 @@ import {InsertAvailability} from "../types/insertAvailability";
 import {InsertWorkingHours} from "../types/insertWorkingHours";
 import {TrainingSession} from "../types/trainingSession";
 import {InsertTrainingSession} from "../types/insertTrainingSession";
+import {RescheduleTrainingSession} from "../types/rescheduleTrainingSession";
 import {TimeOff} from "../types/timeOff";
 import {extractErrorMessage} from "../../../shared/api/extractErrorMessage";
 
@@ -13,6 +14,16 @@ export async function fetchAvailabilitiesForTrainer(trainerId: string): Promise<
         return response.data;
     } catch (error) {
         console.error("Error fetching trainer availability: ", error);
+        return [];
+    }
+}
+
+export async function fetchTrainerIdsWithWorkingHours(): Promise<string[]> {
+    try {
+        const response = await axios.get<string[]>(`GetTrainerIdsWithWorkingHours`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching trainers with working hours: ", error);
         return [];
     }
 }
@@ -64,6 +75,36 @@ export async function deleteAvailability(id: string): Promise<boolean> {
     }
 }
 
+export async function updateWorkingHours(id: string, hours: InsertWorkingHours): Promise<boolean> {
+    try {
+        await axios.put(`UpdateWorkingHours/${id}`, hours);
+        return true;
+    } catch (error) {
+        console.error("Error updating working hours: ", error);
+        return false;
+    }
+}
+
+export async function deleteWorkingHours(id: string): Promise<boolean> {
+    try {
+        await axios.delete(`DeleteWorkingHours/${id}`);
+        return true;
+    } catch (error) {
+        console.error("Error deleting working hours: ", error);
+        return false;
+    }
+}
+
+export async function setDayOffStatus(trainerId: string, dayName: string, isDayOff: boolean): Promise<boolean> {
+    try {
+        await axios.put(`SetDayOffStatus/${trainerId}/${dayName}`, { isDayOff });
+        return true;
+    } catch (error) {
+        console.error("Error updating day-off status: ", error);
+        return false;
+    }
+}
+
 export async function fetchTrainingSessionsForClient(clientId: string): Promise<TrainingSession[]> {
     try {
         const response = await axios.get<TrainingSession[]>(`GetAllTrainingSessionsForClient/${clientId}`);
@@ -93,5 +134,48 @@ export async function addTrainingSession(
     } catch (error) {
         console.error("Error booking training session: ", error);
         return { success: false, error: extractErrorMessage(error, "We couldn't book this session.") };
+    }
+}
+
+export async function fetchTrainingSessionsForTrainer(trainerId: string): Promise<TrainingSession[]> {
+    try {
+        const response = await axios.get<TrainingSession[]>(`GetTrainingSessionsForTrainerId/${trainerId}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching training sessions for trainer: ", error);
+        return [];
+    }
+}
+
+export async function acceptTrainingSession(id: string): Promise<boolean> {
+    try {
+        await axios.put(`AcceptTrainingSession/${id}`);
+        return true;
+    } catch (error) {
+        console.error("Error accepting training session: ", error);
+        return false;
+    }
+}
+
+export async function declineTrainingSession(id: string): Promise<boolean> {
+    try {
+        await axios.put(`DeclineTrainingSession/${id}`);
+        return true;
+    } catch (error) {
+        console.error("Error declining training session: ", error);
+        return false;
+    }
+}
+
+export async function rescheduleTrainingSession(
+    id: string,
+    request: RescheduleTrainingSession
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        await axios.put(`RescheduleTrainingSession/${id}`, request);
+        return { success: true };
+    } catch (error) {
+        console.error("Error rescheduling training session: ", error);
+        return { success: false, error: extractErrorMessage(error, "We couldn't reschedule this session.") };
     }
 }

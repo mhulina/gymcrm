@@ -6,5 +6,7 @@ public enum TrainingSessionStatus
     Cancelled,
     Completed,
     NoShow,
-    Reschedule
+    Reschedule,
+    // Appended, not inserted - Status is a plain persisted int, never renumber existing values.
+    Requested
 }

@@ -16,7 +16,7 @@ import {Button} from "../../../shared/components/Button";
 import {Banner} from "../../../shared/components/Banner";
 import {TextField} from "../../../shared/components/TextField";
 
-const STEP_LABELS = ["Select Trainer", "Choose Date & Time", "Confirm Booking"] as const;
+const STEP_LABELS = ["Select Trainer", "Choose Date & Time", "Send Request"] as const;
 const DURATIONS = [30, 60, 90] as const;
 
 interface Props {
@@ -35,7 +35,12 @@ function parseDateInputValue(value: string): Date {
 
 export function BookingWizard({member, trainers, trainersLoading, initialDate, onClose, onBooked}: Props) {
     const [step, setStep] = useState<1 | 2 | 3>(1);
-    const [selectedTrainerId, setSelectedTrainerId] = useState(member.personalTrainerId ?? "");
+    // Only pre-select the member's assigned trainer if they're actually in the (already
+    // bookable-hours-filtered) trainers list - otherwise steps 2-3 would resolve
+    // selectedTrainer to undefined and silently break.
+    const [selectedTrainerId, setSelectedTrainerId] = useState(
+        trainers.some((t) => t.accountGuid === member.personalTrainerId) ? member.personalTrainerId ?? "" : ""
+    );
     const [trainerAvailability, setTrainerAvailability] = useState<TrainerAvailability | null>(null);
     const [date, setDate] = useState(toDateInputValue(initialDate));
     const [duration, setDuration] = useState<30 | 60 | 90>(60);
@@ -274,7 +279,7 @@ export function BookingWizard({member, trainers, trainersLoading, initialDate, o
                     <div className="flex justify-end gap-2">
                         <Button type="button" variant="ghost" onClick={() => setStep(2)} disabled={submitting}>Back</Button>
                         <Button type="button" disabled={submitting} onClick={handleConfirm}>
-                            {submitting ? "Booking..." : "Confirm booking"}
+                            {submitting ? "Requesting..." : "Send request"}
                         </Button>
                     </div>
                 </div>

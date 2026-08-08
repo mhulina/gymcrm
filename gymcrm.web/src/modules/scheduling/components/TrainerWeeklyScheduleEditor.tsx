@@ -149,11 +149,6 @@ export function TrainerWeeklyScheduleEditor({ trainerId }: { trainerId: string }
                     This trainer has more than one schedule on file. Showing the first one.
                 </Banner>
             )}
-            <Banner variant="info">
-                Existing time ranges and day-off status can't be edited or removed here yet — only new ranges can
-                be added. Reach out to the backend team if something needs correcting.
-            </Banner>
-
             <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                 <input
                     type="checkbox"

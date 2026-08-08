@@ -1,4 +1,6 @@
-﻿using Asp.Versioning;
+﻿using System.Security.Claims;
+using Asp.Versioning;
+using GymCRM.SchedulingAPI.Models;
 using GymCRM.SchedulingAPI.Models.DTOs;
 using GymCRM.SchedulingAPI.Services.Interface;
 using Microsoft.AspNetCore.Authorization;
@@ -242,12 +244,204 @@ public class TrainingSessionController : ControllerBase
             var result = await _trainingSessionService.GetTrainingSessionsForClientIdAsync(
                 id,
                 cancellationToken: cancellationToken);
-            
+
             return new OkObjectResult(result);
         }
         catch (Exception)
         {
             return new StatusCodeResult(StatusCodes.Status500InternalServerError);
         }
+    }
+
+    /// <summary>
+    /// Retrieves all training sessions associated with a specific trainer.
+    /// </summary>
+    /// <param name="id">The unique identifier of the trainer.</param>
+    /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
+    /// <returns>
+    /// A list of training sessions for the specified trainer.
+    /// </returns>
+    /// <response code="200">Returns the list of training sessions for the specified trainer.</response>
+    /// <response code="500">If an internal server error occurs.</response>
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<IEnumerable<TrainingSession>>> GetTrainingSessionsForTrainerId(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _trainingSessionService.GetTrainingSessionsForTrainerIdAsync(
+                id,
+                cancellationToken: cancellationToken);
+
+            return new OkObjectResult(result);
+        }
+        catch (Exception)
+        {
+            return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+        }
+    }
+
+    /// <summary>
+    /// Accepts a requested training session, promoting it to Booked.
+    /// </summary>
+    /// <param name="id">The unique identifier of the training session.</param>
+    /// <param name="cancellationToken">Token to cancel the asynchronous operation.</param>
+    /// <response code="204">The session was successfully accepted.</response>
+    /// <response code="400">The session could not be found or was not in a requested state.</response>
+    /// <response code="403">The caller is not allowed to modify this training session.</response>
+    /// <response code="500">An unexpected error occurred on the server.</response>
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult> AcceptTrainingSession(Guid id, CancellationToken cancellationToken)
+    {
+        if (!TryGetCallerIdentity(out var callerAccountGuid, out var callerIsAdmin))
+        {
+            return new UnauthorizedObjectResult("Invalid token claims");
+        }
+
+        try
+        {
+            var result = await _trainingSessionService.AcceptTrainingSessionAsync(
+                id, callerAccountGuid, callerIsAdmin, cancellationToken: cancellationToken);
+
+            if (!result)
+            {
+                return new BadRequestResult();
+            }
+
+            return new NoContentResult();
+        }
+        catch (TrainingSessionAccessDeniedException ex)
+        {
+            return new ObjectResult(ex.Message) { StatusCode = StatusCodes.Status403Forbidden };
+        }
+        catch (Exception)
+        {
+            return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+        }
+    }
+
+    /// <summary>
+    /// Declines a requested training session, setting it to Cancelled.
+    /// </summary>
+    /// <param name="id">The unique identifier of the training session.</param>
+    /// <param name="cancellationToken">Token to cancel the asynchronous operation.</param>
+    /// <response code="204">The session was successfully declined.</response>
+    /// <response code="400">The session could not be found or was not in a requested state.</response>
+    /// <response code="403">The caller is not allowed to modify this training session.</response>
+    /// <response code="500">An unexpected error occurred on the server.</response>
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult> DeclineTrainingSession(Guid id, CancellationToken cancellationToken)
+    {
+        if (!TryGetCallerIdentity(out var callerAccountGuid, out var callerIsAdmin))
+        {
+            return new UnauthorizedObjectResult("Invalid token claims");
+        }
+
+        try
+        {
+            var result = await _trainingSessionService.DeclineTrainingSessionAsync(
+                id, callerAccountGuid, callerIsAdmin, cancellationToken: cancellationToken);
+
+            if (!result)
+            {
+                return new BadRequestResult();
+            }
+
+            return new NoContentResult();
+        }
+        catch (TrainingSessionAccessDeniedException ex)
+        {
+            return new ObjectResult(ex.Message) { StatusCode = StatusCodes.Status403Forbidden };
+        }
+        catch (Exception)
+        {
+            return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+        }
+    }
+
+    /// <summary>
+    /// Reschedules a requested training session to a new time, re-running the same booking
+    /// validation used when the session was first requested, then promotes it to Booked.
+    /// </summary>
+    /// <param name="id">The unique identifier of the training session.</param>
+    /// <param name="request">The new start/end time.</param>
+    /// <param name="cancellationToken">Token to cancel the asynchronous operation.</param>
+    /// <response code="204">The session was successfully rescheduled.</response>
+    /// <response code="400">The session could not be found, was not in a requested state, or the new time failed validation.</response>
+    /// <response code="403">The caller is not allowed to modify this training session.</response>
+    /// <response code="500">An unexpected error occurred on the server.</response>
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult> RescheduleTrainingSession(
+        Guid id,
+        [FromBody] RescheduleTrainingSession request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetCallerIdentity(out var callerAccountGuid, out var callerIsAdmin))
+        {
+            return new UnauthorizedObjectResult("Invalid token claims");
+        }
+
+        try
+        {
+            var existingSession = await _trainingSessionService.GetTrainingSessionByIdAsync(id, cancellationToken);
+
+            if (existingSession is null)
+            {
+                return new BadRequestResult();
+            }
+
+            if (existingSession.TrainerId != callerAccountGuid && !callerIsAdmin)
+            {
+                return new ObjectResult("You are not allowed to modify this training session")
+                {
+                    StatusCode = StatusCodes.Status403Forbidden
+                };
+            }
+
+            var candidateBooking = new InsertTrainingSession
+            {
+                TrainerId = existingSession.TrainerId,
+                ClientId = existingSession.ClientId,
+                StartTime = request.NewStartTime,
+                EndTime = request.NewEndTime,
+                Description = existingSession.Description
+            };
+
+            var validation = await _bookingValidationService.ValidateBookingAsync(
+                candidateBooking, cancellationToken, excludeSessionId: id);
+
+            if (!validation.IsValid)
+            {
+                return new BadRequestObjectResult(string.Join("\n ", validation.Errors));
+            }
+
+            var result = await _trainingSessionService.RescheduleTrainingSessionAsync(
+                id, request.NewStartTime, request.NewEndTime, callerAccountGuid, callerIsAdmin, cancellationToken: cancellationToken);
+
+            if (!result)
+            {
+                return new BadRequestResult();
+            }
+
+            return new NoContentResult();
+        }
+        catch (TrainingSessionAccessDeniedException ex)
+        {
+            return new ObjectResult(ex.Message) { StatusCode = StatusCodes.Status403Forbidden };
+        }
+        catch (Exception)
+        {
+            return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+        }
+    }
+
+    private bool TryGetCallerIdentity(out Guid callerAccountGuid, out bool callerIsAdmin)
+    {
+        callerAccountGuid = Guid.Empty;
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        callerIsAdmin = string.Equals(User.FindFirst("type")?.Value, "Admin", StringComparison.Ordinal);
+
+        return !string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out callerAccountGuid);
     }
 }

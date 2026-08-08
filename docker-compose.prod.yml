@@ -27,9 +27,12 @@ services:
 
   api:
     container_name: GymCRM.Api.Prod
-    build:
-      context: .
-      dockerfile: GymCRM.Api/Dockerfile
+    # Pre-built by CI (.gitlab-ci.yml's docker-build job) and pushed to DigitalOcean
+    # Container Registry - the deploy target only ever pulls, never builds, since it
+    # doesn't have the RAM for a fresh dotnet build. `docker login registry.digitalocean.com`
+    # once before the first `docker compose pull` (see VPS_DEPLOY.md). Replace
+    # <DOCR_REGISTRY_NAME> with your actual DOCR registry name.
+    image: registry.digitalocean.com/<DOCR_REGISTRY_NAME>/gymcrm:api-latest
     # No host port published - only reachable via the nginx reverse proxy.
     expose:
       - "8080"
@@ -60,15 +63,9 @@ services:
 
   webapp:
     container_name: GymCRM.WebApp.Prod
-    build:
-      context: ./gymcrm.web
-      dockerfile: Dockerfile.prod
-      args:
-        - REACT_APP_API_URL=${REACT_APP_API_URL}
-        - REACT_APP_IDENTITY_API_URL=${REACT_APP_IDENTITY_API_URL}
-        - REACT_APP_SCHEDULING_API_URL=${REACT_APP_SCHEDULING_API_URL}
-        - REACT_APP_ACCOUNTS_ENDPOINT=${REACT_APP_ACCOUNTS_ENDPOINT}
-        - REACT_APP_MEMBERS_ENDPOINT=${REACT_APP_MEMBERS_ENDPOINT}
+    # Pre-built by CI, same as api above - the REACT_APP_* values are baked in at CI build
+    # time (from the DEPLOY_IP CI/CD variable), not at deploy time, so they don't appear here.
+    image: registry.digitalocean.com/<DOCR_REGISTRY_NAME>/gymcrm:webapp-latest
     # No host port published - only reachable via the nginx reverse proxy.
     expose:
       - "80"

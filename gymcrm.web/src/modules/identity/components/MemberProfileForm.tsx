@@ -79,6 +79,11 @@ export function MemberProfileForm({ targetMember, viewerRole, isSelf, onSaved }:
     const [success, setSuccess] = useState(false);
 
     const isAdmin = viewerRole === AccountType.Admin;
+    // A member can pick their own trainer from this same field an admin uses to assign one -
+    // the two are mutually exclusive by construction (isAdmin vs !isAdmin), so they never both
+    // render at once.
+    const showTrainerPicker =
+        form.accountType === AccountType.Member && (isAdmin || isSelf);
     const showTrainerFields =
         (isAdmin && form.accountType === AccountType.PersonalTrainer) ||
         (viewerRole === AccountType.PersonalTrainer && isSelf);
@@ -98,12 +103,12 @@ export function MemberProfileForm({ targetMember, viewerRole, isSelf, onSaved }:
     }, [targetMember]);
 
     useEffect(() => {
-        if (isAdmin) {
+        if (isAdmin || (isSelf && targetMember.accountType === AccountType.Member)) {
             fetchAllMembers().then((members) => {
                 setTrainers(members.filter((m) => m.accountType === AccountType.PersonalTrainer));
             });
         }
-    }, [isAdmin]);
+    }, [isAdmin, isSelf, targetMember.accountType]);
 
     function update<K extends keyof FormState>(key: K, value: FormState[K]) {
         setForm((prev) => ({ ...prev, [key]: value }));
@@ -133,11 +138,10 @@ export function MemberProfileForm({ targetMember, viewerRole, isSelf, onSaved }:
                 ? {
                       accountType: form.accountType,
                       gymSubscriptionType: form.gymSubscriptionType,
-                      personalTrainerId:
-                          form.accountType === AccountType.Member && form.personalTrainerId
-                              ? form.personalTrainerId
-                              : undefined,
                   }
+                : {}),
+            ...(showTrainerPicker
+                ? { personalTrainerId: form.personalTrainerId || undefined }
                 : {}),
             ...(showTrainerFields
                 ? {
@@ -224,10 +228,10 @@ export function MemberProfileForm({ targetMember, viewerRole, isSelf, onSaved }:
                         </div>
                     )}
 
-                    {isAdmin && form.accountType === AccountType.Member && (
+                    {showTrainerPicker && (
                         <SelectField
                             id="personalTrainerId"
-                            label="Assign personal trainer"
+                            label={isAdmin ? "Assign personal trainer" : "Your personal trainer"}
                             value={form.personalTrainerId}
                             onChange={(e) => update("personalTrainerId", e.target.value)}
                         >

@@ -37,13 +37,15 @@ namespace GymCRM.IdentityAPI.Services.Interface
 		/// Updates an existing member in the database with the provided member information asynchronously.
 		/// </summary>
 		/// <param name="insertMember">The member object containing updated information.</param>
+		/// <param name="callerAccountGuid">The account making the request (from the JWT claim).</param>
 		/// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
 		/// <returns>
 		/// A task representing the asynchronous operation, containing true if the update was successful; otherwise, false.
 		/// </returns>
 		/// <exception cref="ArgumentException">Thrown when the provided member is null or has an empty GUID.</exception>
 		/// <exception cref="MemberNotFoundException">Thrown when the member does not exist in the database.</exception>
-		Task<bool> UpdateMemberAsync(Member insertMember, CancellationToken cancellationToken = default);
+		/// <exception cref="MemberAccessDeniedException">Thrown when the caller may not update this member's profile.</exception>
+		Task<bool> UpdateMemberAsync(Member insertMember, Guid callerAccountGuid, CancellationToken cancellationToken = default);
 		/// <summary>
 		/// Inserts a new member into the database asynchronously.
 		/// </summary>

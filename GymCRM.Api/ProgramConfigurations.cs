@@ -16,13 +16,19 @@ namespace GymCRM.Api;
 /// </summary>
 public static class ProgramConfigurations
 {
-    public static IServiceCollection SetupCors(this IServiceCollection services)
+    public static IServiceCollection SetupCors(this IServiceCollection services, IConfiguration config)
     {
+        var configuredOrigins = config["Cors:AllowedOrigins"]
+            ?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var origins = configuredOrigins is { Length: > 0 }
+            ? configuredOrigins
+            : new[] { "http://localhost:3000", "http://localhost:55080", "http://localhost:55085" };
+
         services.AddCors(opt =>
             opt.AddPolicy(
                 name: "AllowAny",
                 policy => policy
-                    .WithOrigins("http://localhost:3000", "http://localhost:55080", "http://localhost:55085")
+                    .WithOrigins(origins)
                     .AllowAnyHeader()
                     .AllowAnyMethod()
                     .AllowCredentials()));

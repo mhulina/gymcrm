@@ -30,7 +30,7 @@ builder.Services
 		IdentityModule.ConfigureIdentityMappings(cfg);
 		SchedulingModule.ConfigureSchedulingMappings(cfg);
 	})
-	.SetupCors()
+	.SetupCors(builder.Configuration)
 	.SetupAuthentication(builder.Configuration, secretForKey)
 	.SetupRateLimiting()
 	.SetupApiVersioning();

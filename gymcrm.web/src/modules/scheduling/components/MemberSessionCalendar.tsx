@@ -72,14 +72,21 @@ export function MemberSessionCalendar({member}: { member: Member }) {
     useEffect(() => {
         Promise.all([fetchAllMembers(), fetchTrainerIdsWithWorkingHours()]).then(([members, trainerIdsWithHours]) => {
             const bookableTrainerIds = new Set(trainerIdsWithHours);
+            const bookableTrainers = members.filter(
+                (m) => m.accountType === AccountType.PersonalTrainer && m.accountGuid && bookableTrainerIds.has(m.accountGuid)
+            );
+            // Once a member has chosen their own trainer, that's the only one they can book
+            // with - if that trainer isn't currently bookable (no working hours yet), the
+            // resulting empty list correctly surfaces BookingWizard's existing "No trainers
+            // are available to book with yet." state rather than a new one.
             setTrainers(
-                members.filter(
-                    (m) => m.accountType === AccountType.PersonalTrainer && m.accountGuid && bookableTrainerIds.has(m.accountGuid)
-                )
+                member.personalTrainerId
+                    ? bookableTrainers.filter((t) => t.accountGuid === member.personalTrainerId)
+                    : bookableTrainers
             );
             setTrainersLoading(false);
         });
-    }, []);
+    }, [member.personalTrainerId]);
 
     useEffect(() => {
         if (!member.personalTrainerId) return;

@@ -283,6 +283,33 @@ public class TrainingSessionController : ControllerBase
     }
 
     /// <summary>
+    /// Computes the bookable start times for a trainer on a given date, and the durations that
+    /// fit at each one.
+    /// </summary>
+    /// <param name="id">The unique identifier of the trainer.</param>
+    /// <param name="date">The date to compute slots for, in the trainer's own local time.</param>
+    /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
+    /// <response code="200">Returns the available slots for that date (empty if none).</response>
+    /// <response code="500">If an internal server error occurs.</response>
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<List<AvailableSlot>>> GetAvailableSlotsForTrainer(
+        Guid id,
+        [FromQuery] DateTime date,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _bookingValidationService.GetAvailableSlotsAsync(id, date, cancellationToken);
+
+            return new OkObjectResult(result);
+        }
+        catch (Exception)
+        {
+            return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+        }
+    }
+
+    /// <summary>
     /// Accepts a requested training session, promoting it to Booked.
     /// </summary>
     /// <param name="id">The unique identifier of the training session.</param>

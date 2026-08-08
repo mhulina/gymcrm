@@ -110,7 +110,7 @@ public class TestMembersService
         var service = CreateMembersService();
 
         // When
-        Func<Task> act = () => service.UpdateMemberAsync(null!);
+        Func<Task> act = () => service.UpdateMemberAsync(null!, Guid.NewGuid());
 
         // Then
         await act.Should().ThrowAsync<ArgumentException>();
@@ -124,28 +124,61 @@ public class TestMembersService
         var dto = CreateUpdateDto(Guid.Empty);
 
         // When
-        Func<Task> act = () => service.UpdateMemberAsync(dto);
+        Func<Task> act = () => service.UpdateMemberAsync(dto, Guid.NewGuid());
 
         // Then
         await act.Should().ThrowAsync<ArgumentException>();
     }
 
     [Fact]
-    public async Task GivenMemberNotFound_WhenUpdatingMember_ThenFalseIsReturnedWithoutThrowing()
+    public async Task GivenMemberNotFound_WhenUpdatingMember_ThenMemberNotFoundExceptionIsThrown()
     {
-        // Given - MembersService.UpdateMemberAsync's outer catch(Exception) swallows the
-        // MemberNotFoundException it throws internally a few lines above, so a not-found
-        // update never actually surfaces that exception - it just returns false. Pinning
-        // this actual (surprising) behavior rather than an assumed one.
+        // Given - the catch clause now excludes MemberNotFoundException/MemberAccessDeniedException
+        // from the swallow-and-return-false behavior, so a not-found update actually propagates
+        // this exception (pins the catch-clause fix).
         var repositoryMock = CreateRepositoryMock();
         var service = CreateMembersService(repository: repositoryMock.Object);
         var dto = CreateUpdateDto(Guid.NewGuid());
 
         // When
-        var result = await service.UpdateMemberAsync(dto);
+        Func<Task> act = () => service.UpdateMemberAsync(dto, Guid.NewGuid());
 
         // Then
-        result.Should().BeFalse();
+        await act.Should().ThrowAsync<MemberNotFoundException>();
+    }
+
+    [Fact]
+    public async Task GivenNonOwningNonAdminCaller_WhenUpdatingMember_ThenMemberAccessDeniedExceptionIsThrown()
+    {
+        // Given
+        var existing = CreateExistingMember();
+        var caller = CreateExistingMember(accountType: AccountType.Member);
+        var service = CreateMembersService(repository: CreateRepositoryMock(existing, caller).Object);
+        var dto = CreateUpdateDto(existing.AccountGuid);
+
+        // When
+        Func<Task> act = () => service.UpdateMemberAsync(dto, caller.AccountGuid);
+
+        // Then
+        await act.Should().ThrowAsync<MemberAccessDeniedException>();
+    }
+
+    [Fact]
+    public async Task GivenAdminCaller_WhenUpdatingAnotherMember_ThenUpdateSucceeds()
+    {
+        // Given
+        var existing = CreateExistingMember();
+        var admin = CreateExistingMember(accountType: AccountType.Admin);
+        var repositoryMock = CreateRepositoryMock(existing, admin);
+        var unitOfWorkMock = CreateUnitOfWorkMock(saveResult: true);
+        var service = CreateMembersService(repository: repositoryMock.Object, unitOfWork: unitOfWorkMock.Object);
+        var dto = CreateUpdateDto(existing.AccountGuid);
+
+        // When
+        var result = await service.UpdateMemberAsync(dto, admin.AccountGuid);
+
+        // Then
+        result.Should().BeTrue();
     }
 
     [Fact]
@@ -164,7 +197,7 @@ public class TestMembersService
         dto.TimeZone = "";
 
         // When
-        var result = await service.UpdateMemberAsync(dto);
+        var result = await service.UpdateMemberAsync(dto, existing.AccountGuid);
 
         // Then
         result.Should().BeTrue();
@@ -187,7 +220,7 @@ public class TestMembersService
         var dto = CreateUpdateDto(existing.AccountGuid);
 
         // When
-        var result = await service.UpdateMemberAsync(dto);
+        var result = await service.UpdateMemberAsync(dto, existing.AccountGuid);
 
         // Then
         result.Should().BeTrue();
@@ -211,7 +244,7 @@ public class TestMembersService
         dto.WorkoutGroupIds = null;
 
         // When
-        await service.UpdateMemberAsync(dto);
+        await service.UpdateMemberAsync(dto, existing.AccountGuid);
 
         // Then
         var captured = CapturedUpdate(repositoryMock);
@@ -228,7 +261,7 @@ public class TestMembersService
         dto.WorkoutGroupIds = new List<Guid>();
 
         // When
-        await service.UpdateMemberAsync(dto);
+        await service.UpdateMemberAsync(dto, existing.AccountGuid);
 
         // Then
         var captured = CapturedUpdate(repositoryMock);
@@ -250,7 +283,7 @@ public class TestMembersService
         dto.Gender = 0;
 
         // When
-        await service.UpdateMemberAsync(dto);
+        await service.UpdateMemberAsync(dto, existing.AccountGuid);
 
         // Then
         var captured = CapturedUpdate(repositoryMock);
@@ -271,7 +304,7 @@ public class TestMembersService
         dto.HourlyPrice = null;
 
         // When
-        await service.UpdateMemberAsync(dto);
+        await service.UpdateMemberAsync(dto, existing.AccountGuid);
 
         // Then
         var captured = CapturedUpdate(repositoryMock);
@@ -288,7 +321,7 @@ public class TestMembersService
         var dto = CreateUpdateDto(existing.AccountGuid);
 
         // When
-        await service.UpdateMemberAsync(dto);
+        await service.UpdateMemberAsync(dto, existing.AccountGuid);
 
         // Then
         var captured = CapturedUpdate(repositoryMock);
@@ -310,7 +343,7 @@ public class TestMembersService
         dto.FirstName = "SomeUnrelatedChange";
 
         // When
-        await service.UpdateMemberAsync(dto);
+        await service.UpdateMemberAsync(dto, existing.AccountGuid);
 
         // Then
         var captured = CapturedUpdate(repositoryMock);

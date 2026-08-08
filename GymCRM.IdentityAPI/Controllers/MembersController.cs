@@ -156,7 +156,15 @@ namespace GymCRM.IdentityAPI.Controllers
 		{
 			try
 			{
-				var result = await _membersService.UpdateMemberAsync(newMember);
+				var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+				if (string.IsNullOrEmpty(userIdClaim)
+				    || !Guid.TryParse(userIdClaim, out var callerId))
+				{
+					return new UnauthorizedObjectResult("Invalid token claims");
+				}
+
+				var result = await _membersService.UpdateMemberAsync(newMember, callerId);
 
 				if (result)
 				{
@@ -168,6 +176,10 @@ namespace GymCRM.IdentityAPI.Controllers
 			catch (MemberNotFoundException)
 			{
 				return new NotFoundObjectResult(newMember.AccountGuid);
+			}
+			catch (MemberAccessDeniedException ex)
+			{
+				return new ObjectResult(ex.Message) { StatusCode = StatusCodes.Status403Forbidden };
 			}
 			catch (Exception ex)
 			{

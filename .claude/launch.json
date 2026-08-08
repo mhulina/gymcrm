@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "gymcrm-web-dev",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd /home/fluffy/Projects/Apps/gymcrm/gymcrm.web && npm start"],
+      "port": 3000
+    }
+  ]
+}

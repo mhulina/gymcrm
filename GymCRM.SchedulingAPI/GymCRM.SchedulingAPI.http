@@ -1,0 +1,6 @@
+@GymCRM.SchedulingAPI_HostAddress = http://localhost:55085
+
+GET {{GymCRM.SchedulingAPI_HostAddress}}
+Accept: application/json
+
+###

@@ -1,0 +1,54 @@
+# Runs on the private runner "fluffy-PC" (tag: gymcrm, Docker executor).
+# No deploy stage - there's no environment to deploy to yet. This just proves the
+# solution builds, the test suites pass against a real Postgres, and the GymCRM.Api
+# Docker image still builds.
+
+stages:
+  - build
+  - test
+  - docker
+
+default:
+  tags:
+    - gymcrm
+
+variables:
+  NUGET_PACKAGES: ${CI_PROJECT_DIR}/.nuget/packages
+
+cache:
+  key: nuget-packages
+  paths:
+    - .nuget/packages
+
+build:
+  stage: build
+  image: mcr.microsoft.com/dotnet/sdk:10.0
+  script:
+    - dotnet restore GymCRM.sln
+    - dotnet build GymCRM.sln -c Release --no-restore
+
+test:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:10.0
+  services:
+    - name: postgres:17
+      alias: postgres
+  variables:
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    POSTGRES_DB: postgres
+  script:
+    - dotnet restore GymCRM.sln
+    - export ConnectionStrings__DefaultConnection="Server=postgres;Port=5432;Database=identity_db;User Id=postgres;Password=postgres;"
+    - dotnet test GymCRM.IdentityAPI.Tests -c Release --no-restore --logger "console;verbosity=normal"
+    - export ConnectionStrings__DefaultConnection="Server=postgres;Port=5432;Database=scheduling_db;User Id=postgres;Password=postgres;"
+    - dotnet test GymCRM.SchedulingAPI.Tests -c Release --no-restore --logger "console;verbosity=normal"
+
+docker-build:
+  stage: docker
+  image: docker:27
+  # No docker:dind service and no DOCKER_TLS_CERTDIR needed here: the runner mounts
+  # /var/run/docker.sock straight into the job container (see its config.toml), so
+  # this talks directly to the host's Docker daemon instead of a nested one.
+  script:
+    - docker build -f GymCRM.Api/Dockerfile -t gymcrm-api:${CI_COMMIT_SHORT_SHA} .

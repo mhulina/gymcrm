@@ -1,0 +1,6 @@
+@GymCRM.IdentityAPI_HostAddress = http://localhost:55080
+
+GET {{GymCRM.GymCRM.IdentityAPI_HostAddress}}
+Accept: application/json
+
+###

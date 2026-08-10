@@ -1,4 +1,5 @@
 using System.Security.Authentication;
+using System.Security.Claims;
 using Asp.Versioning;
 using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.DTOs;
@@ -59,6 +60,128 @@ public class AuthenticationController : ControllerBase
 		catch (Exception)
 		{
 			return new BadRequestResult();
+		}
+	}
+
+	/// <summary>
+	/// Creates an account on behalf of another user - same as <see cref="Register"/>, except the
+	/// caller must be an authenticated Admin, and the resulting account is flagged
+	/// <c>MustChangePassword</c> since the password was assigned by someone other than its owner.
+	/// </summary>
+	/// <param name="insertAccount">The details of the account to be registered.</param>
+	/// <returns>
+	/// A <see cref="CreatedResult"/> if successful, a <see cref="ConflictObjectResult"/> if the
+	/// email is already registered, a <see cref="ObjectResult"/> with 403 if the caller isn't an
+	/// Admin, or a <see cref="BadRequestResult"/> if an unexpected error occurs.
+	/// </returns>
+	/// <response code="201">Returns the GUID of the newly created account.</response>
+	/// <response code="401">The caller's token claims are invalid.</response>
+	/// <response code="403">The caller is not an Admin.</response>
+	/// <response code="409">An account with that email already exists.</response>
+	/// <response code="400">Indicates an unexpected error occurred.</response>
+	[HttpPost]
+	[Authorize]
+	[EnableRateLimiting("register")]
+	public async Task<ActionResult<Guid>> AdminCreateAccount([FromBody] InsertAccount insertAccount, CancellationToken cancellationToken)
+	{
+		var callerIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+		if (string.IsNullOrEmpty(callerIdClaim) || !Guid.TryParse(callerIdClaim, out var callerAccountGuid))
+		{
+			return new UnauthorizedObjectResult("Invalid token claims");
+		}
+
+		try
+		{
+			var registeredAccountGuid = await _authenticationService.AdminCreateAccountAsync(
+				insertAccount, callerAccountGuid, cancellationToken);
+
+			if (registeredAccountGuid == Guid.Empty)
+			{
+				return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+			}
+
+			return new CreatedResult();
+		}
+		catch (AccountAccessDeniedException ex)
+		{
+			return new ObjectResult(ex.Message) { StatusCode = StatusCodes.Status403Forbidden };
+		}
+		catch (AccountAlreadyExistsException ex)
+		{
+			return new ConflictObjectResult(ex.Message);
+		}
+		catch (Exception)
+		{
+			return new BadRequestResult();
+		}
+	}
+
+	/// <summary>
+	/// Changes the caller's own password, given a valid current password. Also clears
+	/// <c>MustChangePassword</c> if it was set, and reissues fresh session cookies (revoking the
+	/// old refresh token first) so a previously-leaked session can't survive the change.
+	/// </summary>
+	/// <param name="request">The current and new password.</param>
+	/// <response code="200">The password was changed and fresh cookies were issued.</response>
+	/// <response code="400">The request was invalid, or the new password matched the old one.</response>
+	/// <response code="401">The caller's token claims are invalid, or the old password was wrong.</response>
+	/// <response code="404">The account could not be found.</response>
+	/// <response code="500">An unexpected error occurred on the server.</response>
+	[HttpPost]
+	[Authorize]
+	[EnableRateLimiting("auth")]
+	public async Task<ActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
+	{
+		var callerIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+		// Not the literal "email" claim name - the default JWT inbound claim mapping rewrites the
+		// short "email" claim to ClaimTypes.Email server-side after validation (the same
+		// mechanism that makes "sub" readable as ClaimTypes.NameIdentifier).
+		var email = User.FindFirst(ClaimTypes.Email)?.Value;
+
+		if (string.IsNullOrEmpty(callerIdClaim)
+		    || !Guid.TryParse(callerIdClaim, out var callerAccountGuid)
+		    || string.IsNullOrEmpty(email))
+		{
+			return new UnauthorizedObjectResult("Invalid token claims");
+		}
+
+		try
+		{
+			var result = await _authenticationService.ChangePassword(
+				email, request.OldPassword, request.NewPassword, cancellationToken);
+
+			if (!result)
+			{
+				return new BadRequestResult();
+			}
+
+			// Revoke the session's existing refresh token BEFORE minting a fresh pair below -
+			// doing it after would revoke the session just created instead of the old one.
+			await _refreshTokenService.RevokeAllTokensForAccountAsync(callerAccountGuid, "Password changed");
+
+			var tokens = await _authenticationService.LoginAccount(
+				new AuthenticationRequestBody { Username = email, Password = request.NewPassword },
+				cancellationToken);
+			SetTokenCookies(tokens.accessToken, tokens.refreshToken);
+
+			return new OkResult();
+		}
+		catch (AccountDoesntExistException ex)
+		{
+			return new NotFoundObjectResult(ex.Message);
+		}
+		catch (AuthenticationFailureException ex)
+		{
+			return new UnauthorizedObjectResult(ex.Message);
+		}
+		catch (ArgumentException ex)
+		{
+			return new BadRequestObjectResult(ex.Message);
+		}
+		catch (Exception)
+		{
+			return new StatusCodeResult(StatusCodes.Status500InternalServerError);
 		}
 	}
 
@@ -134,7 +257,7 @@ public class AuthenticationController : ControllerBase
 
 			SetTokenCookies(tokens.accessToken, tokens.refreshToken);
 
-			return new OkResult();
+			return new OkObjectResult(new { mustChangePassword = tokens.mustChangePassword });
 		}
 		catch (AuthenticationException ex)
 		{
@@ -245,12 +368,16 @@ public class AuthenticationController : ControllerBase
 	/// Checks if the current request has valid authentication.
 	/// Used by frontend to verify authentication status.
 	/// </summary>
-	/// <returns>200 OK if authenticated, 401 Unauthorized otherwise.</returns>
+	/// <returns>200 OK (with the account's mustChangePassword state) if authenticated, 401 Unauthorized otherwise.</returns>
 	[HttpGet]
 	[Authorize]
 	public ActionResult CheckAuth()
 	{
-		return new OkResult();
+		// Claim value is "True"/"False" (C# ToString() casing) - TryParse is case-insensitive,
+		// a literal string comparison against lowercase "true" would silently always be false.
+		bool.TryParse(User.FindFirst("mustChangePassword")?.Value, out var mustChangePassword);
+
+		return new OkObjectResult(new { mustChangePassword });
 	}
 	
 	/// <summary>

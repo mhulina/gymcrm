@@ -3,7 +3,7 @@ import {JSX} from "react";
 import {useAuth} from "./AuthContext";
 
 const PublicRoute = ({ children }: { children: JSX.Element }) =>{
-    const { isAuthenticated, hasAdminAccount } = useAuth();
+    const { isAuthenticated, hasAdminAccount, mustChangePassword } = useAuth();
 
     if (isAuthenticated === null || hasAdminAccount === null) {
         return (
@@ -23,7 +23,13 @@ const PublicRoute = ({ children }: { children: JSX.Element }) =>{
         return <Navigate to="/setup" replace />;
     }
 
-    return !isAuthenticated ? children : <Navigate to="/member/home" replace />;
+    if (isAuthenticated) {
+        // Skip the extra bounce through /member/home for an already-signed-in user who's
+        // still on a temporary password - PrivateRoute would just redirect them again.
+        return <Navigate to={mustChangePassword ? "/change-password" : "/member/home"} replace />;
+    }
+
+    return children;
 };
 
 export default PublicRoute;

@@ -20,6 +20,22 @@ public interface IAuthenticationService
 	/// <exception cref="Exception">Thrown when account creation or persistence fails.</exception>
 	Task<Guid> RegisterAccount(InsertAccount insertAccount, CancellationToken cancellationToken = default);
 	/// <summary>
+	/// Creates an account on behalf of another user (e.g. an Admin adding a member/trainer) -
+	/// same as <see cref="RegisterAccount"/>, except the resulting account is flagged
+	/// <c>MustChangePassword</c> since the password was assigned by someone other than its owner.
+	/// </summary>
+	/// <param name="insertAccount">The account information to register, including email and password.</param>
+	/// <param name="callerAccountGuid">The account GUID of the caller, from the JWT.</param>
+	/// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+	/// <returns>
+	/// A task representing the asynchronous operation, containing the <see cref="Guid"/> of the newly created account.
+	/// </returns>
+	/// <exception cref="ArgumentException">Thrown when the email or password is null or whitespace.</exception>
+	/// <exception cref="AccountAlreadyExistsException">Thrown when an account with the provided email already exists.</exception>
+	/// <exception cref="AccountAccessDeniedException">Thrown when the caller is not an Admin.</exception>
+	Task<Guid> AdminCreateAccountAsync(
+		InsertAccount insertAccount, Guid callerAccountGuid, CancellationToken cancellationToken = default);
+	/// <summary>
 	/// Authenticates a user by validating their credentials and generates a JWT token upon successful login asynchronously.
 	/// </summary>
 	/// <param name="accountDto">The authentication request containing the username (email) and password.</param>
@@ -31,8 +47,8 @@ public interface IAuthenticationService
 	/// <exception cref="AuthenticationException">
 	/// Thrown when the account does not exist or when the provided password is incorrect.
 	/// </exception>
-	Task<(string accessToken, string refreshToken)> LoginAccount(
-		AuthenticationRequestBody accountDto, 
+	Task<(string accessToken, string refreshToken, bool mustChangePassword)> LoginAccount(
+		AuthenticationRequestBody accountDto,
 		CancellationToken cancellationToken = default);
 	/// <summary>
 	/// Deletes an account from the system asynchronously using the provided account GUID.
@@ -46,6 +62,7 @@ public interface IAuthenticationService
 	Task<bool> DeleteAccount(Guid accountGuid, CancellationToken cancellationToken = default);
 	/// <summary>
 	/// Changes the password for an existing account, given a valid email and current password.
+	/// Also clears <c>MustChangePassword</c> if it was set.
 	/// </summary>
 	/// <param name="email">The email address associated with the account.</param>
 	/// <param name="oldPassword">The current password of the account.</param>
@@ -56,7 +73,8 @@ public interface IAuthenticationService
 	/// whether the password change was successful.
 	/// </returns>
 	/// <exception cref="ArgumentException">
-	/// Thrown when the email, old password, or new password is null, empty, or whitespace.
+	/// Thrown when the email, old password, or new password is null, empty, or whitespace, or when
+	/// the new password is the same as the old one.
 	/// </exception>
 	/// <exception cref="AccountDoesntExistException">
 	/// Thrown when no account is found with the provided email.

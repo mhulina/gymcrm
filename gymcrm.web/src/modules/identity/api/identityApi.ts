@@ -134,7 +134,7 @@ export async function handleLogin(
     email: string,
     password: string,
     navigate: (path: string, options?: { replace?: boolean }) => void
-) : Promise<boolean> {
+) : Promise<{ success: boolean; mustChangePassword: boolean }> {
     const loginData: AuthenticationRequestBody = {username: email.trim(), password: password};
 
     try {
@@ -147,17 +147,19 @@ export async function handleLogin(
             });
 
         if (response.ok) {
-            navigate("/member/home", { replace: true });
-            return true;
+            const data = await response.json();
+            const mustChangePassword = Boolean(data?.mustChangePassword);
+            navigate(mustChangePassword ? "/change-password" : "/member/home", { replace: true });
+            return { success: true, mustChangePassword };
         } else {
             const error = await response.text();
             console.error("Login failed: ", error);
-            return false;
+            return { success: false, mustChangePassword: false };
         }
     }
     catch (error) {
         console.error("Error logging member in: ", error);
-        return false;
+        return { success: false, mustChangePassword: false };
     }
 }
 
@@ -212,6 +214,58 @@ export async function registerAccount(insertAccount: InsertAccount): Promise<boo
     }
 }
 
+// Raw POST /Authentication/AdminCreateAccount call - same shape as registerAccount, but
+// authenticated (the caller must already be signed in as an Admin) and flags the resulting
+// account MustChangePassword, since the password was assigned by the admin, not its owner.
+export async function adminCreateAccount(insertAccount: InsertAccount): Promise<boolean> {
+    try {
+        const res = await fetch(
+            process.env.REACT_APP_ACCOUNTS_ENDPOINT + "AdminCreateAccount",{
+                headers: {"Content-Type": "application/json"},
+                method: "POST",
+                credentials: "include",
+                body: JSON.stringify(insertAccount)
+            });
+
+        if (!res.ok) {
+            const error = await res.text();
+            console.error("Admin account creation failed:", error);
+        }
+
+        return res.ok;
+    }
+    catch (error) {
+        console.error("Error creating account:", error);
+        return false;
+    }
+}
+
+// Changes the signed-in user's own password. On success the backend also clears
+// MustChangePassword and reissues session cookies, so no separate re-login is needed here.
+export async function changePassword(oldPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const res = await fetch(
+            process.env.REACT_APP_ACCOUNTS_ENDPOINT + "ChangePassword", {
+                headers: {"Content-Type": "application/json"},
+                method: "POST",
+                credentials: "include",
+                body: JSON.stringify({ oldPassword, newPassword })
+            });
+
+        if (!res.ok) {
+            const error = await res.text();
+            console.error("Change password failed:", error);
+            return { success: false, error: error || "We couldn't change your password." };
+        }
+
+        return { success: true };
+    }
+    catch (error) {
+        console.error("Error changing password:", error);
+        return { success: false, error: "We couldn't change your password." };
+    }
+}
+
 // Public self-service sign-up: registers a standard Member account and logs them in.
 export async function handleMemberRegistration(
     email: string,
@@ -231,7 +285,8 @@ export async function handleMemberRegistration(
         return false;
     }
 
-    return handleLogin(email, password, navigate);
+    const result = await handleLogin(email, password, navigate);
+    return result.success;
 }
 
 export interface AdminCreateMemberInput {
@@ -244,10 +299,10 @@ export interface AdminCreateMemberInput {
 // Admin "add new member" flow. There is no single backend endpoint that accepts
 // a full profile on creation (InsertMember exists in MembersService but has no
 // controller action), so this composes the three endpoints that do exist:
-// Register (creates the Account + a bare Member) -> GetUserByEmail (fetch its
-// AccountGuid) -> UpdateMember (fill in the rest of the profile).
+// AdminCreateAccount (creates the Account + a bare Member, flagged MustChangePassword) ->
+// GetUserByEmail (fetch its AccountGuid) -> UpdateMember (fill in the rest of the profile).
 export async function adminCreateMember(input: AdminCreateMemberInput): Promise<boolean> {
-    const created = await registerAccount(input.insertAccount);
+    const created = await adminCreateAccount(input.insertAccount);
     if (!created) {
         return false;
     }

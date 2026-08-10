@@ -382,3 +382,4 @@ nginx/nginx.conf
 # Nginx TLS certs are secrets - never commit
 nginx/certs/*
 !nginx/certs/.gitkeep
+VPS_DEPLOY.md

@@ -112,8 +112,10 @@ public interface ITrainingSessionsService
     Task<bool> DeclineTrainingSessionAsync(
         Guid id, Guid callerAccountGuid, bool callerIsAdmin, CancellationToken cancellationToken = default);
     /// <summary>
-    /// Reschedules a requested training session to a new time, promoting it to Booked. Assumes
-    /// the caller has already validated the new time (e.g. via <c>IBookingValidationService</c>).
+    /// Reschedules a requested training session to a new time, setting it to Reschedule pending
+    /// the client's confirmation (see <see cref="AcceptRescheduledTrainingSessionAsync"/> /
+    /// <see cref="DeclineRescheduledTrainingSessionAsync"/>). Assumes the caller has already
+    /// validated the new time (e.g. via <c>IBookingValidationService</c>).
     /// </summary>
     /// <param name="id">The unique identifier of the training session.</param>
     /// <param name="newStartTime">The new start time.</param>
@@ -126,4 +128,28 @@ public interface ITrainingSessionsService
     Task<bool> RescheduleTrainingSessionAsync(
         Guid id, DateTime newStartTime, DateTime newEndTime,
         Guid callerAccountGuid, bool callerIsAdmin, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Confirms a trainer-proposed reschedule, promoting it to Booked. Only the client who owns
+    /// the session (or an Admin) may confirm it.
+    /// </summary>
+    /// <param name="id">The unique identifier of the training session.</param>
+    /// <param name="callerAccountGuid">The account GUID of the caller, from the JWT.</param>
+    /// <param name="callerIsAdmin">Whether the caller is an Admin, from the JWT.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns><c>true</c> if confirmed; <c>false</c> if not found or not currently Reschedule.</returns>
+    /// <exception cref="TrainingSessionAccessDeniedException">Thrown when the caller may not modify this session.</exception>
+    Task<bool> AcceptRescheduledTrainingSessionAsync(
+        Guid id, Guid callerAccountGuid, bool callerIsAdmin, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Rejects a trainer-proposed reschedule, setting it to Cancelled. Only the client who owns
+    /// the session (or an Admin) may reject it.
+    /// </summary>
+    /// <param name="id">The unique identifier of the training session.</param>
+    /// <param name="callerAccountGuid">The account GUID of the caller, from the JWT.</param>
+    /// <param name="callerIsAdmin">Whether the caller is an Admin, from the JWT.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns><c>true</c> if declined; <c>false</c> if not found or not currently Reschedule.</returns>
+    /// <exception cref="TrainingSessionAccessDeniedException">Thrown when the caller may not modify this session.</exception>
+    Task<bool> DeclineRescheduledTrainingSessionAsync(
+        Guid id, Guid callerAccountGuid, bool callerIsAdmin, CancellationToken cancellationToken = default);
 }

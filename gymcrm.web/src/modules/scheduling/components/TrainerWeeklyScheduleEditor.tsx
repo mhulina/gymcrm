@@ -12,6 +12,10 @@ interface DaySetup {
     endTime: string;
 }
 
+function isWeekendDay(day: string): boolean {
+    return day === "Saturday" || day === "Sunday";
+}
+
 function initialWeekSetup(): Record<string, DaySetup> {
     const setup: Record<string, DaySetup> = {};
     for (const day of DAYS_OF_WEEK) {
@@ -93,44 +97,65 @@ export function TrainerWeeklyScheduleEditor({ trainerId }: { trainerId: string }
                     <input
                         type="checkbox"
                         checked={workingWeekends}
-                        onChange={(e) => setWorkingWeekends(e.target.checked)}
+                        onChange={(e) => {
+                            const checked = e.target.checked;
+                            setWorkingWeekends(checked);
+                            if (!checked) {
+                                setWeekSetup((prev) => ({
+                                    ...prev,
+                                    Saturday: { ...prev.Saturday, isDayOff: true },
+                                    Sunday: { ...prev.Sunday, isDayOff: true },
+                                }));
+                            }
+                        }}
                         className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500"
                     />
                     Working weekends
                 </label>
 
                 <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {DAYS_OF_WEEK.map((day) => (
-                        <div key={day} className="flex flex-wrap items-center gap-3 py-2.5">
-                            <span className="w-24 text-sm font-medium text-slate-900 dark:text-white">{day}</span>
-                            <label className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                                <input
-                                    type="checkbox"
-                                    checked={weekSetup[day].isDayOff}
-                                    onChange={(e) => updateDay(day, { isDayOff: e.target.checked })}
-                                    className="h-3.5 w-3.5 rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500"
-                                />
-                                Day off
-                            </label>
-                            {!weekSetup[day].isDayOff && (
-                                <>
-                                    <input
-                                        type="time"
-                                        value={weekSetup[day].startTime}
-                                        onChange={(e) => updateDay(day, { startTime: e.target.value })}
-                                        className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-900 dark:text-white"
-                                    />
-                                    <span className="text-xs text-slate-400">to</span>
-                                    <input
-                                        type="time"
-                                        value={weekSetup[day].endTime}
-                                        onChange={(e) => updateDay(day, { endTime: e.target.value })}
-                                        className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-900 dark:text-white"
-                                    />
-                                </>
-                            )}
-                        </div>
-                    ))}
+                    {DAYS_OF_WEEK.map((day) => {
+                        const weekendLocked = isWeekendDay(day) && !workingWeekends;
+                        return (
+                            <div key={day} className="flex flex-wrap items-center gap-3 py-2.5">
+                                <span className="w-24 text-sm font-medium text-slate-900 dark:text-white">{day}</span>
+                                {weekendLocked ? (
+                                    <span className="text-xs text-slate-400 dark:text-slate-500">
+                                        Day off (weekends not worked)
+                                    </span>
+                                ) : (
+                                    <>
+                                        <label className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                                            <input
+                                                type="checkbox"
+                                                checked={weekSetup[day].isDayOff}
+                                                onChange={(e) => updateDay(day, { isDayOff: e.target.checked })}
+                                                className="h-3.5 w-3.5 rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500"
+                                            />
+                                            Day off
+                                        </label>
+                                        {!weekSetup[day].isDayOff && (
+                                            <>
+                                                <input
+                                                    type="time"
+                                                    value={weekSetup[day].startTime}
+                                                    onChange={(e) => updateDay(day, { startTime: e.target.value })}
+                                                    className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-900 dark:text-white"
+                                                />
+                                                <span className="text-xs text-slate-400">to</span>
+                                                <input
+                                                    type="time"
+                                                    value={weekSetup[day].endTime}
+                                                    onChange={(e) => updateDay(day, { endTime: e.target.value })}
+                                                    className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-900 dark:text-white"
+                                                />
+                                            </>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
 
                 <Button type="submit" disabled={submitting}>
@@ -168,6 +193,7 @@ export function TrainerWeeklyScheduleEditor({ trainerId }: { trainerId: string }
                         dayName={day}
                         day={(availability.dailyAvailabilities ?? []).find((d) => d.dayOfWeek === day)}
                         onAdded={reload}
+                        locked={isWeekendDay(day) && !availability.workingWeekends}
                     />
                 ))}
             </div>

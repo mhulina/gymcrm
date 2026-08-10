@@ -157,6 +157,69 @@ public class TestAuthenticationService
         membersRepositoryMock.Verify(x => x.Insert(It.Is<Member>(m => m.AccountType == (int)AccountType.Admin)), Times.Once);
     }
 
+    [Fact]
+    public async Task GivenNonAdminCaller_WhenAdminCreatingAccount_ThenAccountAccessDeniedExceptionIsThrown()
+    {
+        // Given
+        var caller = CreateAccount(accountType: AccountType.Member).Member;
+        var membersRepositoryMock = new Mock<IMembersRepository>();
+        membersRepositoryMock
+            .Setup(x => x.FetchByCondition(It.IsAny<Expression<Func<Member, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Member> { caller });
+        var service = CreateAuthenticationService(membersRepository: membersRepositoryMock.Object);
+        var insertAccount = new InsertAccount { Email = "new@test.com", Password = "Password123!" };
+
+        // When
+        Func<Task> act = () => service.AdminCreateAccountAsync(insertAccount, caller.AccountGuid);
+
+        // Then
+        await act.Should().ThrowAsync<AccountAccessDeniedException>();
+    }
+
+    [Fact]
+    public async Task GivenUnknownCaller_WhenAdminCreatingAccount_ThenAccountAccessDeniedExceptionIsThrown()
+    {
+        // Given
+        var membersRepositoryMock = new Mock<IMembersRepository>();
+        membersRepositoryMock
+            .Setup(x => x.FetchByCondition(It.IsAny<Expression<Func<Member, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Member>());
+        var service = CreateAuthenticationService(membersRepository: membersRepositoryMock.Object);
+        var insertAccount = new InsertAccount { Email = "new@test.com", Password = "Password123!" };
+
+        // When
+        Func<Task> act = () => service.AdminCreateAccountAsync(insertAccount, Guid.NewGuid());
+
+        // Then
+        await act.Should().ThrowAsync<AccountAccessDeniedException>();
+    }
+
+    [Fact]
+    public async Task GivenAdminCaller_WhenAdminCreatingAccount_ThenAccountIsCreatedWithMustChangePasswordSet()
+    {
+        // Given
+        var adminMember = CreateAccount(accountType: AccountType.Admin).Member;
+        var membersRepositoryMock = new Mock<IMembersRepository>();
+        membersRepositoryMock
+            .Setup(x => x.FetchByCondition(It.IsAny<Expression<Func<Member, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Member> { adminMember });
+        var accountsRepositoryMock = CreateAccountsRepositoryMock();
+        var service = CreateAuthenticationService(
+            accountsRepository: accountsRepositoryMock.Object,
+            membersRepository: membersRepositoryMock.Object,
+            unitOfWork: CreateUnitOfWorkMock(saveResult: true).Object);
+        var insertAccount = new InsertAccount { Email = "newmember@test.com", Password = "Password123!" };
+
+        // When
+        var result = await service.AdminCreateAccountAsync(insertAccount, adminMember.AccountGuid);
+
+        // Then
+        result.Should().NotBe(Guid.Empty);
+        accountsRepositoryMock.Verify(x => x.Insert(It.Is<Account>(a =>
+            a.Email == "newmember@test.com" && a.MustChangePassword)), Times.Once);
+        membersRepositoryMock.Verify(x => x.Insert(It.Is<Member>(m => m.Email == "newmember@test.com")), Times.Once);
+    }
+
     [Theory]
     [InlineData(null, "pw")]
     [InlineData("", "pw")]
@@ -262,12 +325,13 @@ public class TestAuthenticationService
             refreshTokenService: refreshTokenServiceMock.Object);
 
         // When
-        var (accessToken, returnedRefreshToken) = await service.LoginAccount(
+        var (accessToken, returnedRefreshToken, mustChangePassword) = await service.LoginAccount(
             new AuthenticationRequestBody { Username = account.Email, Password = ValidPassword });
 
         // Then
         accessToken.Should().NotBeNullOrWhiteSpace();
         returnedRefreshToken.Should().Be(refreshToken.Token);
+        mustChangePassword.Should().BeFalse();
         account.FailedLoginAttempts.Should().Be(0);
         account.LockoutUntil.Should().BeNull();
     }
@@ -417,10 +481,10 @@ public class TestAuthenticationService
     }
 
     [Fact]
-    public async Task GivenCorrectOldPassword_WhenChangingPassword_ThenPasswordIsUpdated()
+    public async Task GivenCorrectOldPassword_WhenChangingPassword_ThenPasswordIsUpdatedAndMustChangePasswordIsCleared()
     {
         // Given
-        var account = CreateAccount();
+        var account = CreateAccount(mustChangePassword: true);
         var originalHash = account.HashedPassword;
         var accountsRepositoryMock = CreateAccountsRepositoryMock(account);
         var service = CreateAuthenticationService(
@@ -433,7 +497,23 @@ public class TestAuthenticationService
         // Then
         result.Should().BeTrue();
         account.HashedPassword.Should().NotBe(originalHash);
+        account.MustChangePassword.Should().BeFalse();
         accountsRepositoryMock.Verify(x => x.Update(account), Times.Once);
+    }
+
+    [Fact]
+    public async Task GivenNewPasswordSameAsOld_WhenChangingPassword_ThenArgumentExceptionIsThrown()
+    {
+        // Given - forcing an actual change is the whole point of MustChangePassword, so
+        // resubmitting the same password must not be accepted as satisfying it.
+        var account = CreateAccount();
+        var service = CreateAuthenticationService(accountsRepository: CreateAccountsRepositoryMock(account).Object);
+
+        // When
+        Func<Task> act = () => service.ChangePassword(account.Email, ValidPassword, ValidPassword);
+
+        // Then
+        await act.Should().ThrowAsync<ArgumentException>();
     }
 
     [Fact]
@@ -465,8 +545,24 @@ public class TestAuthenticationService
         jwt.Claims.Should().Contain(c => c.Type == "email" && c.Value == account.Email);
         jwt.Claims.Should().Contain(c => c.Type == "type" && c.Value == AccountType.PersonalTrainer.ToString());
         jwt.Claims.Should().Contain(c => c.Type == "timezone" && c.Value == account.Member.TimeZone);
+        jwt.Claims.Should().Contain(c => c.Type == "mustChangePassword" && c.Value == "False");
         jwt.Issuer.Should().Be(TestIssuer);
         jwt.Audiences.Should().Contain(TestAudience);
+    }
+
+    [Fact]
+    public void GivenAccountWithMustChangePasswordTrue_WhenGeneratingJwtToken_ThenClaimReflectsTrue()
+    {
+        // Given
+        var account = CreateAccount(mustChangePassword: true);
+        var service = CreateAuthenticationService();
+
+        // When
+        var token = service.GenerateJwtToken(account);
+
+        // Then
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
+        jwt.Claims.Should().Contain(c => c.Type == "mustChangePassword" && c.Value == "True");
     }
 
     private static string HashPassword(string password, string salt, DateTime dateCreated)
@@ -480,7 +576,8 @@ public class TestAuthenticationService
         string password = ValidPassword,
         int failedLoginAttempts = 0,
         DateTime? lockoutUntil = null,
-        AccountType accountType = AccountType.Member)
+        AccountType accountType = AccountType.Member,
+        bool mustChangePassword = false)
     {
         var dateCreated = DateTime.UtcNow.AddDays(-30);
         const string salt = "test-salt";
@@ -492,7 +589,8 @@ public class TestAuthenticationService
             HashSalt = salt,
             HashedPassword = HashPassword(password, salt, dateCreated),
             FailedLoginAttempts = failedLoginAttempts,
-            LockoutUntil = lockoutUntil
+            LockoutUntil = lockoutUntil,
+            MustChangePassword = mustChangePassword
         };
         account.Member = new Member
         {

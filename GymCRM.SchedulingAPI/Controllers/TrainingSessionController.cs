@@ -389,7 +389,9 @@ public class TrainingSessionController : ControllerBase
 
     /// <summary>
     /// Reschedules a requested training session to a new time, re-running the same booking
-    /// validation used when the session was first requested, then promotes it to Booked.
+    /// validation used when the session was first requested, then sets it to Reschedule pending
+    /// the client's confirmation (see <see cref="AcceptRescheduledTrainingSession"/> /
+    /// <see cref="DeclineRescheduledTrainingSession"/>).
     /// </summary>
     /// <param name="id">The unique identifier of the training session.</param>
     /// <param name="request">The new start/end time.</param>
@@ -445,6 +447,86 @@ public class TrainingSessionController : ControllerBase
 
             var result = await _trainingSessionService.RescheduleTrainingSessionAsync(
                 id, request.NewStartTime, request.NewEndTime, callerAccountGuid, callerIsAdmin, cancellationToken: cancellationToken);
+
+            if (!result)
+            {
+                return new BadRequestResult();
+            }
+
+            return new NoContentResult();
+        }
+        catch (TrainingSessionAccessDeniedException ex)
+        {
+            return new ObjectResult(ex.Message) { StatusCode = StatusCodes.Status403Forbidden };
+        }
+        catch (Exception)
+        {
+            return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+        }
+    }
+
+    /// <summary>
+    /// Confirms a trainer-proposed reschedule, promoting it to Booked. Only the client who
+    /// requested the session (or an Admin) may call this.
+    /// </summary>
+    /// <param name="id">The unique identifier of the training session.</param>
+    /// <param name="cancellationToken">Token to cancel the asynchronous operation.</param>
+    /// <response code="204">The reschedule was successfully confirmed.</response>
+    /// <response code="400">The session could not be found or was not awaiting reschedule confirmation.</response>
+    /// <response code="403">The caller is not allowed to modify this training session.</response>
+    /// <response code="500">An unexpected error occurred on the server.</response>
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult> AcceptRescheduledTrainingSession(Guid id, CancellationToken cancellationToken)
+    {
+        if (!TryGetCallerIdentity(out var callerAccountGuid, out var callerIsAdmin))
+        {
+            return new UnauthorizedObjectResult("Invalid token claims");
+        }
+
+        try
+        {
+            var result = await _trainingSessionService.AcceptRescheduledTrainingSessionAsync(
+                id, callerAccountGuid, callerIsAdmin, cancellationToken: cancellationToken);
+
+            if (!result)
+            {
+                return new BadRequestResult();
+            }
+
+            return new NoContentResult();
+        }
+        catch (TrainingSessionAccessDeniedException ex)
+        {
+            return new ObjectResult(ex.Message) { StatusCode = StatusCodes.Status403Forbidden };
+        }
+        catch (Exception)
+        {
+            return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+        }
+    }
+
+    /// <summary>
+    /// Rejects a trainer-proposed reschedule, setting it to Cancelled. Only the client who
+    /// requested the session (or an Admin) may call this.
+    /// </summary>
+    /// <param name="id">The unique identifier of the training session.</param>
+    /// <param name="cancellationToken">Token to cancel the asynchronous operation.</param>
+    /// <response code="204">The reschedule was successfully declined.</response>
+    /// <response code="400">The session could not be found or was not awaiting reschedule confirmation.</response>
+    /// <response code="403">The caller is not allowed to modify this training session.</response>
+    /// <response code="500">An unexpected error occurred on the server.</response>
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult> DeclineRescheduledTrainingSession(Guid id, CancellationToken cancellationToken)
+    {
+        if (!TryGetCallerIdentity(out var callerAccountGuid, out var callerIsAdmin))
+        {
+            return new UnauthorizedObjectResult("Invalid token claims");
+        }
+
+        try
+        {
+            var result = await _trainingSessionService.DeclineRescheduledTrainingSessionAsync(
+                id, callerAccountGuid, callerIsAdmin, cancellationToken: cancellationToken);
 
             if (!result)
             {

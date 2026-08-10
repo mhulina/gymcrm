@@ -8,6 +8,8 @@ import {fetchMemberByGuid} from "../api/identityApi";
 import {fullName, initials} from "../utils/memberDisplay";
 import {Badge} from "../../../shared/components/Badge";
 import {enumLabel} from "../../../shared/utils/mapper";
+import {TrainingSession} from "../../scheduling/types/trainingSession";
+import {fetchTrainingSessionsForTrainer} from "../../scheduling/api/schedulingApi";
 import {MemberSessionCalendar} from "../../scheduling/components/MemberSessionCalendar";
 import {TrainerSessionRequests} from "../../scheduling/components/TrainerSessionRequests";
 import {TrainerSessionCalendar} from "../../scheduling/components/TrainerSessionCalendar";
@@ -24,6 +26,8 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 
 export function MemberInfoDashboard({ userData, onUserDataChanged }: { userData: Member; onUserDataChanged: () => void }) {
     const [trainerName, setTrainerName] = useState<string | null>(null);
+    const [trainerSessions, setTrainerSessions] = useState<TrainingSession[]>([]);
+    const [trainerSessionsLoading, setTrainerSessionsLoading] = useState(true);
 
     useEffect(() => {
         if (userData.accountType === AccountType.Member && userData.personalTrainerId) {
@@ -34,6 +38,24 @@ export function MemberInfoDashboard({ userData, onUserDataChanged }: { userData:
             });
         }
     }, [userData.accountType, userData.personalTrainerId]);
+
+    // Shared between TrainerSessionRequests and TrainerSessionCalendar so accepting/declining/
+    // rescheduling a request in one refreshes the other too, instead of each fetching its own
+    // copy independently and only one of them updating.
+    function reloadTrainerSessions() {
+        if (!userData.accountGuid) return;
+        setTrainerSessionsLoading(true);
+        fetchTrainingSessionsForTrainer(userData.accountGuid)
+            .then(setTrainerSessions)
+            .finally(() => setTrainerSessionsLoading(false));
+    }
+
+    useEffect(() => {
+        if (userData.accountType === AccountType.PersonalTrainer && userData.accountGuid) {
+            reloadTrainerSessions();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userData.accountType, userData.accountGuid]);
 
     return (
         <div className="space-y-6">
@@ -115,9 +137,13 @@ export function MemberInfoDashboard({ userData, onUserDataChanged }: { userData:
 
             {userData.accountType === AccountType.PersonalTrainer && userData.accountGuid && (
                 <>
-                    <TrainerSessionRequests trainerId={userData.accountGuid} />
+                    <TrainerSessionRequests
+                        sessions={trainerSessions}
+                        loading={trainerSessionsLoading}
+                        onChanged={reloadTrainerSessions}
+                    />
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                        <TrainerSessionCalendar trainerId={userData.accountGuid} />
+                        <TrainerSessionCalendar sessions={trainerSessions} loading={trainerSessionsLoading} />
                         <TrainerWorkingHoursSummary trainerId={userData.accountGuid} />
                     </div>
                 </>

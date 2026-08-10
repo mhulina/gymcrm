@@ -26,6 +26,7 @@ import {Button} from "../../../shared/components/Button";
 import {Badge} from "../../../shared/components/Badge";
 import {enumLabel} from "../../../shared/utils/mapper";
 import {BookingWizard} from "./BookingWizard";
+import {RescheduleProposalModal} from "./RescheduleProposalModal";
 
 const MONTH_FORMATTER = new Intl.DateTimeFormat(undefined, {month: "long", year: "numeric"});
 const DAY_FORMATTER = new Intl.DateTimeFormat(undefined, {weekday: "long", month: "long", day: "numeric"});
@@ -126,11 +127,10 @@ export function MemberSessionCalendar({member}: { member: Member }) {
     // session into the member's own timezone individually before grouping/displaying, so
     // both the calendar's day marker and the day panel's times reflect the booking
     // member's timezone, per-session, not a single assumed zone.
-    const sessionsByDay = useMemo(() => {
-        const map = new Map<string, {session: TrainingSession; start: Date; end: Date}[]>();
-        sessions
+    const convertedSessions = useMemo(() => {
+        return sessions
             .filter((session) => session.status !== TrainingSessionStatus.Cancelled)
-            .forEach((session) => {
+            .map((session) => {
                 const trainerZone = trainerZoneById.get(session.trainerId);
                 const rawStart = parseLocalDateTime(session.startTime);
                 const rawEnd = parseLocalDateTime(session.endTime);
@@ -141,17 +141,32 @@ export function MemberSessionCalendar({member}: { member: Member }) {
                     ? convertWallClock(toDateInputValue(rawEnd), toTimeInputValue(rawEnd), trainerZone, member.timeZone)
                     : {date: toDateInputValue(rawEnd), time: toTimeInputValue(rawEnd)};
 
-                const entry = {
+                return {
                     session,
+                    dayKey: startLocal.date,
                     start: parseLocalDateTime(buildLocalDateTime(startLocal.date, startLocal.time)),
                     end: parseLocalDateTime(buildLocalDateTime(endLocal.date, endLocal.time)),
                 };
-                const list = map.get(startLocal.date) ?? [];
-                list.push(entry);
-                map.set(startLocal.date, list);
             });
-        return map;
     }, [sessions, trainerZoneById, member.timeZone]);
+
+    const sessionsByDay = useMemo(() => {
+        const map = new Map<string, {session: TrainingSession; start: Date; end: Date}[]>();
+        convertedSessions.forEach(({session, dayKey, start, end}) => {
+            const list = map.get(dayKey) ?? [];
+            list.push({session, start, end});
+            map.set(dayKey, list);
+        });
+        return map;
+    }, [convertedSessions]);
+
+    // Trainer-proposed reschedules stay unconfirmed (TrainingSessionStatus.Reschedule) until
+    // the member accepts/declines them - shown one at a time as a blocking popup rather than
+    // just another calendar badge, since it's easy to miss otherwise.
+    const pendingReschedules = useMemo(
+        () => convertedSessions.filter((entry) => entry.session.status === TrainingSessionStatus.Reschedule),
+        [convertedSessions]
+    );
 
     const days = useMemo(() => buildMonthGrid(visibleMonth), [visibleMonth]);
     const today = new Date();
@@ -167,6 +182,14 @@ export function MemberSessionCalendar({member}: { member: Member }) {
 
     return (
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
+            {pendingReschedules[0] && (
+                <RescheduleProposalModal
+                    session={pendingReschedules[0].session}
+                    start={pendingReschedules[0].start}
+                    end={pendingReschedules[0].end}
+                    onResolved={reloadSessions}
+                />
+            )}
             <div className="flex items-center justify-between">
                 <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                     Training sessions

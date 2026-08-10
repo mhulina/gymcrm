@@ -192,3 +192,24 @@ export async function rescheduleTrainingSession(
         return { success: false, error: extractErrorMessage(error, "We couldn't reschedule this session.") };
     }
 }
+
+// Client-side confirmation of a trainer-proposed reschedule (TrainingSessionStatus.Reschedule).
+export async function acceptRescheduledTrainingSession(id: string): Promise<boolean> {
+    try {
+        await axios.put(`AcceptRescheduledTrainingSession/${id}`);
+        return true;
+    } catch (error) {
+        console.error("Error accepting rescheduled training session: ", error);
+        return false;
+    }
+}
+
+export async function declineRescheduledTrainingSession(id: string): Promise<boolean> {
+    try {
+        await axios.put(`DeclineRescheduledTrainingSession/${id}`);
+        return true;
+    } catch (error) {
+        console.error("Error declining rescheduled training session: ", error);
+        return false;
+    }
+}

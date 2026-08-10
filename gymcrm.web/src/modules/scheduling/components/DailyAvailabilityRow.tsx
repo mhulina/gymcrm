@@ -9,12 +9,15 @@ interface Props {
     dayName: string;
     day?: TrainerDailyAvailability;
     onAdded: () => void;
+    // Weekends when the trainer's "working weekends" flag is off - automatically a day off,
+    // not just editable-and-defaulted, so no toggle/hours UI is shown at all for it.
+    locked?: boolean;
 }
 
 // One day's ranges (each editable/removable in place) plus its own "add a time range"
 // mini-form and a day-off toggle, with its own submitting/error state - kept separate so
 // the week editor stays readable.
-export function DailyAvailabilityRow({ trainerId, dayName, day, onAdded }: Props) {
+export function DailyAvailabilityRow({ trainerId, dayName, day, onAdded, locked = false }: Props) {
     const [startTime, setStartTime] = useState("09:00");
     const [endTime, setEndTime] = useState("17:00");
     const [submitting, setSubmitting] = useState(false);
@@ -35,6 +38,15 @@ export function DailyAvailabilityRow({ trainerId, dayName, day, onAdded }: Props
 
     const isDayOff = day?.isDayOff ?? false;
     const hours = day?.workingHours ?? [];
+
+    if (locked) {
+        return (
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 py-3 last:border-0">
+                <span className="text-sm font-medium text-slate-900 dark:text-white">{dayName}</span>
+                <span className="text-xs text-slate-400 dark:text-slate-500">Day off (weekends not worked)</span>
+            </div>
+        );
+    }
 
     async function handleAdd() {
         if (startTime >= endTime) {

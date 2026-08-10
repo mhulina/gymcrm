@@ -265,7 +265,59 @@ public class TrainingSessionsService : ITrainingSessionsService
 
         existingSession.StartTime = newStartTime;
         existingSession.EndTime = newEndTime;
+        existingSession.Status = (int)TrainingSessionStatus.Reschedule;
+        existingSession.DateModified = DateTime.UtcNow;
+
+        _trainingSessionsRepository.Update(existingSession);
+        return await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<bool> AcceptRescheduledTrainingSessionAsync(
+        Guid id, Guid callerAccountGuid, bool callerIsAdmin, CancellationToken cancellationToken = default)
+    {
+        var existingSession = (await _trainingSessionsRepository
+            .FetchByConditionAsync(x => x.Id == id, cancellationToken))
+            .FirstOrDefault();
+
+        if (existingSession is null)
+        {
+            return false;
+        }
+
+        EnsureSelfOrAdmin(existingSession.ClientId, callerAccountGuid, callerIsAdmin);
+
+        if (existingSession.Status != (int)TrainingSessionStatus.Reschedule)
+        {
+            return false;
+        }
+
         existingSession.Status = (int)TrainingSessionStatus.Booked;
+        existingSession.DateModified = DateTime.UtcNow;
+
+        _trainingSessionsRepository.Update(existingSession);
+        return await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<bool> DeclineRescheduledTrainingSessionAsync(
+        Guid id, Guid callerAccountGuid, bool callerIsAdmin, CancellationToken cancellationToken = default)
+    {
+        var existingSession = (await _trainingSessionsRepository
+            .FetchByConditionAsync(x => x.Id == id, cancellationToken))
+            .FirstOrDefault();
+
+        if (existingSession is null)
+        {
+            return false;
+        }
+
+        EnsureSelfOrAdmin(existingSession.ClientId, callerAccountGuid, callerIsAdmin);
+
+        if (existingSession.Status != (int)TrainingSessionStatus.Reschedule)
+        {
+            return false;
+        }
+
+        existingSession.Status = (int)TrainingSessionStatus.Cancelled;
         existingSession.DateModified = DateTime.UtcNow;
 
         _trainingSessionsRepository.Update(existingSession);
@@ -274,11 +326,12 @@ public class TrainingSessionsService : ITrainingSessionsService
 
     /// <summary>
     /// Throws <see cref="TrainingSessionAccessDeniedException"/> unless the caller is either an
-    /// Admin or the trainer who owns the session being modified.
+    /// Admin or the account (trainer or client, depending on the action) that owns the session
+    /// being modified.
     /// </summary>
-    private static void EnsureSelfOrAdmin(Guid ownerTrainerId, Guid callerAccountGuid, bool callerIsAdmin)
+    private static void EnsureSelfOrAdmin(Guid ownerAccountGuid, Guid callerAccountGuid, bool callerIsAdmin)
     {
-        if (callerIsAdmin || ownerTrainerId == callerAccountGuid)
+        if (callerIsAdmin || ownerAccountGuid == callerAccountGuid)
         {
             return;
         }

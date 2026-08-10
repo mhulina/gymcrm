@@ -4,7 +4,6 @@ import {fetchAllMembers} from "../../identity/api/identityApi";
 import {fullName} from "../../identity/utils/memberDisplay";
 import {TrainingSession} from "../types/trainingSession";
 import {TrainingSessionStatus} from "../types/trainingSessionStatus";
-import {fetchTrainingSessionsForTrainer} from "../api/schedulingApi";
 import {isSameDay, parseLocalDateTime, toDateInputValue} from "../utils/calendarDate";
 import {Badge} from "../../../shared/components/Badge";
 import {enumLabel} from "../../../shared/utils/mapper";
@@ -30,25 +29,19 @@ function buildMonthGrid(monthDate: Date): Date[] {
 }
 
 interface Props {
-    trainerId: string;
+    sessions: TrainingSession[];
+    loading: boolean;
 }
 
 // Read-only glance view of a trainer's own sessions - no wizard, no accept/decline/reschedule
 // actions (those live in TrainerSessionRequests). A trainer viewing their own sessions needs
-// no timezone conversion at all, unlike MemberSessionCalendar.
-export function TrainerSessionCalendar({trainerId}: Props) {
+// no timezone conversion at all, unlike MemberSessionCalendar. sessions/loading come from the
+// shared parent (MemberInfoDashboard) rather than being fetched here, so accepting/declining/
+// rescheduling a request in TrainerSessionRequests refreshes this calendar too.
+export function TrainerSessionCalendar({sessions, loading}: Props) {
     const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
-    const [sessions, setSessions] = useState<TrainingSession[]>([]);
-    const [loading, setLoading] = useState(true);
     const [clients, setClients] = useState<Member[]>([]);
     const [selectedDay, setSelectedDay] = useState<Date | null>(null);
-
-    useEffect(() => {
-        setLoading(true);
-        fetchTrainingSessionsForTrainer(trainerId)
-            .then(setSessions)
-            .finally(() => setLoading(false));
-    }, [trainerId]);
 
     useEffect(() => {
         fetchAllMembers().then(setClients);

@@ -17,5 +17,6 @@ public class AccountsConfiguration : IEntityTypeConfiguration<Account>
         modelBuilder.Property(x => x.DateCreated).IsRequired();
         modelBuilder.Property(x => x.HashSalt).IsRequired();
         modelBuilder.Property(x => x.HashedPassword).IsRequired();
+        modelBuilder.Property(x => x.MustChangePassword).IsRequired().HasDefaultValue(false);
     }
 }

@@ -4,12 +4,7 @@ import {fetchAllMembers} from "../../identity/api/identityApi";
 import {fullName} from "../../identity/utils/memberDisplay";
 import {TrainingSession} from "../types/trainingSession";
 import {TrainingSessionStatus} from "../types/trainingSessionStatus";
-import {
-    acceptTrainingSession,
-    declineTrainingSession,
-    fetchTrainingSessionsForTrainer,
-    rescheduleTrainingSession,
-} from "../api/schedulingApi";
+import {acceptTrainingSession, declineTrainingSession, rescheduleTrainingSession} from "../api/schedulingApi";
 import {addMinutesToTime, buildLocalDateTime, parseLocalDateTime, toDateInputValue, toTimeInputValue} from "../utils/calendarDate";
 import {Button} from "../../../shared/components/Button";
 import {Badge} from "../../../shared/components/Badge";
@@ -19,15 +14,17 @@ const TIME_FORMATTER = new Intl.DateTimeFormat(undefined, {hour: "2-digit", minu
 const DURATIONS = [30, 60, 90] as const;
 
 interface Props {
-    trainerId: string;
+    sessions: TrainingSession[];
+    loading: boolean;
+    // Called after accept/decline/reschedule succeeds so the shared session list (also read by
+    // the sibling TrainerSessionCalendar) refreshes without needing a full page reload.
+    onChanged: () => void;
 }
 
 // The actionable counterpart to TrainerSessionCalendar - shows only Requested sessions
 // with Accept/Decline/Reschedule. Reschedule reuses DailyAvailabilityRow's inline-edit-mode
 // idiom (toggle a small form in place) rather than a modal.
-export function TrainerSessionRequests({trainerId}: Props) {
-    const [sessions, setSessions] = useState<TrainingSession[]>([]);
-    const [loading, setLoading] = useState(true);
+export function TrainerSessionRequests({sessions, loading, onChanged}: Props) {
     const [clients, setClients] = useState<Member[]>([]);
     const [actioningId, setActioningId] = useState<string | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
@@ -37,16 +34,6 @@ export function TrainerSessionRequests({trainerId}: Props) {
     const [rescheduleDuration, setRescheduleDuration] = useState<30 | 60 | 90>(60);
     const [reschedulingBusy, setReschedulingBusy] = useState(false);
     const [rescheduleError, setRescheduleError] = useState<string | null>(null);
-
-    function reload() {
-        setLoading(true);
-        fetchTrainingSessionsForTrainer(trainerId)
-            .then(setSessions)
-            .finally(() => setLoading(false));
-    }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(reload, [trainerId]);
 
     useEffect(() => {
         fetchAllMembers().then(setClients);
@@ -79,7 +66,7 @@ export function TrainerSessionRequests({trainerId}: Props) {
 
         const success = await acceptTrainingSession(id);
         if (success) {
-            reload();
+            onChanged();
         } else {
             setActionError("Couldn't accept this request.");
         }
@@ -92,7 +79,7 @@ export function TrainerSessionRequests({trainerId}: Props) {
 
         const success = await declineTrainingSession(id);
         if (success) {
-            reload();
+            onChanged();
         } else {
             setActionError("Couldn't decline this request.");
         }
@@ -119,7 +106,7 @@ export function TrainerSessionRequests({trainerId}: Props) {
 
         if (result.success) {
             setReschedulingId(null);
-            reload();
+            onChanged();
         } else {
             setRescheduleError(result.error ?? "We couldn't reschedule this session.");
         }

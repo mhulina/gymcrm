@@ -13,7 +13,7 @@ export default function LoginPage() {
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const navigate = useNavigate();
-    const { setIsAuthenticated } = useAuth();
+    const { setIsAuthenticated, setMustChangePassword } = useAuth();
 
     function validateForm() {
         return email.length > 0 && password.length > 0;
@@ -24,10 +24,11 @@ export default function LoginPage() {
         setError(null);
         setSubmitting(true);
 
-        const success = await handleLogin(email, password, navigate);
+        const { success, mustChangePassword } = await handleLogin(email, password, navigate);
 
         if (success) {
             setIsAuthenticated(true);
+            setMustChangePassword(mustChangePassword);
         } else {
             setError("We couldn't sign you in. Check your email and password and try again.");
         }

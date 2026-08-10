@@ -138,14 +138,19 @@ export default function AdminAddMemberPage() {
                             value={form.email}
                             onChange={(e) => update("email", e.target.value)}
                         />
-                        <TextField
-                            id="password"
-                            label="Temporary password"
-                            type="password"
-                            required
-                            value={form.password}
-                            onChange={(e) => update("password", e.target.value)}
-                        />
+                        <div>
+                            <TextField
+                                id="password"
+                                label="Temporary password"
+                                type="password"
+                                required
+                                value={form.password}
+                                onChange={(e) => update("password", e.target.value)}
+                            />
+                            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                                The new user will be required to change this on their first login.
+                            </p>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

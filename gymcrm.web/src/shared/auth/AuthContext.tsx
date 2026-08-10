@@ -7,12 +7,15 @@ interface AuthContextType {
     logout: () => void;
     hasAdminAccount: boolean | null;
     refreshHasAdminAccount: () => Promise<void>;
+    mustChangePassword: boolean;
+    setMustChangePassword: (value: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AUTH_STATE_KEY = 'gym_crm_auth_state';
 const AUTH_CHECK_KEY = 'gym_crm_auth_checked';
+const MUST_CHANGE_PASSWORD_KEY = 'gym_crm_must_change_password';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(() => {
@@ -23,7 +26,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsAuthenticated(value);
         sessionStorage.setItem(AUTH_STATE_KEY, JSON.stringify(value));
     };
-    
+
+    // Cached in sessionStorage the same way isAuthenticated is (unlike hasAdminAccount below) -
+    // without this, an F5 on /change-password before actually changing it would reset this to
+    // false on remount and PrivateRoute would wave the user straight into /member/home.
+    const [mustChangePassword, setMustChangePasswordState] = useState<boolean>(() => {
+        const cached = sessionStorage.getItem(MUST_CHANGE_PASSWORD_KEY);
+        return cached ? JSON.parse(cached) : false;
+    });
+    const updateMustChangePassword = (value: boolean) => {
+        setMustChangePasswordState(value);
+        sessionStorage.setItem(MUST_CHANGE_PASSWORD_KEY, JSON.stringify(value));
+    };
+
     const checkAuth = async () => {
         try {
             const response = await fetch(
@@ -34,14 +49,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 }
             );
             updateAuthState(response.ok);
+            if (response.ok) {
+                const data = await response.json();
+                updateMustChangePassword(Boolean(data?.mustChangePassword));
+            }
         } catch (error) {
             console.error(`Auth check failed`, error);
             updateAuthState(false);
         }
     };
-    
+
     const logout = () => {
         updateAuthState(false);
+        updateMustChangePassword(false);
         sessionStorage.removeItem(AUTH_CHECK_KEY);
     };
 
@@ -85,6 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         <AuthContext.Provider value={{
             isAuthenticated, setIsAuthenticated: updateAuthState, checkAuth, logout,
             hasAdminAccount, refreshHasAdminAccount,
+            mustChangePassword, setMustChangePassword: updateMustChangePassword,
         }}>
             {children}
         </AuthContext.Provider>

@@ -44,9 +44,38 @@ public class AuthenticationService : IAuthenticationService
 		_logger = logger;
 	}
 
-	public async Task<Guid> RegisterAccount(
-		InsertAccount insertAccount, 
+	public Task<Guid> RegisterAccount(
+		InsertAccount insertAccount,
+		CancellationToken cancellationToken = default) =>
+		RegisterAccountCore(insertAccount, mustChangePassword: false, cancellationToken);
+
+	public async Task<Guid> AdminCreateAccountAsync(
+		InsertAccount insertAccount,
+		Guid callerAccountGuid,
 		CancellationToken cancellationToken = default)
+	{
+		var caller = (await _membersRepository
+			.FetchByCondition(x => x.AccountGuid == callerAccountGuid, cancellationToken))
+			.FirstOrDefault();
+
+		if (caller is null || caller.AccountType != (int)AccountType.Admin)
+		{
+			var ex = new AccountAccessDeniedException();
+			_logger.Warning(ex, "Blocked admin account creation attempt by non-admin caller {CallerAccountGuid}", callerAccountGuid);
+			throw ex;
+		}
+
+		return await RegisterAccountCore(insertAccount, mustChangePassword: true, cancellationToken);
+	}
+
+	// mustChangePassword is true only for accounts created by RegisterAccount's admin-facing
+	// counterpart (AdminCreateAccountAsync) - a password an admin assigns on someone else's
+	// behalf is temporary by definition, and must be flagged so ChangePassword can clear it once
+	// the account's real owner sets their own.
+	private async Task<Guid> RegisterAccountCore(
+		InsertAccount insertAccount,
+		bool mustChangePassword,
+		CancellationToken cancellationToken)
 	{
 		if (string.IsNullOrWhiteSpace(insertAccount.Email)
 			|| string.IsNullOrWhiteSpace(insertAccount.Password))
@@ -65,7 +94,7 @@ public class AuthenticationService : IAuthenticationService
 				throw new AccountAlreadyExistsException();
 			}
 
-			var entity = CreateAccountWithHashedPassword(insertAccount);
+			var entity = CreateAccountWithHashedPassword(insertAccount, mustChangePassword);
 			_accountsRepository.Insert(entity);
 
 			var result = await _unitOfWork.SaveAsync(cancellationToken);
@@ -138,7 +167,7 @@ public class AuthenticationService : IAuthenticationService
 		}, cancellationToken);
 	}
 
-	public async Task<(string accessToken, string refreshToken)> LoginAccount(
+	public async Task<(string accessToken, string refreshToken, bool mustChangePassword)> LoginAccount(
 		AuthenticationRequestBody accountDto, 
 		CancellationToken cancellationToken = default)
 	{
@@ -197,7 +226,7 @@ public class AuthenticationService : IAuthenticationService
 
 			if (result)
 			{
-				return (accessToken, refreshToken.Token);
+				return (accessToken, refreshToken.Token, account.MustChangePassword);
 			}
 			
 			_logger.Warning(
@@ -261,12 +290,25 @@ public class AuthenticationService : IAuthenticationService
 		{
 			throw new AuthenticationFailureException("Password is invalid");
 		}
-		
+
+		if (oldPassword == newPassword)
+		{
+			throw new ArgumentException("New password must be different from the current password");
+		}
+
 		account.HashedPassword = GenerateHashedPassword(newPassword, account.HashSalt, account.DateCreated);
-		
+		account.MustChangePassword = false;
+
 		_unitOfWork.Detach(account);
 		_accountsRepository.Update(account);
 		var result = await _unitOfWork.SaveAsync(cancellationToken);
+
+		// Update() re-attaches the account (tracked, Unchanged after save) - leave the change
+		// tracker clean so a caller chaining another fetch of the same account in the same
+		// scope right after (e.g. AuthenticationController.ChangePassword calling LoginAccount
+		// to reissue cookies) doesn't hit an EF "entity with this key is already tracked"
+		// conflict.
+		_unitOfWork.DetachAll();
 
 		return result;
 	}
@@ -289,7 +331,8 @@ public class AuthenticationService : IAuthenticationService
 			new ("sub", account.Id.ToString()),
 			new ("email", account.Email),
 			new ("type", ((AccountType)account.Member.AccountType).ToString()),
-			new ("timezone", account.Member.TimeZone)
+			new ("timezone", account.Member.TimeZone),
+			new ("mustChangePassword", account.MustChangePassword.ToString())
 		};
 
 		var jwtSecurityToken = new JwtSecurityToken(
@@ -309,10 +352,11 @@ public class AuthenticationService : IAuthenticationService
 	/// Creates a new <see cref="Models.Entities.Account"/> entity with a hashed password using HMACSHA256 and a generated salt.
 	/// </summary>
 	/// <param name="insertAccount">The account information containing the email and password to hash.</param>
+	/// <param name="mustChangePassword">Whether this account's password was assigned by someone else and must be changed on first use.</param>
 	/// <returns>
 	/// A new <see cref="Models.Entities.Account"/> entity with hashed password, salt, and creation metadata.
 	/// </returns>
-	private static Account CreateAccountWithHashedPassword(InsertAccount insertAccount)
+	private static Account CreateAccountWithHashedPassword(InsertAccount insertAccount, bool mustChangePassword)
 	{
 		var hashSalt = RandomNumberGenerator.GetHexString(25);
 		var dateCreated = DateTime.UtcNow;
@@ -324,7 +368,8 @@ public class AuthenticationService : IAuthenticationService
 			Email = insertAccount.Email.ToLower(),
 			DateCreated = dateCreated,
 			HashSalt = hashSalt,
-			HashedPassword = GenerateHashedPassword(insertAccount.Password, hashSalt, dateCreated)
+			HashedPassword = GenerateHashedPassword(insertAccount.Password, hashSalt, dateCreated),
+			MustChangePassword = mustChangePassword
 		};
 
 		return entity;

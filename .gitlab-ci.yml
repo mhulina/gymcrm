@@ -23,6 +23,9 @@
 # deploy also generates .env.production on the droplet from PROD_POSTGRES_PASSWORD and
 # PROD_JWT_SECRET (both masked+protected) - these MUST match whatever's already running on
 # the droplet's Postgres volume/issued JWTs, not freshly-generated values. See VPS_DEPLOY.md.
+# It also writes DOCR_REGISTRY_NAME=$DO_REGISTRY_NAME into that file, which
+# docker-compose.prod.yml's image: lines interpolate - so the registry name never needs to be
+# hardcoded/edited into a tracked file by hand.
 
 stages:
   - build
@@ -134,6 +137,7 @@ deploy:
     # api container authenticate with the wrong password against the already-initialized DB.
     - |
       cat > .env.production.generated << ENVEOF
+      DOCR_REGISTRY_NAME=${DO_REGISTRY_NAME}
       POSTGRES_USER=postgres
       POSTGRES_PASSWORD=${PROD_POSTGRES_PASSWORD}
       POSTGRES_PORT=5432

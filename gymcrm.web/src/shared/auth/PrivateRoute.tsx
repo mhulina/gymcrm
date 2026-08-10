@@ -1,9 +1,12 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import {JSX} from "react";
 import {useAuth} from "./AuthContext";
 
+const CHANGE_PASSWORD_PATH = "/change-password";
+
 const PrivateRoute = ({ children }: { children: JSX.Element }) =>{
-    const { isAuthenticated, hasAdminAccount } = useAuth();
+    const { isAuthenticated, hasAdminAccount, mustChangePassword } = useAuth();
+    const location = useLocation();
 
     // Show loading state while checking
     if (isAuthenticated === null || hasAdminAccount === null) {
@@ -16,7 +19,17 @@ const PrivateRoute = ({ children }: { children: JSX.Element }) =>{
         return <Navigate to="/setup" replace />;
     }
 
-    return isAuthenticated ? children : <Navigate to="/login" replace />;
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+
+    // A temporary (admin-assigned) password must be changed before anything else is usable -
+    // except the change-password page itself, or this would redirect-loop forever.
+    if (mustChangePassword && location.pathname !== CHANGE_PASSWORD_PATH) {
+        return <Navigate to={CHANGE_PASSWORD_PATH} replace />;
+    }
+
+    return children;
 };
 
 export default PrivateRoute;

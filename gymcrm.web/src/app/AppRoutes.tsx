@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import RootRedirect from "./RootRedirect";
 import LoginPage from "../modules/identity/pages/LoginPage";
+import ChangePasswordPage from "../modules/identity/pages/ChangePasswordPage";
 import RegisterMemberPage from "../modules/identity/pages/RegisterMemberPage";
 import MemberHomePage from "../modules/identity/pages/MemberHomePage";
 import AdminAddMemberPage from "../modules/identity/pages/AdminAddMemberPage";
@@ -30,6 +31,11 @@ export default function AppRoutes() {
                 <PublicRoute>
                     <RegisterMemberPage />
                 </PublicRoute>
+            } />
+            <Route path="/change-password" element={
+                <PrivateRoute>
+                    <ChangePasswordPage />
+                </PrivateRoute>
             } />
             <Route path="/member/home" element={
                 <PrivateRoute>

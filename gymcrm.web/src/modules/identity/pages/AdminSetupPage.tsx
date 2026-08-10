@@ -39,8 +39,8 @@ export default function AdminSetupPage() {
         // see hasAdminAccount as false (stale) and bounce straight back to /setup.
         await refreshHasAdminAccount();
 
-        const loggedIn = await handleLogin(email, password, navigate);
-        setIsAuthenticated(loggedIn);
+        const loginResult = await handleLogin(email, password, navigate);
+        setIsAuthenticated(loginResult.success);
         setSubmitting(false);
     }
 

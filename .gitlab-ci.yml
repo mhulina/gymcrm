@@ -16,8 +16,11 @@
 # want to test something, but it never happens by itself). deploy additionally needs
 # DEPLOY_SSH_PRIVATE_KEY (a dedicated deploy keypair's private key, its public half added
 # to the droplet's ~/.ssh/authorized_keys) to SSH in and pull+restart - set it up as a
-# File-type variable, not a plain one (GitLab can't mask a multi-line SSH key). See
-# VPS_DEPLOY.md.
+# File-type variable, not a plain one (GitLab can't mask a multi-line SSH key).
+#
+# deploy also generates .env.production on the droplet from PROD_POSTGRES_PASSWORD and
+# PROD_JWT_SECRET (both masked+protected) - these MUST match whatever's already running on
+# the droplet's Postgres volume/issued JWTs, not freshly-generated values. See VPS_DEPLOY.md.
 
 stages:
   - build
@@ -111,14 +114,47 @@ deploy:
     - eval $(ssh-agent -s)
     # DEPLOY_SSH_PRIVATE_KEY is a File-type CI/CD variable, not a plain one - GitLab can't
     # mask a multi-line value, so the value is written to disk instead and this holds that
-    # file's path, not the key content itself.
-    - chmod 600 "$DEPLOY_SSH_PRIVATE_KEY"
-    - ssh-add "$DEPLOY_SSH_PRIVATE_KEY"
-    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    # file's path, not the key content itself. Re-written through tr to strip any \r that
+    # crept in from however the key was pasted into GitLab's variable box - ssh-add rejects
+    # a key with CRLF line endings in its base64 body with an opaque "libcrypto: unsupported".
+    - mkdir -p ~/.ssh
+    - tr -d '\r' < "$DEPLOY_SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+    - chmod 600 ~/.ssh/deploy_key
+    - ssh-add ~/.ssh/deploy_key
+    - chmod 700 ~/.ssh
     - ssh-keyscan -H $DEPLOY_IP >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
+    # .env.production is gitignored (real secrets, never committed) so git can't sync it -
+    # generated here instead, from CI/CD variables, then copied up. PROD_POSTGRES_PASSWORD
+    # and PROD_JWT_SECRET must be the exact values already running on the droplet - Postgres
+    # only applies POSTGRES_PASSWORD on first init, so a different value here would make the
+    # api container authenticate with the wrong password against the already-initialized DB.
+    - |
+      cat > .env.production.generated << ENVEOF
+      POSTGRES_USER=postgres
+      POSTGRES_PASSWORD=${PROD_POSTGRES_PASSWORD}
+      POSTGRES_PORT=5432
+      IDENTITY_DB_NAME=identity_db
+      SCHEDULING_DB_NAME=scheduling_db
+      JWT_SECRET_KEY=${PROD_JWT_SECRET}
+      JWT_ISSUER=GymCRM.IdentityAPI
+      JWT_AUDIENCE=GymCRM
+      JWT_EXPIRY_MINUTES=60
+      Security__MaxFailedLoginAttempts=10
+      Security__LockoutDurationMinutes=5
+      Security__AuthRateLimitPerMinute=100
+      Security__RegisterRateLimitPerMinute=100
+      CORS_ALLOWED_ORIGINS=http://${DEPLOY_IP}
+      ASPNETCORE_ENVIRONMENT=Production
+      ENVEOF
+    - scp .env.production.generated root@$DEPLOY_IP:~/gymcrm/.env.production
+    # git reset --hard (not just pull) so the droplet always ends up exactly matching
+    # master, even if it's drifted via a manual hand-edit in between deploys - only ever
+    # touches tracked files, so the .env.production just copied up above is left alone.
     - >-
       ssh root@$DEPLOY_IP
       "cd ~/gymcrm &&
+      git fetch origin master &&
+      git reset --hard origin/master &&
       docker compose -f docker-compose.prod.yml --env-file .env.production pull &&
       docker compose -f docker-compose.prod.yml --env-file .env.production up -d"

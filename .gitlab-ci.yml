@@ -14,9 +14,11 @@
 # docker-build and deploy only ever run automatically on a merge into master - on merge
 # request pipelines they're visible but manual (so you CAN trigger one from an MR if you
 # want to test something, but it never happens by itself). deploy additionally needs
-# DEPLOY_SSH_PRIVATE_KEY (a dedicated deploy keypair's private key, its public half added
-# to the droplet's ~/.ssh/authorized_keys) to SSH in and pull+restart - set it up as a
-# File-type variable, not a plain one (GitLab can't mask a multi-line SSH key).
+# DEPLOY_SSH_PRIVATE_KEY_B64 (a dedicated deploy keypair's private key, base64-encoded onto
+# one line via `base64 -w0`, its public half added to the droplet's ~/.ssh/authorized_keys)
+# to SSH in and pull+restart - a regular masked variable, single-line on purpose (a
+# multi-line File-type variable kept failing to load with an opaque libcrypto error
+# regardless of line-ending fixes, so this sidesteps that entirely).
 #
 # deploy also generates .env.production on the droplet from PROD_POSTGRES_PASSWORD and
 # PROD_JWT_SECRET (both masked+protected) - these MUST match whatever's already running on
@@ -112,13 +114,14 @@ deploy:
   script:
     - apk add --no-cache openssh-client
     - eval $(ssh-agent -s)
-    # DEPLOY_SSH_PRIVATE_KEY is a File-type CI/CD variable, not a plain one - GitLab can't
-    # mask a multi-line value, so the value is written to disk instead and this holds that
-    # file's path, not the key content itself. Re-written through tr to strip any \r that
-    # crept in from however the key was pasted into GitLab's variable box - ssh-add rejects
-    # a key with CRLF line endings in its base64 body with an opaque "libcrypto: unsupported".
+    # DEPLOY_SSH_PRIVATE_KEY_B64 is the private key, base64-encoded onto one line
+    # (`base64 -w0 gymcrm-deploy-key` locally) before being stored as a regular masked
+    # variable - a multi-line File-type variable kept failing to load ("libcrypto:
+    # unsupported") regardless of line-ending fixes, so this sidesteps GitLab's multi-line
+    # variable handling entirely: a single-line value has no line-wrap/whitespace ambiguity
+    # for a web textarea to introduce.
     - mkdir -p ~/.ssh
-    - tr -d '\r' < "$DEPLOY_SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+    - echo "$DEPLOY_SSH_PRIVATE_KEY_B64" | base64 -d > ~/.ssh/deploy_key
     - chmod 600 ~/.ssh/deploy_key
     - ssh-add ~/.ssh/deploy_key
     - chmod 700 ~/.ssh

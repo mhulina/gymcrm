@@ -1,7 +1,6 @@
 using System.Data.Common;
-using Npgsql;
 
-namespace GymCRM.IdentityAPI.Models;
+namespace GymCRM.IdentityAPI.Models.Exceptions;
 
 public class MemberNotFoundException : DbException
 {

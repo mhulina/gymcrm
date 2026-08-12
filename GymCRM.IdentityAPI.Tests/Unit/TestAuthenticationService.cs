@@ -8,10 +8,12 @@ using GymCRM.IdentityAPI.Infrastructure.Interface;
 using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.DTOs;
 using GymCRM.IdentityAPI.Models.Enums;
+using GymCRM.IdentityAPI.Models.Exceptions;
 using GymCRM.IdentityAPI.Models.Interface;
 using GymCRM.IdentityAPI.Services.Implementation;
 using GymCRM.IdentityAPI.Services.Interface;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Moq;
 using Serilog;
@@ -85,6 +87,26 @@ public class TestAuthenticationService
             && m.GymSubscriptionType == 0
             && m.Gender == 0
             && m.TimeZone == TimeZoneInfo.Utc.Id)), Times.Once);
+    }
+
+    [Fact]
+    public async Task GivenValidInsertAccount_WhenRegisteringAccount_ThenPasswordIsHashedInCurrentFormat()
+    {
+        // Given - new accounts must never be created with the legacy hand-rolled scheme, only
+        // pre-existing ones (via the rehash-on-login/change path) should ever carry it.
+        var accountsRepositoryMock = CreateAccountsRepositoryMock();
+        var service = CreateAuthenticationService(
+            accountsRepository: accountsRepositoryMock.Object,
+            membersRepository: new Mock<IMembersRepository>().Object,
+            unitOfWork: CreateUnitOfWorkMock(saveResult: true).Object);
+        var insertAccount = new InsertAccount { Email = "new@test.com", Password = "Password123!" };
+
+        // When
+        await service.RegisterAccount(insertAccount);
+
+        // Then
+        accountsRepositoryMock.Verify(x => x.Insert(It.Is<Account>(a =>
+            Convert.FromBase64String(a.HashedPassword)[0] == 1)), Times.Once);
     }
 
     [Theory]
@@ -337,6 +359,92 @@ public class TestAuthenticationService
     }
 
     [Fact]
+    public async Task GivenLegacyHashedAccount_WhenLoggingInWithCorrectPassword_ThenAccountIsTransparentlyRehashedToNewFormat()
+    {
+        // Given - CreateAccount() produces a legacy (pre-PBKDF2) HMACSHA256 hash by default,
+        // standing in for a real account that hasn't logged in since the hashing migration.
+        var account = CreateAccount();
+        var legacyHash = account.HashedPassword;
+        var refreshToken = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            AccountId = account.Id,
+            Token = "refresh-token-value",
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            CreatedAt = DateTime.UtcNow
+        };
+        var refreshTokenServiceMock = new Mock<IRefreshTokenService>();
+        refreshTokenServiceMock.Setup(x => x.GenerateRefreshToken(account.Id)).Returns(refreshToken);
+        refreshTokenServiceMock.Setup(x => x.SaveRefreshTokenAsync(refreshToken, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        var accountsRepositoryMock = CreateAccountsRepositoryMock(account);
+        var service = CreateAuthenticationService(
+            accountsRepository: accountsRepositoryMock.Object,
+            unitOfWork: CreateUnitOfWorkMock(saveResult: true).Object,
+            refreshTokenService: refreshTokenServiceMock.Object);
+
+        // When
+        var result = await service.LoginAccount(new AuthenticationRequestBody { Username = account.Email, Password = ValidPassword });
+
+        // Then - login still succeeds off the legacy hash, but the account is rehashed into the
+        // new PBKDF2 format (marker byte 0x01) as a side effect of the very same Update() that
+        // already resets FailedLoginAttempts - not a separate write.
+        result.accessToken.Should().NotBeNullOrWhiteSpace();
+        account.HashedPassword.Should().NotBe(legacyHash);
+        Convert.FromBase64String(account.HashedPassword)[0].Should().Be(1);
+        accountsRepositoryMock.Verify(x => x.Update(account), Times.Once);
+    }
+
+    [Fact]
+    public async Task GivenAlreadyMigratedAccount_WhenLoggingInWithCorrectPassword_ThenHashIsNotChangedAgain()
+    {
+        // Given - a password hashed the current way (mirrors what CreateAccountWithHashedPassword
+        // now produces), unlike CreateAccount()'s default legacy fixture.
+        var account = CreateAccount();
+        var newFormatHash = new PasswordHasher<Account>().HashPassword(account, account.HashPepper + ValidPassword);
+        account.HashedPassword = newFormatHash;
+        var refreshToken = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            AccountId = account.Id,
+            Token = "refresh-token-value",
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            CreatedAt = DateTime.UtcNow
+        };
+        var refreshTokenServiceMock = new Mock<IRefreshTokenService>();
+        refreshTokenServiceMock.Setup(x => x.GenerateRefreshToken(account.Id)).Returns(refreshToken);
+        refreshTokenServiceMock.Setup(x => x.SaveRefreshTokenAsync(refreshToken, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        var service = CreateAuthenticationService(
+            accountsRepository: CreateAccountsRepositoryMock(account).Object,
+            unitOfWork: CreateUnitOfWorkMock(saveResult: true).Object,
+            refreshTokenService: refreshTokenServiceMock.Object);
+
+        // When
+        var result = await service.LoginAccount(new AuthenticationRequestBody { Username = account.Email, Password = ValidPassword });
+
+        // Then
+        result.accessToken.Should().NotBeNullOrWhiteSpace();
+        account.HashedPassword.Should().Be(newFormatHash);
+    }
+
+    [Fact]
+    public async Task GivenWrongPassword_WhenLoggingInAgainstAlreadyMigratedAccount_ThenAuthenticationExceptionIsThrown()
+    {
+        // Given - regression coverage for the legacy-fallback path in VerifyPassword: a wrong
+        // password against a NEW-format hash must not somehow also match via the legacy check.
+        var account = CreateAccount();
+        account.HashedPassword = new PasswordHasher<Account>().HashPassword(account, account.HashPepper + ValidPassword);
+        var service = CreateAuthenticationService(
+            accountsRepository: CreateAccountsRepositoryMock(account).Object,
+            unitOfWork: CreateUnitOfWorkMock(saveResult: true).Object);
+
+        // When
+        Func<Task> act = () => service.LoginAccount(new AuthenticationRequestBody { Username = account.Email, Password = "WrongPassword" });
+
+        // Then
+        await act.Should().ThrowAsync<AuthenticationException>();
+    }
+
+    [Fact]
     public async Task GivenRefreshTokenFailsToSave_WhenLoggingIn_ThenAuthenticationFailureExceptionIsThrown()
     {
         // Given
@@ -483,7 +591,8 @@ public class TestAuthenticationService
     [Fact]
     public async Task GivenCorrectOldPassword_WhenChangingPassword_ThenPasswordIsUpdatedAndMustChangePasswordIsCleared()
     {
-        // Given
+        // Given - CreateAccount()'s legacy hash also exercises ChangePassword's old-password
+        // check against the legacy fallback path (VerifyPassword), not just LoginAccount's.
         var account = CreateAccount(mustChangePassword: true);
         var originalHash = account.HashedPassword;
         var accountsRepositoryMock = CreateAccountsRepositoryMock(account);
@@ -494,9 +603,11 @@ public class TestAuthenticationService
         // When
         var result = await service.ChangePassword(account.Email, ValidPassword, "NewPassword456!");
 
-        // Then
+        // Then - a fresh hash is always written in the current (PBKDF2) format, regardless of
+        // whether the old password verified via the legacy or current path.
         result.Should().BeTrue();
         account.HashedPassword.Should().NotBe(originalHash);
+        Convert.FromBase64String(account.HashedPassword)[0].Should().Be(1);
         account.MustChangePassword.Should().BeFalse();
         accountsRepositoryMock.Verify(x => x.Update(account), Times.Once);
     }
@@ -586,7 +697,7 @@ public class TestAuthenticationService
             Id = Guid.NewGuid(),
             Email = "existing@test.com",
             DateCreated = dateCreated,
-            HashSalt = salt,
+            HashPepper = salt,
             HashedPassword = HashPassword(password, salt, dateCreated),
             FailedLoginAttempts = failedLoginAttempts,
             LockoutUntil = lockoutUntil,
@@ -655,6 +766,7 @@ public class TestAuthenticationService
         IMembersRepository? membersRepository = null,
         IRefreshTokenService? refreshTokenService = null,
         IConfiguration? configuration = null,
+        IPasswordHasher<Account>? passwordHasher = null,
         ILogger? logger = null) =>
         new(
             unitOfWork ?? Mock.Of<IUnitOfWork>(),
@@ -662,5 +774,9 @@ public class TestAuthenticationService
             membersRepository ?? Mock.Of<IMembersRepository>(),
             refreshTokenService ?? Mock.Of<IRefreshTokenService>(),
             configuration ?? CreateConfiguration(),
+            // Real instance, not a mock - most tests exercise actual hash/verify behavior
+            // (e.g. "password changed" assertions comparing hash bytes), same rationale as
+            // CreateConfiguration() above returning a real, working config rather than a mock.
+            passwordHasher ?? new PasswordHasher<Account>(),
             logger ?? Mock.Of<ILogger>());
 }

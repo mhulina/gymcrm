@@ -26,6 +26,22 @@
 # It also writes DOCR_REGISTRY_NAME=$DO_REGISTRY_NAME into that file, which
 # docker-compose.prod.yml's image: lines interpolate - so the registry name never needs to be
 # hardcoded/edited into a tracked file by hand.
+#
+# workflow: pins pipeline creation to exactly two cases - merge request events and pushes to
+# master - instead of relying on GitLab's implicit default. Without this, build/test (which
+# have no rules: of their own, since they're meant to always run) weren't reliably included in
+# merge request pipelines: GitLab's default only guarantees a plain branch pipeline unless a
+# workflow: block says otherwise, so build/test only ran once code hit master post-merge, even
+# though docker-build/deploy's own $CI_PIPELINE_SOURCE == "merge_request_event" rule made it
+# look like MR pipelines were fully working (they showed up manual-but-skipped, which is correct
+# for them, but masked build/test's absence). This also sidesteps GitLab's classic "duplicate
+# pipeline" trap (a push to an MR's source branch spawning both a branch pipeline and a merge
+# request pipeline for the same commit).
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "master"
+    - when: never
 
 stages:
   - build
@@ -45,6 +61,8 @@ cache:
   paths:
     - .nuget/packages
 
+# No rules: block on build/test - they're meant to run on every pipeline that gets created at
+# all, and the workflow: block above already limits that to MR pipelines and master pushes.
 build:
   stage: build
   image: mcr.microsoft.com/dotnet/sdk:10.0

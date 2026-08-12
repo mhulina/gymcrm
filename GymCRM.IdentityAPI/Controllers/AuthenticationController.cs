@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Asp.Versioning;
 using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.DTOs;
+using GymCRM.IdentityAPI.Models.Exceptions;
 using GymCRM.IdentityAPI.Services.Interface;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;

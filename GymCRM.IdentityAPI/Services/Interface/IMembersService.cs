@@ -1,5 +1,6 @@
 ﻿using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.DTOs;
+using GymCRM.IdentityAPI.Models.Exceptions;
 
 namespace GymCRM.IdentityAPI.Services.Interface
 {

@@ -9,7 +9,9 @@ using GymCRM.IdentityAPI.Services.Implementation;
 using GymCRM.IdentityAPI.Services.Interface;
 using AutoMapper;
 using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Account = GymCRM.IdentityAPI.Models.Entities.Account;
 
 namespace GymCRM.IdentityAPI;
 
@@ -42,6 +44,9 @@ public static class IdentityModule
             .AddScoped<IAuthenticationService, AuthenticationService>()
             .AddScoped<IRefreshTokensRepository, RefreshTokensRepository>()
             .AddScoped<IRefreshTokenService, RefreshTokenService>()
+            // PBKDF2-SHA256 (ASP.NET Core Identity's own hasher), stateless/thread-safe -
+            // singleton is intentional, not a mistake.
+            .AddSingleton<IPasswordHasher<Account>, PasswordHasher<Account>>()
             .AddHostedService<RefreshTokenCleanupService>();
 
         return services;

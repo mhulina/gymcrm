@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Account = GymCRM.IdentityAPI.Models.Entities.Account;
+using AccountAccessDeniedException = GymCRM.IdentityAPI.Models.Exceptions.AccountAccessDeniedException;
 using IAuthenticationService = GymCRM.IdentityAPI.Services.Interface.IAuthenticationService;
 using ILogger = Serilog.ILogger;
 using Member = GymCRM.IdentityAPI.Models.Entities.Member;

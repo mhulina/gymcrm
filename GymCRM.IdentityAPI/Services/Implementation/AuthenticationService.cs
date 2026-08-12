@@ -8,11 +8,14 @@ using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.DTOs;
 using GymCRM.IdentityAPI.Models.Entities;
 using GymCRM.IdentityAPI.Models.Enums;
+using GymCRM.IdentityAPI.Models.Exceptions;
 using GymCRM.IdentityAPI.Models.Interface;
 using GymCRM.IdentityAPI.Services.Interface;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Account = GymCRM.IdentityAPI.Models.Entities.Account;
+using AccountAccessDeniedException = GymCRM.IdentityAPI.Models.Exceptions.AccountAccessDeniedException;
 using IAuthenticationService = GymCRM.IdentityAPI.Services.Interface.IAuthenticationService;
 using ILogger = Serilog.ILogger;
 using Member = GymCRM.IdentityAPI.Models.Entities.Member;
@@ -26,6 +29,7 @@ public class AuthenticationService : IAuthenticationService
 	private readonly IMembersRepository _membersRepository;
 	private readonly IRefreshTokenService _refreshTokenService;
 	private readonly IConfiguration _configuration;
+	private readonly IPasswordHasher<Account> _passwordHasher;
 	private readonly ILogger _logger;
 
 	public AuthenticationService(
@@ -34,6 +38,7 @@ public class AuthenticationService : IAuthenticationService
 		IMembersRepository membersRepository,
 		IRefreshTokenService refreshTokenService,
 		IConfiguration configuration,
+		IPasswordHasher<Account> passwordHasher,
 		ILogger logger)
 	{
 		_unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
@@ -41,6 +46,7 @@ public class AuthenticationService : IAuthenticationService
 		_membersRepository = membersRepository ?? throw new ArgumentNullException(nameof(membersRepository));
 		_refreshTokenService = refreshTokenService ?? throw new ArgumentNullException(nameof(refreshTokenService));
 		_configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+		_passwordHasher = passwordHasher ?? throw new ArgumentNullException(nameof(passwordHasher));
 		_logger = logger;
 	}
 
@@ -191,7 +197,7 @@ public class AuthenticationService : IAuthenticationService
 				throw new AuthenticationException($"Account locked. Try again in {remainingTime.Minutes} minutes");
 			}
 
-			var passwordsAreTheSame = CompareHashedPasswords(account, accountDto.Password);
+			var (passwordsAreTheSame, needsRehash) = VerifyPassword(account, accountDto.Password);
 
 			if (!passwordsAreTheSame)
 			{
@@ -214,9 +220,19 @@ public class AuthenticationService : IAuthenticationService
 
 			account.FailedLoginAttempts = 0;
 			account.LockoutUntil = null;
+
+			// Transparent upgrade: a legacy (pre-PBKDF2) account that just proved it knows the
+			// right password gets rehashed into the new format here, piggybacking on the update
+			// below rather than a separate write - old accounts migrate on next login, nobody
+			// is forced to reset anything.
+			if (needsRehash)
+			{
+				account.HashedPassword = HashPasswordWithPepper(account, accountDto.Password);
+			}
+
 			_accountsRepository.Update(account);
 			await _unitOfWork.SaveAsync(cancellationToken);
-			
+
 			var refreshToken = _refreshTokenService.GenerateRefreshToken(account.Id);
 			var accessToken = GenerateJwtToken(account);
 			
@@ -286,7 +302,9 @@ public class AuthenticationService : IAuthenticationService
 		var account = (await _accountsRepository.FetchByConditionAsync(x => x.Email == modifiedEmail, cancellationToken))
 			.FirstOrDefault() ?? throw new AccountDoesntExistException();
 
-		if (!CompareHashedPasswords(account, oldPassword))
+		var (oldPasswordIsValid, _) = VerifyPassword(account, oldPassword);
+
+		if (!oldPasswordIsValid)
 		{
 			throw new AuthenticationFailureException("Password is invalid");
 		}
@@ -296,7 +314,7 @@ public class AuthenticationService : IAuthenticationService
 			throw new ArgumentException("New password must be different from the current password");
 		}
 
-		account.HashedPassword = GenerateHashedPassword(newPassword, account.HashSalt, account.DateCreated);
+		account.HashedPassword = HashPasswordWithPepper(account, newPassword);
 		account.MustChangePassword = false;
 
 		_unitOfWork.Detach(account);
@@ -349,16 +367,17 @@ public class AuthenticationService : IAuthenticationService
 	}
 
 	/// <summary>
-	/// Creates a new <see cref="Models.Entities.Account"/> entity with a hashed password using HMACSHA256 and a generated salt.
+	/// Creates a new <see cref="Models.Entities.Account"/> entity with a hashed password (PBKDF2-SHA256
+	/// via <see cref="_passwordHasher"/>, peppered with a generated per-account salt).
 	/// </summary>
 	/// <param name="insertAccount">The account information containing the email and password to hash.</param>
 	/// <param name="mustChangePassword">Whether this account's password was assigned by someone else and must be changed on first use.</param>
 	/// <returns>
 	/// A new <see cref="Models.Entities.Account"/> entity with hashed password, salt, and creation metadata.
 	/// </returns>
-	private static Account CreateAccountWithHashedPassword(InsertAccount insertAccount, bool mustChangePassword)
+	private Account CreateAccountWithHashedPassword(InsertAccount insertAccount, bool mustChangePassword)
 	{
-		var hashSalt = RandomNumberGenerator.GetHexString(25);
+		var hashPepper = RandomNumberGenerator.GetHexString(25);
 		var dateCreated = DateTime.UtcNow;
 		var accountGuid = Guid.CreateVersion7();
 
@@ -367,39 +386,64 @@ public class AuthenticationService : IAuthenticationService
 			Id = accountGuid,
 			Email = insertAccount.Email.ToLower(),
 			DateCreated = dateCreated,
-			HashSalt = hashSalt,
-			HashedPassword = GenerateHashedPassword(insertAccount.Password, hashSalt, dateCreated),
+			HashPepper = hashPepper,
 			MustChangePassword = mustChangePassword
 		};
+		entity.HashedPassword = HashPasswordWithPepper(entity, insertAccount.Password);
 
 		return entity;
 	}
 
 	/// <summary>
-	/// Compares the stored hashed password of an account with a provided plaintext password to verify authentication.
+	/// Verifies a plaintext password against an account's stored hash. Understands both the
+	/// current PBKDF2-SHA256 format and the legacy hand-rolled HMACSHA256 format that accounts
+	/// created before this migration still carry - <paramref name="needsRehash"/> is <c>true</c>
+	/// exactly when a legacy hash matched, so the caller can transparently upgrade it.
 	/// </summary>
-	/// <param name="account">The <see cref="Models.Entities.Account"/> containing the stored hash and salt.</param>
-	/// <param name="providedPassword">The plaintext password provided by the user for authentication.</param>
-	/// <returns>
-	/// True if the hashed provided password matches the stored hash; otherwise, false.
-	/// </returns>
-	private static bool CompareHashedPasswords(Account account, string providedPassword)
+	private (bool isValid, bool needsRehash) VerifyPassword(Account account, string providedPassword)
 	{
-		var hashedProvidedPassword = GenerateHashedPassword(providedPassword, account.HashSalt, account.DateCreated);
+		var pepperedPassword = account.HashPepper + providedPassword;
 
-		var passwordsAreTheSame = hashedProvidedPassword == account.HashedPassword;
+		// IPasswordHasher.VerifyHashedPassword doesn't throw for a hash that isn't in its
+		// format (confirmed empirically) - it returns Failed just like a genuine mismatch would,
+		// so a legacy hash always falls through to the check below rather than short-circuiting.
+		try
+		{
+			var result = _passwordHasher.VerifyHashedPassword(account, account.HashedPassword, pepperedPassword);
 
-		return passwordsAreTheSame;
+			if (result != PasswordVerificationResult.Failed)
+			{
+				return (true, result == PasswordVerificationResult.SuccessRehashNeeded);
+			}
+		}
+		catch (Exception)
+		{
+			// Defensive: fall through to the legacy check below regardless of how a
+			// not-actually-PBKDF2 stored value fails to verify.
+		}
+
+		var legacyHash = GenerateLegacyHashedPassword(providedPassword, account.HashPepper, account.DateCreated);
+
+		return legacyHash == account.HashedPassword ? (true, true) : (false, false);
 	}
 
-	private static string GenerateHashedPassword(string password, string salt, DateTime dateCreated)
+	private string HashPasswordWithPepper(Account account, string password) =>
+		_passwordHasher.HashPassword(account, account.HashPepper + password);
+
+	/// <summary>
+	/// The original (pre-migration) hashing scheme - HMACSHA256 keyed by the account's salt, over
+	/// salt+dateCreated+password. Kept only so <see cref="VerifyPassword"/> can still authenticate
+	/// accounts that haven't logged in (and therefore been transparently rehashed) since the move
+	/// to <see cref="_passwordHasher"/>. Never used for new hashes.
+	/// </summary>
+	private static string GenerateLegacyHashedPassword(string password, string salt, DateTime dateCreated)
 	{
 		var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(salt));
 		hmac.Initialize();
 		var hashedPassword = Convert.ToBase64String(
 			hmac.ComputeHash(
 				Encoding.UTF8.GetBytes(salt + dateCreated + password)));
-		
+
 		return hashedPassword;
 	}
 }

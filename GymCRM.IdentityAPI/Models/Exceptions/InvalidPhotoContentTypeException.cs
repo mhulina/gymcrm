@@ -1,4 +1,4 @@
-namespace GymCRM.IdentityAPI.Models;
+namespace GymCRM.IdentityAPI.Models.Exceptions;
 
 public class InvalidPhotoContentTypeException : Exception
 {

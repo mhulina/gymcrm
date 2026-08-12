@@ -12,7 +12,7 @@ public class Account
     [Required]
     public DateTime DateCreated { get; set; }
     [Required]
-    public string HashSalt { get; set; }
+    public string HashPepper { get; set; }
     [Required]
     public string HashedPassword { get; set; }
     public int FailedLoginAttempts { get; set; }

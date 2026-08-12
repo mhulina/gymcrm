@@ -1,6 +1,7 @@
 using System.Security.Authentication;
 using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.DTOs;
+using GymCRM.IdentityAPI.Models.Exceptions;
 using Microsoft.AspNetCore.Authentication;
 
 namespace GymCRM.IdentityAPI.Services.Interface;

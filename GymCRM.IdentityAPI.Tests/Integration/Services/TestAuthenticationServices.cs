@@ -4,6 +4,7 @@ using FluentAssertions;
 using GymCRM.IdentityAPI.Infrastructure.Interface;
 using GymCRM.IdentityAPI.Models;
 using GymCRM.IdentityAPI.Models.Enums;
+using GymCRM.IdentityAPI.Models.Exceptions;
 using GymCRM.IdentityAPI.Services.Interface;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

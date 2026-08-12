@@ -57,7 +57,7 @@ public class TestMembersRepository : TestBase
             Id = Guid.CreateVersion7(),
             Email = $"test.account{Guid.NewGuid()}@example.com",
             HashedPassword = "hashedpassword",
-            HashSalt = "salty",
+            HashPepper = "salty",
             DateCreated = DateTime.UtcNow
         };
         _accountsRepository.Insert(account);
@@ -119,7 +119,7 @@ public class TestMembersRepository : TestBase
             Id = Guid.CreateVersion7(),
             Email = $"test.account{Guid.NewGuid()}@example.com",
             HashedPassword = "hashedpassword",
-            HashSalt = "salty",
+            HashPepper = "salty",
             DateCreated = DateTime.UtcNow
         };
         _accountsRepository.Insert(account);
@@ -167,7 +167,7 @@ public class TestMembersRepository : TestBase
             Id = Guid.CreateVersion7(),
             Email = $"test.account{Guid.NewGuid()}@example.com",
             HashedPassword = "hashedpassword",
-            HashSalt = "salty",
+            HashPepper = "salty",
             DateCreated = DateTime.UtcNow
         };
         _accountsRepository.Insert(account);
@@ -209,7 +209,7 @@ public class TestMembersRepository : TestBase
                 Id = Guid.CreateVersion7(),
                 Email = $"bulk.insert{Guid.NewGuid()}@example.com",
                 HashedPassword = "hashedpassword",
-                HashSalt = "salty",
+                HashPepper = "salty",
                 DateCreated = DateTime.UtcNow
             };
             accounts.Add(account);
@@ -253,7 +253,7 @@ public class TestMembersRepository : TestBase
                 Id = Guid.CreateVersion7(),
                 Email = $"bulk.delete{Guid.NewGuid()}@example.com",
                 HashedPassword = "hashedpassword",
-                HashSalt = "salty",
+                HashPepper = "salty",
                 DateCreated = DateTime.UtcNow
             };
             accounts.Add(account);
@@ -300,7 +300,7 @@ public class TestMembersRepository : TestBase
                 DateCreated = DateTime.UtcNow,
                 Email = $"{id}@test.com",
                 HashedPassword = $"testPassword{i}",
-                HashSalt = "saltyTest",
+                HashPepper = "saltyTest",
             };
 
             var member = new Member

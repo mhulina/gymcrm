@@ -11,6 +11,12 @@
 # DO_REGISTRY_EMAIL + DO_REGISTRY_TOKEN (a DigitalOcean account email + API token with
 # registry read/write scope, from the DO dashboard's API section).
 #
+# Each image only ever has ONE tag (api-latest / webapp-latest) - deliberately not also tagging
+# with $CI_COMMIT_SHORT_SHA. deploy always pulls :latest anyway, so a per-commit tag was never
+# actually used for anything, just dead weight that piled up a new (small but nonzero) image on
+# DOCR's free tier on every single deploy. Pushing to the same tag name overwrites what it points
+# to instead of adding a new one, so the registry stays at exactly 2 images.
+#
 # docker-build and deploy only run once code actually lands on master (a merge request being
 # merged triggers a normal push pipeline on master, which is what this actually watches for) -
 # they don't appear at all on merge request pipelines, not even as a manual option, so there's
@@ -104,10 +110,8 @@ docker-build:
   script:
     - docker login -u $DO_REGISTRY_EMAIL -p $DO_REGISTRY_TOKEN registry.digitalocean.com
     - docker build -f GymCRM.Api/Dockerfile
-        -t ${DOCR_REPO}:api-${CI_COMMIT_SHORT_SHA}
         -t ${DOCR_REPO}:api-latest
         .
-    - docker push ${DOCR_REPO}:api-${CI_COMMIT_SHORT_SHA}
     - docker push ${DOCR_REPO}:api-latest
     - docker build -f gymcrm.web/Dockerfile.prod
         --build-arg REACT_APP_API_URL=http://$DEPLOY_IP
@@ -115,10 +119,8 @@ docker-build:
         --build-arg REACT_APP_SCHEDULING_API_URL=http://$DEPLOY_IP/api/v1/
         --build-arg REACT_APP_ACCOUNTS_ENDPOINT=http://$DEPLOY_IP/api/v1/Authentication/
         --build-arg REACT_APP_MEMBERS_ENDPOINT=http://$DEPLOY_IP/api/v1/Members/
-        -t ${DOCR_REPO}:webapp-${CI_COMMIT_SHORT_SHA}
         -t ${DOCR_REPO}:webapp-latest
         gymcrm.web
-    - docker push ${DOCR_REPO}:webapp-${CI_COMMIT_SHORT_SHA}
     - docker push ${DOCR_REPO}:webapp-latest
 
 deploy:

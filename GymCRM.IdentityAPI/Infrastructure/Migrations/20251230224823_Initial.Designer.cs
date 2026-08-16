@@ -90,9 +90,6 @@ namespace GymCRM.IdentityAPI.Infrastructure.Migrations
                     b.Property<int>("Gender")
                         .HasColumnType("integer");
 
-                    b.Property<int>("GymSubscriptionType")
-                        .HasColumnType("integer");
-
                     b.Property<string>("LastName")
                         .HasMaxLength(70)
                         .HasColumnType("character varying(70)");

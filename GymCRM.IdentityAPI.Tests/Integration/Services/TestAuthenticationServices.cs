@@ -55,7 +55,6 @@ public class AuthenticationServiceTests : TestBase
             Email = email,
             Password = "SecurePassword123!",
             AccountType = 2,
-            GymSubscriptionType = 1,
             Gender = 0
         };
 
@@ -70,9 +69,8 @@ public class AuthenticationServiceTests : TestBase
         var members = await _membersRepository.FetchByCondition(m => m.AccountGuid == accountGuid, CancellationToken.None);
         members
             .Should()
-            .ContainSingle(m => m.Email == email.ToLower() 
-                && m.AccountType == 2 
-                && m.GymSubscriptionType == 1);
+            .ContainSingle(m => m.Email == email.ToLower()
+                && m.AccountType == 2);
     }
 
     [Fact]
@@ -86,8 +84,7 @@ public class AuthenticationServiceTests : TestBase
             Email = email,
             AccountType = (int)AccountType.Member,
             Gender = (int)Gender.Male,
-            Password = oldPassword,
-            GymSubscriptionType = (int)GymSubscriptionType.Monthly
+            Password = oldPassword
         };
         var accountGuid = await _authenticationService.RegisterAccount(insertAccount, CancellationToken.None);
         accountGuid.Should().NotBe(Guid.Empty);

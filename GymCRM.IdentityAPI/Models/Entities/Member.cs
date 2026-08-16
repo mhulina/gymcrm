@@ -21,7 +21,6 @@ namespace GymCRM.IdentityAPI.Models.Entities
         public Guid? PersonalTrainerId { get; set; }
         public List<Guid>? WorkoutGroupIds { get; set; }
         public int? WorkingExperienceInMonths {  get; set; }
-        public int GymSubscriptionType { get; set; }
         public DateOnly? DateOfBirth { get; set; }
         public decimal? HourlyPrice { get; set; }
         public byte[]? Photo { get; set; }

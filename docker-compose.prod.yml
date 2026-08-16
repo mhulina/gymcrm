@@ -43,6 +43,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
       - ConnectionStrings__Identity=Host=postgres;Port=5432;Database=${IDENTITY_DB_NAME:-identity_db};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}
       - ConnectionStrings__Scheduling=Host=postgres;Port=5432;Database=${SCHEDULING_DB_NAME:-scheduling_db};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__Billing=Host=postgres;Port=5432;Database=${BILLING_DB_NAME:-billing_db};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}
       - Authentication__SecretForKey=${JWT_SECRET_KEY}
       - Authentication__Issuer=${JWT_ISSUER:-GymCRM.IdentityAPI}
       - Authentication__Audience=${JWT_AUDIENCE:-GymCRM}

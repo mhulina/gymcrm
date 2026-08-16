@@ -12,7 +12,6 @@ export interface Member {
     personalTrainerId?: string;
     workoutGroupIds?: string[];
     workingExperienceInMonths?: number;
-    gymSubscriptionType: number;
     timeZone: string;
     dateOfBirth?: string;
     hourlyPrice?: number;

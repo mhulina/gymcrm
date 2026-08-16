@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using GymCRM.BillingAPI;
 using GymCRM.IdentityAPI;
 using GymCRM.SchedulingAPI;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -125,7 +126,7 @@ public static class ProgramConfigurations
                 { new OpenApiSecuritySchemeReference("Bearer", document), new List<string>() }
             });
 
-            foreach (var assembly in new[] { typeof(IdentityModule).Assembly, typeof(SchedulingModule).Assembly })
+            foreach (var assembly in new[] { typeof(IdentityModule).Assembly, typeof(SchedulingModule).Assembly, typeof(BillingModule).Assembly })
             {
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, $"{assembly.GetName().Name}.xml");
 

@@ -94,6 +94,8 @@ test:
     - dotnet test GymCRM.IdentityAPI.Tests -c Release --no-restore --logger "console;verbosity=normal"
     - export ConnectionStrings__DefaultConnection="Server=postgres;Port=5432;Database=scheduling_db;User Id=postgres;Password=postgres;"
     - dotnet test GymCRM.SchedulingAPI.Tests -c Release --no-restore --logger "console;verbosity=normal"
+    - export ConnectionStrings__DefaultConnection="Server=postgres;Port=5432;Database=billing_db;User Id=postgres;Password=postgres;"
+    - dotnet test GymCRM.BillingAPI.Tests -c Release --no-restore --logger "console;verbosity=normal"
 
 docker-build:
   stage: docker
@@ -117,6 +119,7 @@ docker-build:
         --build-arg REACT_APP_API_URL=http://$DEPLOY_IP
         --build-arg REACT_APP_IDENTITY_API_URL=http://$DEPLOY_IP/api/v1/
         --build-arg REACT_APP_SCHEDULING_API_URL=http://$DEPLOY_IP/api/v1/
+        --build-arg REACT_APP_BILLING_API_URL=http://$DEPLOY_IP/api/v1/
         --build-arg REACT_APP_ACCOUNTS_ENDPOINT=http://$DEPLOY_IP/api/v1/Authentication/
         --build-arg REACT_APP_MEMBERS_ENDPOINT=http://$DEPLOY_IP/api/v1/Members/
         -t ${DOCR_REPO}:webapp-latest

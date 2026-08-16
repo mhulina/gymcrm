@@ -2,7 +2,6 @@ import {useEffect, useState} from "react";
 import {Link} from "react-router-dom";
 import {Member} from "../types/member";
 import {AccountType} from "../types/accountType";
-import {GymSubscriptionType} from "../types/gymSubscriptionType";
 import {Gender} from "../types/gender";
 import {fetchMemberByGuid} from "../api/identityApi";
 import {fullName, initials} from "../utils/memberDisplay";
@@ -71,7 +70,6 @@ export function MemberInfoDashboard({ userData, onUserDataChanged }: { userData:
                     <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{userData.email}</p>
                     <div className="mt-2 flex gap-2">
                         <Badge>{enumLabel(AccountType[userData.accountType])}</Badge>
-                        <Badge tone="slate">{enumLabel(GymSubscriptionType[userData.gymSubscriptionType])} plan</Badge>
                     </div>
                 </div>
                 <div className="flex gap-2">
@@ -128,6 +126,14 @@ export function MemberInfoDashboard({ userData, onUserDataChanged }: { userData:
                                         : "No trainer assigned yet"
                                 : "Administrator account"}
                     </p>
+                    {userData.accountType === AccountType.Member && (
+                        <Link
+                            to="/member/billing"
+                            className="mt-2 inline-block text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+                        >
+                            View subscription &rarr;
+                        </Link>
+                    )}
                 </Card>
             </div>
 

@@ -7,6 +7,8 @@ import MemberHomePage from "../modules/identity/pages/MemberHomePage";
 import AdminAddMemberPage from "../modules/identity/pages/AdminAddMemberPage";
 import AdminMembersListPage from "../modules/identity/pages/AdminMembersListPage";
 import EditMemberProfilePage from "../modules/identity/pages/EditMemberProfilePage";
+import MemberSubscriptionPage from "../modules/billing/pages/MemberSubscriptionPage";
+import AdminMemberBillingPage from "../modules/billing/pages/AdminMemberBillingPage";
 import AdminRoute from "../modules/identity/components/AdminRoute";
 import SetupRoute from "../modules/identity/components/SetupRoute";
 import AdminSetupPage from "../modules/identity/pages/AdminSetupPage";
@@ -47,6 +49,11 @@ export default function AppRoutes() {
                     <EditMemberProfilePage />
                 </PrivateRoute>
             } />
+            <Route path="/member/billing" element={
+                <PrivateRoute>
+                    <MemberSubscriptionPage />
+                </PrivateRoute>
+            } />
             <Route path="/admin/members/new" element={
                 <PrivateRoute>
                     <AdminRoute>
@@ -65,6 +72,13 @@ export default function AppRoutes() {
                 <PrivateRoute>
                     <AdminRoute>
                         <EditMemberProfilePage />
+                    </AdminRoute>
+                </PrivateRoute>
+            } />
+            <Route path="/admin/members/:guid/billing" element={
+                <PrivateRoute>
+                    <AdminRoute>
+                        <AdminMemberBillingPage />
                     </AdminRoute>
                 </PrivateRoute>
             } />

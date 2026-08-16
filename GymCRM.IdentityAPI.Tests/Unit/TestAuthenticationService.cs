@@ -84,7 +84,6 @@ public class TestAuthenticationService
         accountsRepositoryMock.Verify(x => x.Insert(It.Is<Account>(a => a.Email == "new@test.com")), Times.Once);
         membersRepositoryMock.Verify(x => x.Insert(It.Is<Member>(m =>
             m.AccountType == (int)AccountType.Member
-            && m.GymSubscriptionType == 0
             && m.Gender == 0
             && m.TimeZone == TimeZoneInfo.Utc.Id)), Times.Once);
     }
@@ -711,7 +710,6 @@ public class TestAuthenticationService
             TimeZone = "Europe/Zagreb",
             Email = account.Email,
             Gender = 0,
-            GymSubscriptionType = 0,
             DateModified = DateTime.UtcNow
         };
 

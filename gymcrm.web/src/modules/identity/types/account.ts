@@ -6,6 +6,5 @@ export interface Account {
     email: string;
     password: string;
     accountType?: number;
-    gymSubscriptionType?: number;
     gender?: number;
 }

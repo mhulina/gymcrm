@@ -4,7 +4,6 @@ export interface InsertAccount {
     email: string;
     password: string;
     accountType?: number;
-    gymSubscriptionType?: number;
     gender?: number;
     timeZone?: string;
 }

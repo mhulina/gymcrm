@@ -6,10 +6,8 @@ import {SelectField} from "../../../shared/components/SelectField";
 import {Button} from "../../../shared/components/Button";
 import {Banner} from "../../../shared/components/Banner";
 import {AccountTypeDropdown} from "../components/AccountTypeDropdown";
-import {GymSubscriptionTypeDropdown} from "../components/GymSubscriptionTypeDropdown";
 import {GenderDropdown} from "../components/GenderDropdown";
 import {AccountType} from "../types/accountType";
-import {GymSubscriptionType} from "../types/gymSubscriptionType";
 import {Gender} from "../types/gender";
 import {Member} from "../types/member";
 import {adminCreateMember, fetchAllMembers} from "../api/identityApi";
@@ -24,7 +22,6 @@ interface FormState {
     mobileNumber: string;
     gender: number;
     accountType: number;
-    gymSubscriptionType: number;
     workingExperienceInMonths: string;
     personalTrainerId: string;
 }
@@ -39,7 +36,6 @@ const initialForm: FormState = {
     mobileNumber: "",
     gender: Gender.Male,
     accountType: AccountType.Member,
-    gymSubscriptionType: GymSubscriptionType.Monthly,
     workingExperienceInMonths: "",
     personalTrainerId: "",
 };
@@ -76,7 +72,6 @@ export default function AdminAddMemberPage() {
                 email: form.email.trim(),
                 password: form.password,
                 accountType: form.accountType,
-                gymSubscriptionType: form.gymSubscriptionType,
                 gender: form.gender,
             },
             profile: {
@@ -158,10 +153,9 @@ export default function AdminAddMemberPage() {
                         <TextField id="mobileNumber" label="Mobile number" value={form.mobileNumber} onChange={(e) => update("mobileNumber", e.target.value)} />
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <GenderDropdown id="gender" label="Gender" value={form.gender} onChange={(value) => update("gender", value)} />
                         <AccountTypeDropdown id="accountType" label="Account type" value={form.accountType} onChange={(value) => update("accountType", value)} />
-                        <GymSubscriptionTypeDropdown id="gymSubscriptionType" label="Subscription" value={form.gymSubscriptionType} onChange={(value) => update("gymSubscriptionType", value)} />
                     </div>
 
                     {form.accountType === AccountType.PersonalTrainer && (

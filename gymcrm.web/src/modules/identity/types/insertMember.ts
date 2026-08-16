@@ -7,5 +7,4 @@ export interface InsertMember {
     accountType: number;
     email: string;
     workingExperienceInMonths?: number;
-    gymSubscriptionType: number;
 }

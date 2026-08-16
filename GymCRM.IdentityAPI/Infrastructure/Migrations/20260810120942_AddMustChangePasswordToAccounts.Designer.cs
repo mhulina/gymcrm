@@ -98,9 +98,6 @@ namespace GymCRM.IdentityAPI.Infrastructure.Migrations
                     b.Property<int>("Gender")
                         .HasColumnType("integer");
 
-                    b.Property<int>("GymSubscriptionType")
-                        .HasColumnType("integer");
-
                     b.Property<decimal?>("HourlyPrice")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");

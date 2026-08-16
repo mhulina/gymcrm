@@ -1,5 +1,13 @@
-import {gymSubscriptionTypeOptions} from "../../../shared/utils/mapper";
 import {SelectField} from "../../../shared/components/SelectField";
+import {enumLabel} from "../../../shared/utils/mapper";
+import {PaymentMethod} from "../types/paymentMethod";
+
+const options = Object.values(PaymentMethod)
+    .filter((value) => typeof value === "number")
+    .map((value) => ({
+        value: value as number,
+        label: enumLabel(PaymentMethod[value as PaymentMethod])
+    }));
 
 interface Props {
     id?: string;
@@ -9,7 +17,7 @@ interface Props {
     disabled?: boolean;
 }
 
-export function GymSubscriptionTypeDropdown({ id, label, value, onChange, disabled }: Props) {
+export function PaymentMethodDropdown({ id, label, value, onChange, disabled }: Props) {
     return (
         <SelectField
             id={id}
@@ -18,7 +26,7 @@ export function GymSubscriptionTypeDropdown({ id, label, value, onChange, disabl
             disabled={disabled}
             onChange={(e) => onChange(Number(e.target.value))}
         >
-            {gymSubscriptionTypeOptions.map((opt) => (
+            {options.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                     {opt.label}
                 </option>

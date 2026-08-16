@@ -22,7 +22,6 @@ namespace GymCRM.IdentityAPI.Models.Configurations
 			modelBuilder.Property(x => x.PhoneNumber).HasMaxLength(30);
 			modelBuilder.Property(x => x.MobileNumber).HasMaxLength(30);
 			modelBuilder.Property(x => x.Gender).IsRequired();
-			modelBuilder.Property(x => x.GymSubscriptionType).IsRequired();
 			modelBuilder.Property(x => x.DateModified).IsRequired();
 			modelBuilder.Property(x => x.TimeZone).IsRequired();
 			modelBuilder.Property(x => x.HourlyPrice).HasPrecision(10, 2);

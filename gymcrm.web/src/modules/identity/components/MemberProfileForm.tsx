@@ -4,7 +4,6 @@ import {Button} from "../../../shared/components/Button";
 import {Banner} from "../../../shared/components/Banner";
 import {AvatarPicker} from "../../../shared/components/AvatarPicker";
 import {AccountTypeDropdown} from "./AccountTypeDropdown";
-import {GymSubscriptionTypeDropdown} from "./GymSubscriptionTypeDropdown";
 import {GenderDropdown} from "./GenderDropdown";
 import {SelectField} from "../../../shared/components/SelectField";
 import {AccountType} from "../types/accountType";
@@ -23,7 +22,6 @@ interface FormState {
     timeZone: string;
     dateOfBirth: string;
     accountType: number;
-    gymSubscriptionType: number;
     personalTrainerId: string;
     workingExperienceInMonths: string;
     hourlyPrice: string;
@@ -51,7 +49,6 @@ function formFromMember(member: Member): FormState {
         timeZone: defaultTimeZone(member),
         dateOfBirth: member.dateOfBirth ?? "",
         accountType: member.accountType,
-        gymSubscriptionType: member.gymSubscriptionType,
         personalTrainerId: member.personalTrainerId ?? "",
         workingExperienceInMonths: member.workingExperienceInMonths?.toString() ?? "",
         hourlyPrice: member.hourlyPrice?.toString() ?? "",
@@ -137,7 +134,6 @@ export function MemberProfileForm({ targetMember, viewerRole, isSelf, onSaved }:
             ...(isAdmin
                 ? {
                       accountType: form.accountType,
-                      gymSubscriptionType: form.gymSubscriptionType,
                   }
                 : {}),
             ...(showTrainerPicker
@@ -224,7 +220,6 @@ export function MemberProfileForm({ targetMember, viewerRole, isSelf, onSaved }:
                     {isAdmin && (
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 border-t border-slate-100 dark:border-slate-800 pt-5">
                             <AccountTypeDropdown id="accountType" label="Account type" value={form.accountType} onChange={(value) => update("accountType", value)} />
-                            <GymSubscriptionTypeDropdown id="gymSubscriptionType" label="Subscription" value={form.gymSubscriptionType} onChange={(value) => update("gymSubscriptionType", value)} />
                         </div>
                     )}
 

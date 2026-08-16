@@ -31,6 +31,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GymCRM.Shared", "GymCRM.Sha
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GymCRM.Api", "GymCRM.Api\GymCRM.Api.csproj", "{2654C93D-CF2C-42FF-82E2-CEDE01C95EBD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GymCRM.BillingAPI.Tests", "GymCRM.BillingAPI.Tests\GymCRM.BillingAPI.Tests.csproj", "{AB27DB13-1659-48A0-9B1B-F574467A2EE7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -161,6 +163,18 @@ Global
 		{2654C93D-CF2C-42FF-82E2-CEDE01C95EBD}.Release|x64.Build.0 = Release|Any CPU
 		{2654C93D-CF2C-42FF-82E2-CEDE01C95EBD}.Release|x86.ActiveCfg = Release|Any CPU
 		{2654C93D-CF2C-42FF-82E2-CEDE01C95EBD}.Release|x86.Build.0 = Release|Any CPU
+		{AB27DB13-1659-48A0-9B1B-F574467A2EE7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AB27DB13-1659-48A0-9B1B-F574467A2EE7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AB27DB13-1659-48A0-9B1B-F574467A2EE7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AB27DB13-1659-48A0-9B1B-F574467A2EE7}.Debug|x64.Build.0 = Debug|Any CPU
+		{AB27DB13-1659-48A0-9B1B-F574467A2EE7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{AB27DB13-1659-48A0-9B1B-F574467A2EE7}.Debug|x86.Build.0 = Debug|Any CPU
+		{AB27DB13-1659-48A0-9B1B-F574467A2EE7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AB27DB13-1659-48A0-9B1B-F574467A2EE7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AB27DB13-1659-48A0-9B1B-F574467A2EE7}.Release|x64.ActiveCfg = Release|Any CPU
+		{AB27DB13-1659-48A0-9B1B-F574467A2EE7}.Release|x64.Build.0 = Release|Any CPU
+		{AB27DB13-1659-48A0-9B1B-F574467A2EE7}.Release|x86.ActiveCfg = Release|Any CPU
+		{AB27DB13-1659-48A0-9B1B-F574467A2EE7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -168,6 +182,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{EEDB9293-A623-4E51-9A20-6FA49E9566BD} = {5E22CEDF-20BF-4814-B210-76518B0B16E7}
 		{3D55FE90-C364-47B0-90DB-2BFFB76C37B9} = {5E22CEDF-20BF-4814-B210-76518B0B16E7}
+		{AB27DB13-1659-48A0-9B1B-F574467A2EE7} = {5E22CEDF-20BF-4814-B210-76518B0B16E7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BF8D2F17-3A28-495B-93DD-C86E243F496E}

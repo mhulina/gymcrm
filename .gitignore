@@ -383,3 +383,13 @@ nginx/nginx.conf
 nginx/certs/*
 !nginx/certs/.gitkeep
 VPS_DEPLOY.md
+
+# Claude Code local settings - personal/machine-specific, not shared config
+# (.claude/settings.json and .claude/launch.json are meant to be committed, this isn't)
+.claude/settings.local.json
+
+# SSH private keys - never commit key material (gymcrm-deploy-key was leaked this way once already)
+*.pem
+id_rsa*
+id_ed25519*
+gymcrm-deploy-key*

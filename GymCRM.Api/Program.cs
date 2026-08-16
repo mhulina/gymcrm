@@ -1,5 +1,6 @@
 using AutoMapper;
 using GymCRM.Api;
+using GymCRM.BillingAPI;
 using GymCRM.IdentityAPI;
 using GymCRM.SchedulingAPI;
 using Serilog;
@@ -25,10 +26,12 @@ if (string.IsNullOrEmpty(secretForKey))
 builder.Services
 	.AddIdentityModule(builder.Configuration)
 	.AddSchedulingModule(builder.Configuration)
+	.AddBillingModule(builder.Configuration)
 	.AddAutoMapper(cfg =>
 	{
 		IdentityModule.ConfigureIdentityMappings(cfg);
 		SchedulingModule.ConfigureSchedulingMappings(cfg);
+		BillingModule.ConfigureBillingMappings(cfg);
 	})
 	.SetupCors(builder.Configuration)
 	.SetupAuthentication(builder.Configuration, secretForKey)
@@ -39,6 +42,7 @@ builder.Services
 	.AddControllers()
 	.AddIdentityControllers()
 	.AddSchedulingControllers()
+	.AddBillingControllers()
 	.AddJsonTimeOnlyAndDateOnlyConverters();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -68,5 +72,6 @@ app.MapControllers();
 await app.ApplyIdentityMigrationsAsync();
 await app.ApplySchedulingMigrationsAsync();
 await app.SeedSchedulingHolidaysAsync();
+await app.ApplyBillingMigrationsAsync();
 
 app.Run();

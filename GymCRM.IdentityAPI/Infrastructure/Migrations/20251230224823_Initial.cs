@@ -52,7 +52,6 @@ namespace GymCRM.IdentityAPI.Infrastructure.Migrations
                     PersonalTrainerId = table.Column<Guid>(type: "uuid", nullable: true),
                     WorkoutGroupIds = table.Column<List<Guid>>(type: "uuid[]", nullable: true),
                     WorkingExperienceInMonths = table.Column<int>(type: "integer", nullable: true),
-                    GymSubscriptionType = table.Column<int>(type: "integer", nullable: false),
                     AccountGuid = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>

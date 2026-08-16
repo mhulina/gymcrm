@@ -69,7 +69,6 @@ public class TestMembersRepository : TestBase
             AccountGuid = account.Id,
             Email = account.Email.ToLower(),
             AccountType = 1,
-            GymSubscriptionType = 0,
             Gender = 0,
             DateModified = account.DateCreated,
             TimeZone = TimeZoneInfo.Local.Id
@@ -85,7 +84,6 @@ public class TestMembersRepository : TestBase
         existingMember.Should().NotBeNull();
 
         existingMember.AccountType = (int)AccountType.PersonalTrainer;
-        existingMember.GymSubscriptionType = (int)GymSubscriptionType.Yearly;
         existingMember.DateModified = DateTime.UtcNow;
         existingMember.FirstName = "Testo";
         existingMember.LastName = "Testov";
@@ -105,7 +103,6 @@ public class TestMembersRepository : TestBase
         updatedMemberFromDb.LastName.Should().Be("Testov");
         updatedMemberFromDb.Gender.Should().Be((int)Gender.Female);
         updatedMemberFromDb.DateModified.Should().BeCloseTo(existingMember.DateModified, TimeSpan.FromMilliseconds(1));
-        updatedMemberFromDb.GymSubscriptionType.Should().Be((int)GymSubscriptionType.Yearly);
         updatedMemberFromDb.AccountType.Should().Be((int)AccountType.PersonalTrainer);
         updatedMemberFromDb.Email.Should().Be(existingMember.Email);
     }
@@ -131,7 +128,6 @@ public class TestMembersRepository : TestBase
             AccountGuid = account.Id,
             Email = account.Email.ToLower(),
             AccountType = 1,
-            GymSubscriptionType = 0,
             Gender = 0,
             DateModified = account.DateCreated,
             TimeZone = TimeZoneInfo.Local.Id
@@ -179,7 +175,6 @@ public class TestMembersRepository : TestBase
             AccountGuid = account.Id,
             Email = account.Email.ToLower(),
             AccountType = 1,
-            GymSubscriptionType = 0,
             Gender = 0,
             DateModified = account.DateCreated,
             TimeZone = TimeZoneInfo.Local.Id
@@ -220,7 +215,6 @@ public class TestMembersRepository : TestBase
                 AccountGuid = account.Id,
                 Email = account.Email.ToLower(),
                 AccountType = 1,
-                GymSubscriptionType = 0,
                 Gender = 0,
                 DateModified = account.DateCreated,
                 TimeZone = TimeZoneInfo.Local.Id
@@ -264,7 +258,6 @@ public class TestMembersRepository : TestBase
                 AccountGuid = account.Id,
                 Email = account.Email.ToLower(),
                 AccountType = 1,
-                GymSubscriptionType = 0,
                 Gender = 0,
                 DateModified = account.DateCreated,
                 TimeZone = TimeZoneInfo.Local.Id
@@ -309,7 +302,6 @@ public class TestMembersRepository : TestBase
                 AccountGuid = account.Id,
                 Email = account.Email.ToLower(),
                 AccountType = (int)AccountType.Member,
-                GymSubscriptionType = (int)GymSubscriptionType.Monthly,
                 Gender = (int)Gender.Male,
                 DateModified = DateTime.UtcNow,
                 TimeZone = TimeZoneInfo.Local.Id

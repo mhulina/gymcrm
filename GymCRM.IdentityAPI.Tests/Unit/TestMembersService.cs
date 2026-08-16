@@ -272,15 +272,14 @@ public class TestMembersService
     [Fact]
     public async Task GivenAlwaysOverwriteFieldsAreNulledOut_WhenUpdatingMember_ThenExistingValuesAreOverwrittenAnyway()
     {
-        // Given - WorkingExperienceInMonths/GymSubscriptionType/PersonalTrainerId/Gender have no
-        // blank-falls-back guard in MergeExistingMemberDataWithUpdateData, unlike the text fields
-        // above - the incoming value always wins, even if that means zeroing out real existing data.
+        // Given - WorkingExperienceInMonths/PersonalTrainerId/Gender have no blank-falls-back guard
+        // in MergeExistingMemberDataWithUpdateData, unlike the text fields above - the incoming
+        // value always wins, even if that means zeroing out real existing data.
         var existing = CreateExistingMember();
         var (service, repositoryMock, _) = CreateMembersServiceWithExistingMember(existing);
         var dto = CreateUpdateDto(existing.AccountGuid);
         dto.WorkingExperienceInMonths = null;
         dto.PersonalTrainerId = null;
-        dto.GymSubscriptionType = 0;
         dto.Gender = 0;
 
         // When
@@ -290,7 +289,6 @@ public class TestMembersService
         var captured = CapturedUpdate(repositoryMock);
         captured.WorkingExperienceInMonths.Should().BeNull();
         captured.PersonalTrainerId.Should().BeNull();
-        captured.GymSubscriptionType.Should().Be(0);
         captured.Gender.Should().Be(0);
     }
 
@@ -365,8 +363,7 @@ public class TestMembersService
         var insertMember = new InsertMember
         {
             AccountType = AccountType.Member,
-            Email = "new.insert@test.com",
-            GymSubscriptionType = (int)GymSubscriptionType.Monthly
+            Email = "new.insert@test.com"
         };
 
         // When
@@ -636,7 +633,6 @@ public class TestMembersService
         TimeZone = "Europe/Zagreb",
         AccountType = (int)accountType,
         WorkingExperienceInMonths = 5,
-        GymSubscriptionType = (int)GymSubscriptionType.Monthly,
         PersonalTrainerId = Guid.NewGuid(),
         Gender = (int)Gender.Male,
         WorkoutGroupIds = new List<Guid> { Guid.NewGuid() },
@@ -657,7 +653,6 @@ public class TestMembersService
         TimeZone = "America/New_York",
         AccountType = AccountType.PersonalTrainer,
         WorkingExperienceInMonths = 12,
-        GymSubscriptionType = (int)GymSubscriptionType.Yearly,
         PersonalTrainerId = Guid.NewGuid(),
         Gender = (int)Gender.Female,
         WorkoutGroupIds = new List<Guid> { Guid.NewGuid() },

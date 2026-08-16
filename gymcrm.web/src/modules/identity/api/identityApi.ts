@@ -1,6 +1,5 @@
 import {axios} from "../../../shared/api/httpClient";
 import {Member} from "../types/member";
-import {GymSubscriptionType} from "../types/gymSubscriptionType";
 import {AccountType} from "../types/accountType";
 import {Gender} from "../types/gender";
 import {InsertAccount} from "../types/insertAccount";
@@ -276,7 +275,6 @@ export async function handleMemberRegistration(
         email: email.trim(),
         password: password,
         accountType: AccountType.Member,
-        gymSubscriptionType: GymSubscriptionType.Monthly,
         gender: Gender.Male,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     });

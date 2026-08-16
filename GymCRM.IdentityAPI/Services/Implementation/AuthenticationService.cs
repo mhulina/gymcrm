@@ -116,7 +116,6 @@ public class AuthenticationService : IAuthenticationService
 				AccountGuid = entity.Id,
 				Email = insertAccount.Email.ToLower(),
 				AccountType = insertAccount.AccountType ?? 1,
-				GymSubscriptionType = insertAccount.GymSubscriptionType ?? 0,
 				Gender = insertAccount.Gender ?? 0,
 				DateModified = entity.DateCreated,
 				TimeZone = string.IsNullOrWhiteSpace(insertAccount.TimeZone)
@@ -167,7 +166,6 @@ public class AuthenticationService : IAuthenticationService
 			Email = request.Email,
 			Password = request.Password,
 			AccountType = (int)AccountType.Admin,
-			GymSubscriptionType = 0,
 			Gender = 0,
 			TimeZone = request.TimeZone,
 		}, cancellationToken);

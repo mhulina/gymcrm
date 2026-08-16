@@ -4,7 +4,6 @@ import AppLayout from "../../../app/AppLayout";
 import {Badge} from "../../../shared/components/Badge";
 import {TextField} from "../../../shared/components/TextField";
 import {AccountType} from "../types/accountType";
-import {GymSubscriptionType} from "../types/gymSubscriptionType";
 import {Member} from "../types/member";
 import {fetchAllMembers} from "../api/identityApi";
 import {fullName} from "../utils/memberDisplay";
@@ -64,21 +63,20 @@ export default function AdminMembersListPage() {
                             <th className="px-4 py-3 font-semibold">Name</th>
                             <th className="px-4 py-3 font-semibold">Email</th>
                             <th className="px-4 py-3 font-semibold">Role</th>
-                            <th className="px-4 py-3 font-semibold">Subscription</th>
                             <th className="px-4 py-3" />
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {loading && (
                             <tr>
-                                <td colSpan={5} className="px-4 py-6 text-center text-slate-400 dark:text-slate-500">
+                                <td colSpan={4} className="px-4 py-6 text-center text-slate-400 dark:text-slate-500">
                                     Loading...
                                 </td>
                             </tr>
                         )}
                         {!loading && filteredMembers.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="px-4 py-6 text-center text-slate-400 dark:text-slate-500">
+                                <td colSpan={4} className="px-4 py-6 text-center text-slate-400 dark:text-slate-500">
                                     No members found.
                                 </td>
                             </tr>
@@ -90,10 +88,15 @@ export default function AdminMembersListPage() {
                                 <td className="px-4 py-3">
                                     <Badge>{enumLabel(AccountType[member.accountType])}</Badge>
                                 </td>
-                                <td className="px-4 py-3">
-                                    <Badge tone="slate">{enumLabel(GymSubscriptionType[member.gymSubscriptionType])}</Badge>
-                                </td>
-                                <td className="px-4 py-3 text-right">
+                                <td className="px-4 py-3 text-right space-x-3">
+                                    {member.accountType === AccountType.Member && (
+                                        <Link
+                                            to={`/admin/members/${member.accountGuid}/billing`}
+                                            className="text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+                                        >
+                                            Billing
+                                        </Link>
+                                    )}
                                     <Link
                                         to={`/admin/members/${member.accountGuid}/edit`}
                                         className="text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"

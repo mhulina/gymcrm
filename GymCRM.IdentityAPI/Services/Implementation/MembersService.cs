@@ -376,7 +376,6 @@ namespace GymCRM.IdentityAPI.Services.Implementation
 					? existingMemberData.AccountType
 					: newMemberData.AccountType,
 				WorkingExperienceInMonths = newMemberData.WorkingExperienceInMonths,
-				GymSubscriptionType = newMemberData.GymSubscriptionType,
 				PersonalTrainerId = newMemberData.PersonalTrainerId,
 				Gender = newMemberData.Gender,
 				DateOfBirth = newMemberData.DateOfBirth ?? existingMemberData.DateOfBirth,
